@@ -97,7 +97,9 @@ test('every floor room, recipe shape and fallback is 24x13, and hand-made rooms 
       }
       const last = i === floor.rooms.length - 1;
       const rows = room.layout || room.recipe.fallback;
-      const grid = rows.map((r) => [...r]);
+      // A lava river with a moving bridge counts as a way across.
+      const bridged = room.bridge || (room.recipe && room.recipe.fallbackBridge);
+      const grid = rows.map((r) => [...r].map((c) => (bridged && c === 'l' ? 'f' : c)));
       const ey = rows.findIndex((r) => r.includes('e'));
       const reach = reachable(grid, [rows[ey].indexOf('e'), ey]);
       const doorOk = last || rows.some((r, y) => [...r].some((c, x) => c === 'd' && reach.has(x + ',' + y)));
