@@ -5,6 +5,11 @@ const { TILE } = require('../shared/tiles');
 
 const p = (game, i) => game.players.get('p' + i);
 
+// Kill every monster, including the Mini Gloops a Gloop splits into.
+function killAll(game) {
+  while (game.enemies.length) game.damageEnemy(game.enemies[0], 999, 'p0');
+}
+
 test('players start at the room entry', () => {
   const game = makeGame(['knight', 'archer'], ONE_GLOOP_ROOMS);
   assert.strictEqual(p(game, 0).x, game.room.entry.x);
@@ -47,19 +52,19 @@ test('malformed input is ignored', () => {
 test('killing the last enemy opens the door and gives gold and xp to everyone', () => {
   const game = makeGame(['knight', 'archer'], ONE_GLOOP_ROOMS);
   assert.strictEqual(game.doorOpen, false);
-  game.damageEnemy(game.enemies[0], 999, 'p0');
+  killAll(game);
   game.tick(0.05);
   assert.strictEqual(game.doorOpen, true);
   for (const pl of game.players.values()) {
-    assert.strictEqual(pl.gold, 2);
-    assert.strictEqual(pl.xp, 10);
+    assert.strictEqual(pl.gold, 4); // Gloop 2 + two Mini Gloops 1 each
+    assert.strictEqual(pl.xp, 16);
   }
   assert.ok(game.drainEvents().some((e) => e.type === 'roomclear'));
 });
 
 test('touching the open door moves everyone to the next room', () => {
   const game = makeGame(['knight', 'archer'], ONE_GLOOP_ROOMS);
-  game.damageEnemy(game.enemies[0], 999, 'p0');
+  killAll(game);
   game.tick(0.05);
   Object.assign(p(game, 0), center(9, 2));
   p(game, 1).x += 100;
@@ -74,7 +79,7 @@ test('touching the open door moves everyone to the next room', () => {
 test('downed players come back at 30% when the team moves on', () => {
   const game = makeGame(['knight', 'archer'], ONE_GLOOP_ROOMS);
   game.damagePlayer(p(game, 1), 999);
-  game.damageEnemy(game.enemies[0], 999, 'p0');
+  killAll(game);
   game.tick(0.05);
   Object.assign(p(game, 0), center(9, 2));
   game.tick(0.05);
@@ -84,7 +89,7 @@ test('downed players come back at 30% when the team moves on', () => {
 
 test('clearing the last room switches to shop', () => {
   const game = makeGame(['knight'], [ONE_GLOOP_ROOMS[2]]);
-  game.damageEnemy(game.enemies[0], 999, 'p0');
+  killAll(game);
   game.tick(0.05);
   assert.strictEqual(game.phase, 'shop');
 });
