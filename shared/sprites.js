@@ -79,6 +79,12 @@
       'ppoaaaayyaaaaopp', 'ppoaaaaaaaaaaopp', 'ppoaaoaaaaoaaopp', 'pp.oaaaaaaaao.pp',
       'pp.oaaaooaaao.pp', 'p..oaao..oaao..p', '...oaao..oaao...', '...oooo..oooo...'
     ],
+    dragon: [
+      'w..............w', 'ww....h..h....ww', 'wwo...ohho...oww', 'wwwo.orrrro.owww',
+      'wwwworerrerowwww', 'wwwworttttrowwww', 'wwwwoorrrroowwww', '.wwworrbbrrowww.',
+      '..wworbbbbroww..', '...worbbbbrow...', '...orrbbbbrro...', '...orrrrrrrro...',
+      '..orro....orro..', '..oro......oro..', '........orro....', '.........oo.....'
+    ],
     mother: [
       '....g..g..g.....', '....gggggggg....', '....oooooooo....', '..oobbbbbbbboo..',
       '.obblbbbbbbbbbo.', '.obllbbbbbbbbbo.', 'obbwkbbbbbbwkbbo', 'obbkkbbbbbbkkbbo',
@@ -104,6 +110,7 @@
     queen: { o: '#2A1A14', c: '#8E4FB8', d: '#5EC8B8', s: '#EADBC0', h: '#BFAE90', k: '#120A16', m: '#7A2E3A', v: '#4F8A6A', g: '#5EC8B8' },
     golem: { o: '#1E1A22', d: '#6E6378', e: '#F2A541', c: '#E5622B' },
     king: { o: '#120E18', y: '#F2C14E', k: '#1B1524', e: '#C77DFF', a: '#4A4063', p: '#5B2A6E' },
+    dragon: { o: '#1A0E0C', r: '#B8381E', b: '#F2A541', e: '#FFF1B8', t: '#E9E4D4', w: '#5A1A12', h: '#E9E4D4' },
     mother: { o: '#2A1533', b: '#A94FC0', l: '#E3A6EE', w: '#FFFFFF', k: '#120A16', m: '#120A16', g: '#F2A541', n: '#E3A6EE' }
   };
 
@@ -128,6 +135,7 @@
     out.push({ file: 'queen.png', key: 'queen', rows: MAPS.queen, palette: MONSTER_PALETTES.queen, size: 96 });
     out.push({ file: 'golem.png', key: 'golem', rows: MAPS.golem, palette: MONSTER_PALETTES.golem, size: 64 });
     out.push({ file: 'king.png', key: 'king', rows: MAPS.king, palette: MONSTER_PALETTES.king, size: 96 });
+    out.push({ file: 'dragon.png', key: 'dragon', rows: MAPS.dragon, palette: MONSTER_PALETTES.dragon, size: 128 });
     out.push({ file: 'halfmother.png', key: 'halfmother', rows: MAPS.mother, palette: MONSTER_PALETTES.mother, size: 64 });
     return out;
   }

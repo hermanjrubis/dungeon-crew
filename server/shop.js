@@ -68,6 +68,8 @@ function shopState(game) {
     floorIndex: game.floorIndex,
     floorName: game.floor.name,
     nextFloorName: next ? next.name : null,
+    final: !game.floor.shop && !next, // the whole dungeon is cleared
+    time: Math.round(game.time),
     players: [...game.players.values()].map((p) => ({
       id: p.id, name: p.name, heroClass: p.heroClass, color: p.color,
       gold: p.gold, owned: p.owned, ready: p.ready, potions: p.potions, feathers: p.feathers,

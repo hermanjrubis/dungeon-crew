@@ -224,3 +224,8 @@ kbd {
 @keyframes blink { 50% { opacity: .3; } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
 .pause-overlay { z-index: 6; }
+
+/* Victory screen after Ashmaw */
+.end-card.victory h1 { color: var(--orange); text-shadow: 0 0 24px rgba(242, 165, 65, 0.45); }
+.trophies { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.trophy { display: inline-block; padding: 4px 10px; border-radius: 8px; background: rgba(242, 165, 65, 0.12); border: 1px solid rgba(242, 165, 65, 0.45); color: #F2C14E; font-weight: 600; font-size: 13px; }

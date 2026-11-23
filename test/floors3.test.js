@@ -110,3 +110,13 @@ test('clearing the last floor ends the run without a shop', () => {
   assert.strictEqual(game.phase, 'done');
   assert.ok(game.drainEvents().some((e) => e.type === 'phase' && e.phase === 'done'));
 });
+
+test('the end state says whether the whole run is won, and how long it took', () => {
+  const floors = [{ name: 'End', roomNames: [], shop: null, rooms: [{ layout: TINY }] }];
+  const game = new Game([{ id: 'p0', name: 'Kai', heroClass: 'knight', color: 'orange' }], { floors, transitions: false, rng: () => 0 });
+  for (let i = 0; i < 20; i++) game.tick(0.05);
+  const state = shop.shopState(game);
+  assert.strictEqual(state.final, true);
+  assert.strictEqual(typeof state.time, 'number');
+  assert.strictEqual(shop.shopState(crownGame(['knight'])).final, false);
+});

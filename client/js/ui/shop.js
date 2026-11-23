@@ -82,7 +82,10 @@
     root.querySelector('#shop-ready').addEventListener('click', () => Net.ready(!me.ready));
   }
 
+  const TROPHY_WEAPONS = { knight: 'Dragonfang Sword', archer: 'Emberstorm Bow', mage: 'Wyrmflame Staff' };
+
   function renderEnd(state) {
+    if (state.final) { renderVictory(state); return; }
     const root = document.getElementById('end');
     const cards = state.players.map((p) => `
       <div class="panel">
@@ -98,6 +101,35 @@
         <p class="lead">${esc(state.floorName)} is beaten. Floor ${state.floorIndex + 2} is coming soon.</p>
         <div class="end-team">${cards}</div>
         <button type="button" id="end-menu" class="btn btn-primary btn-big">Back to menu</button>
+      </div>`;
+    root.querySelector('#end-menu').addEventListener('click', () => { location.href = location.pathname; });
+  }
+
+  // The whole dungeon is cleared: Ashmaw is beaten.
+  function renderVictory(state) {
+    const root = document.getElementById('end');
+    const mins = Math.floor(state.time / 60);
+    const secs = String(state.time % 60).padStart(2, '0');
+    const cards = state.players.map((p) => `
+      <div class="panel">
+        <img src="assets/${p.heroClass}-${p.color}.png" width="96" height="96" alt="">
+        <b>${esc(p.name)}</b>
+        <span class="muted small">${esc(HEROES[p.heroClass].name)} · Level ${p.level}</span>
+        <span class="hud-gold">${p.gold} gold</span>
+        <span class="trophy">${esc(TROPHY_WEAPONS[p.heroClass])}<span class="muted small"> · Legendary</span></span>
+      </div>`).join('');
+    root.innerHTML = `
+      <div class="end-card victory">
+        <p class="eyebrow">Victory</p>
+        <h1>Ashmaw is defeated!</h1>
+        <p class="lead">Your crew cleared all four floors of the dungeon in ${mins}:${secs}.</p>
+        <div class="end-team">${cards}</div>
+        <div class="trophies">
+          <span class="muted small">Dragon's hoard</span>
+          <span class="trophy">Phoenix Feather</span>
+          <span class="trophy">300 gold each</span>
+        </div>
+        <button type="button" id="end-menu" class="btn btn-primary btn-big">Back to lobby</button>
       </div>`;
     root.querySelector('#end-menu').addEventListener('click', () => { location.href = location.pathname; });
   }

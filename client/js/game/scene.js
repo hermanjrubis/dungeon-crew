@@ -163,6 +163,7 @@
           if (ch === 'w' && isBorder(tx, ty)) drawWall(g, x, y, tx, ty);
           else if (ch === 'j') { drawWall(g, x, y, tx, ty); drawNozzle(g, x, y, tx, ty, room); }
           else if (ch === 'v') drawVent(g, x, y);
+          else if (ch === 'r') drawPlatform(g, x, y, tx, ty);
           else if (ch === 'd') drawDoor(g, x, y, snap.doorOpen);
           else if (ch === 'p') drawPit(g, tx, ty, at);
           else if (ch === 'u') drawPool(g, tx, ty, at, 'u', 0x324a66, 0x6b8fb3);
@@ -190,6 +191,16 @@
         (room.grid[ty][tx] === 'l' || melted.has(ty * room.w + tx));
       for (let ty = 0; ty < room.h; ty++) {
         for (let tx = 0; tx < room.w; tx++) if (isLava(tx, ty)) drawLava(g, tx, ty, time, isLava);
+      }
+      for (const idx of snap.crumbling || []) {
+        const tx = idx % room.w;
+        const ty = Math.floor(idx / room.w);
+        const sx = Math.sin(time / 30 + idx) * 2;
+        g.fillStyle(0xe5622b, 0.25 + 0.2 * Math.abs(Math.sin(time / 90))).fillRect(tx * TILE + sx, ty * TILE, TILE, TILE);
+        g.lineStyle(2, 0xf2a541, 0.9);
+        g.lineBetween(tx * TILE + 8 + sx, ty * TILE + 10, tx * TILE + 26 + sx, ty * TILE + 30);
+        g.lineBetween(tx * TILE + 26 + sx, ty * TILE + 30, tx * TILE + 40 + sx, ty * TILE + 22);
+        if (Math.random() < 0.03) this.fx.burst(tx * TILE + 24, ty * TILE + 24, 0x7a6248, 2, 'rubble', 'fx-square');
       }
       const b = snap.bridge;
       if (b) {
@@ -293,6 +304,17 @@
           const grown = 1 - Math.max(0, Math.min(1, (z.until - snap.t) / 1));
           g.fillStyle(0x000000, 0.25 + 0.4 * grown).fillEllipse(z.x, z.y, z.r * 2 * (0.4 + 0.6 * grown), z.r * 1.4 * (0.4 + 0.6 * grown));
           g.lineStyle(2, 0xe5534b, 0.4 + 0.5 * grown).strokeEllipse(z.x, z.y, z.r * 2, z.r * 1.4);
+        } else if (z.kind === 'breathWarn') {
+          const charge = 1 - Math.max(0, Math.min(1, (z.until - snap.t) / 1.5));
+          g.fillStyle(0xe5622b, 0.12 + 0.3 * charge);
+          g.slice(z.x, z.y, z.r, z.aim - z.spread / 2, z.aim + z.spread / 2, false).fillPath();
+          g.lineStyle(3, 0xe5534b, 0.5 + 0.5 * pulse);
+          g.slice(z.x, z.y, z.r, z.aim - z.spread / 2, z.aim + z.spread / 2, false).strokePath();
+        } else if (z.kind === 'meteorMark') {
+          const left = Math.max(0, Math.min(1, (z.until - snap.t) / 1.5));
+          g.fillStyle(0xe5534b, 0.15 + 0.2 * (1 - left)).fillCircle(z.x, z.y, z.r);
+          g.lineStyle(3, 0xe5534b, 0.9).strokeCircle(z.x, z.y, z.r);
+          g.lineStyle(2, 0xf2a541, 0.9).strokeCircle(z.x, z.y, z.r * left);
         } else if (z.kind === 'taunt') {
           g.lineStyle(4, 0xf2a541, 0.8).strokeCircle(z.x, z.y, z.r * 0.5);
         }
@@ -365,7 +387,12 @@
         seen.add(id);
         const pos = past.get(id) || e;
         const s = this.spriteFor(id, DC.sprites.enemyTexture(e.type));
-        s.body.setVisible(e.state !== 'airborne');
+        s.body.setVisible(e.state !== 'airborne' && e.state !== 'fly');
+        if (e.type === 'dragon') {
+          // its shadow on the ground; bigger and softer while it's in the sky
+          const lifted = e.sky || e.state === 'fly';
+          this.zoneLayer.fillStyle(0x000000, lifted ? 0.25 : 0.35).fillEllipse(pos.x, pos.y + 40, lifted ? 130 : 100, lifted ? 40 : 30);
+        }
         let sx = 1;
         let sy = 1;
         let lift = 0;
@@ -374,15 +401,18 @@
         if (e.type === 'seed') { const k = 1 + 0.12 * Math.sin(time / 150); sx = k; sy = k; }
         s.body.setAlpha(e.state === 'shimmer' ? 0.25 + 0.5 * Math.abs(Math.sin(time / 60)) : 1);
         if (e.state === 'leap') lift = 18;
+        if (e.sky) { lift = 28 + 4 * Math.sin(time / 200); sx = 1.1; sy = 1.1; }
+        if (e.state === 'flap') { sx = 1.2 + 0.1 * Math.sin(time / 60); }
         s.body.setPosition(pos.x, pos.y - lift).setScale(sx, sy);
-        if (e.type === 'golem' || e.type === 'king') s.body.setFlipX(Math.abs(e.facing) > Math.PI / 2);
+        if (e.type === 'golem' || e.type === 'king' || e.type === 'dragon') s.body.setFlipX(Math.abs(e.facing) > Math.PI / 2);
         if (e.state === 'raise') { sx = 1.1; sy = 1.15; s.body.setScale(sx, sy); }
-        const tell = ['screech', 'squish', 'draw', 'swell', 'raise', 'ring'].includes(e.state) && Math.floor(time / 100) % 2 === 0;
+        const tell = ['screech', 'squish', 'draw', 'swell', 'raise', 'ring', 'flap', 'tail'].includes(e.state) && Math.floor(time / 100) % 2 === 0;
         const hit = (this.flashUntil.get(id) || 0) > time;
         if (hit || tell) s.body.setTintFill(0xffffff);
         else if (e.state === 'swoop') s.body.setTint(0xf2a541);
         else if (e.state === 'storm') s.body.setTint(0x9bd17a);
         else if (e.state === 'ring') s.body.setTint(0xc77dff);
+        else if (e.state === 'breathe') s.body.setTint(Math.floor(time / 80) % 2 ? 0xf2a541 : 0xffffff);
         else if (e.stunned) s.body.setTint(0xb8b0d0);
         else s.body.clearTint();
         if (e.state === 'swoop' && time - (this.ghostAt.get(id) || 0) > 40) {
@@ -391,7 +421,7 @@
         }
         this.drawStatus(e, pos, time);
         s.bar.clear();
-        if (e.state !== 'airborne' && e.type !== 'bones' && e.type !== 'seed') {
+        if (e.state !== 'airborne' && e.state !== 'fly' && e.type !== 'bones' && e.type !== 'seed') {
           const [off, width] = BIG[e.type] || [e.type === 'golem' ? 40 : 30, 36];
           drawBar(s.bar, pos.x, pos.y - off, e.hp / e.maxHp, 0xc76bd9, width);
         }
@@ -528,7 +558,7 @@
           g.fillStyle(0xf2c14e).fillCircle(pos.x + Math.cos(a) * 14, top + Math.sin(a) * 4, 3);
         }
       }
-      if (['squish', 'screech', 'draw', 'swell', 'storm', 'raise', 'ring'].includes(e.state)) {
+      if (['squish', 'screech', 'draw', 'swell', 'storm', 'raise', 'ring', 'breathe', 'flap', 'tail'].includes(e.state)) {
         g.fillStyle(0xe5534b).fillRect(pos.x - 3, top - 18, 6, 12).fillRect(pos.x - 3, top - 3, 6, 5);
       }
     }
@@ -728,6 +758,48 @@
       } else if (ev.type === 'shadowring') {
         fx.ring(ev.x, ev.y, { from: 20, to: 150, life: 0.4, color: 0xc77dff, width: 6 });
         fx.burst(ev.x, ev.y, 0xc77dff, 24, 'burst');
+      } else if (ev.type === 'breath') {
+        for (let i = 0; i < 10; i++) {
+          const a = ev.aim + (Math.random() - 0.5) * 1.1;
+          const d = 40 + Math.random() * (ev.r - 40);
+          fx.burst(ev.x + Math.cos(a) * d, ev.y + Math.sin(a) * d, i % 2 ? 0xf2a541 : 0xe5622b, 5, 'flame');
+        }
+        fx.shake(250, 0.01);
+      } else if (ev.type === 'flapwarn') {
+        Hud.banner('Ashmaw spreads its wings!', 1000);
+      } else if (ev.type === 'gust') {
+        for (let i = 0; i < 3; i++) fx.ring(ev.x, ev.y, { from: 40, to: 260, life: 0.5, color: 0xe9e4d4, width: 5, delay: i * 0.08 });
+        fx.burst(ev.x, ev.y, 0xcfc8de, 24, 'smoke');
+        fx.shake(200, 0.008);
+      } else if (ev.type === 'tail') {
+        fx.ring(ev.x, ev.y, { from: 30, to: 120, life: 0.3, color: 0xe5622b, width: 10, arc: { aim: ev.aim, spread: 1.6 } });
+        fx.shake(150, 0.007);
+      } else if (ev.type === 'meteorwarn') {
+        Hud.banner('Meteors! Get out of the red circles!', 1400);
+      } else if (ev.type === 'meteor') {
+        for (const m of ev.marks || []) {
+          fx.ring(m.x, m.y, { from: 10, to: 60, life: 0.35, color: 0xf2a541, width: 8, fill: 0.3 });
+          fx.burst(m.x, m.y, 0xf2a541, 18, 'flame');
+          fx.burst(m.x, m.y, 0x5a5066, 6, 'smoke');
+        }
+        fx.shake(300, 0.012);
+      } else if (ev.type === 'takeoff') {
+        fx.burst(ev.x, ev.y, 0xcfc8de, 30, 'smoke');
+        Hud.banner('Ashmaw takes to the sky! Only ranged attacks reach it.', 2400);
+      } else if (ev.type === 'landed') {
+        fx.ring(ev.x, ev.y, { from: 20, to: 140, life: 0.4, color: 0xe9e4d4, width: 8 });
+        fx.burst(ev.x, ev.y, 0x7a6248, 24, 'rubble', 'fx-square');
+        fx.shake(300, 0.012);
+        Hud.banner('Ashmaw is stunned! Attack now!', 2000);
+      } else if (ev.type === 'roostcrumble') {
+        Hud.banner('The Roost is crumbling!', 2200);
+      } else if (ev.type === 'ringfall') {
+        fx.shake(300, 0.01);
+      } else if (ev.type === 'outofreach') {
+        if (!this.lastReach || this.time.now - this.lastReach > 600) {
+          this.lastReach = this.time.now;
+          this.floatText(ev.x, ev.y - 70, 'Out of reach!', '#CFC8DE');
+        }
       } else if (ev.type === 'crumble') {
         fx.burst(ev.x, ev.y, 0x7a6248, 18, 'rubble', 'fx-square');
         fx.burst(ev.x, ev.y, 0x5a5066, 6, 'smoke');
@@ -942,6 +1014,14 @@
     g.fillStyle(0x15121e).fillRect(horiz ? x + 14 : x + 16, horiz ? y + 16 : y + 14, horiz ? 20 : 16, horiz ? 16 : 20);
     g.fillStyle(0x8c84a3);
     for (const [bx, by] of [[12, 12], [36, 12], [12, 36], [36, 36]]) g.fillCircle(x + bx, y + by, 1.5);
+  }
+
+  // A stone platform of the Roost: slabs with dark seams.
+  function drawPlatform(g, x, y, tx, ty) {
+    g.fillStyle(0x3a3046, 0.6).fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+    g.lineStyle(1, 0x1b1725).strokeRect(x + 1.5, y + 1.5, TILE - 3, TILE - 3);
+    g.fillStyle(0x4a4063, 0.6).fillRect(x + 2, y + 2, TILE - 4, 3);
+    if (hash(tx, ty) > 0.6) g.lineStyle(1, 0x1b1725).lineBetween(x + 10, y + 20, x + 22, y + 30);
   }
 
   function drawBar(g, x, y, frac, color, width = 36) {
