@@ -14,6 +14,7 @@ const enemies = require('./enemies');
 const hazards = require('./hazards');
 const shop = require('./shop');
 const forge = require('./forge');
+const golem = require('./golem');
 
 const REVIVE_RANGE = 48;
 const REVIVE_TIME = 3;
@@ -334,9 +335,12 @@ class Game {
 
   damageEnemy(e, amount, byId) {
     if (!e || e.hp <= 0 || e.invulnerable || !this.enemies.includes(e)) return 0;
-    const dealt = Math.max(1, Math.round(amount));
+    const armor = e.type === 'golem' ? golem.frontFactor(this, e, byId) : 1;
+    const dealt = Math.max(1, Math.round(amount * armor));
     e.hp -= dealt;
-    this.event({ type: 'damage', enemyId: e.id, amount: dealt, x: Math.round(e.x), y: Math.round(e.y) });
+    const ev = { type: 'damage', enemyId: e.id, amount: dealt, x: Math.round(e.x), y: Math.round(e.y) };
+    if (armor < 1) ev.armored = true;
+    this.event(ev);
     if (e.hp <= 0) this.killEnemy(e, { reward: true, byId });
     return dealt;
   }
@@ -497,6 +501,7 @@ class Game {
       enemies: this.enemies.map((e) => ({
         id: e.id, type: e.type, x: r(e.x), y: r(e.y), hp: e.hp, maxHp: e.maxHp, state: e.state,
         rebuildAt: e.rebuildAt || 0, growAt: e.growAt || 0,
+        facing: e.facing === undefined ? 0 : Math.round(e.facing * 100) / 100,
         stunned: this.time < e.stunUntil
       })),
       projectiles: this.projectiles.map((pr) => ({ id: pr.id, kind: pr.kind, x: r(pr.x), y: r(pr.y) })),
