@@ -337,8 +337,13 @@ class Game {
     return e;
   }
 
-  damageEnemy(e, amount, byId) {
+  // opts.melee: a sword hit. Ashmaw in the sky can't be reached by those.
+  damageEnemy(e, amount, byId, opts = {}) {
     if (!e || e.hp <= 0 || e.invulnerable || !this.enemies.includes(e)) return 0;
+    if (e.sky && opts.melee) {
+      this.event({ type: 'outofreach', enemyId: e.id, x: Math.round(e.x), y: Math.round(e.y) });
+      return 0;
+    }
     const armor = e.type === 'golem' ? golem.frontFactor(this, e, byId) : 1;
     const dealt = Math.max(1, Math.round(amount * armor));
     e.hp -= dealt;
@@ -511,10 +516,14 @@ class Game {
         id: e.id, type: e.type, x: r(e.x), y: r(e.y), hp: e.hp, maxHp: e.maxHp, state: e.state,
         rebuildAt: e.rebuildAt || 0, growAt: e.growAt || 0,
         facing: e.facing === undefined ? 0 : Math.round(e.facing * 100) / 100,
-        stunned: this.time < e.stunUntil
+        stunned: this.time < e.stunUntil, sky: !!e.sky
       })),
       projectiles: this.projectiles.map((pr) => ({ id: pr.id, kind: pr.kind, x: r(pr.x), y: r(pr.y) })),
-      zones: this.zones.map((z) => ({ id: z.id, kind: z.kind, x: r(z.x), y: r(z.y), r: z.r, until: z.until }))
+      zones: this.zones.map((z) => {
+        const out = { id: z.id, kind: z.kind, x: r(z.x), y: r(z.y), r: z.r, until: z.until };
+        if (z.aim !== undefined) { out.aim = Math.round(z.aim * 100) / 100; out.spread = Math.round(z.spread * 100) / 100; }
+        return out;
+      })
     };
   }
 }

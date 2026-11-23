@@ -73,7 +73,7 @@ function basicAttack(game, p, hero) {
   if (a.kind === 'swing') {
     p.swingAt = game.time;
     for (const e of game.enemies.slice()) {
-      if (inArc(p, e, a.range, a.arc)) game.damageEnemy(e, game.playerDamage(p), p.id);
+      if (inArc(p, e, a.range, a.arc)) game.damageEnemy(e, game.playerDamage(p), p.id, { melee: true });
     }
   } else {
     shoot(game, p, a.kind, a.speed, a.ttl, game.playerDamage(p));
@@ -118,8 +118,8 @@ function skillQ(game, p, hero) {
     p.swingAt = game.time;
     for (const e of game.enemies.slice()) {
       if (!inArc(p, e, s.range, s.arc)) continue;
-      game.damageEnemy(e, s.dmg, p.id);
-      if (e.hp <= 0) continue;
+      game.damageEnemy(e, s.dmg, p.id, { melee: true });
+      if (e.hp <= 0 || e.sky || e.type === 'dragon') continue; // too big to push
       const ang = Math.atan2(e.y - p.y, e.x - p.x);
       const pos = tiles.moveWithCollision(game.room, e.x, e.y, Math.cos(ang) * s.push, Math.sin(ang) * s.push, e.r, {});
       e.x = pos.x;
