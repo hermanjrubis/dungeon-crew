@@ -1,0 +1,27 @@
+{
+  "name": "dungeon-crew",
+  "version": "1.0.0",
+  "description": "Co-op multiplayer browser dungeon crawler",
+  "main": "server/index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test test/*.test.js",
+    "sprites": "node tools/make-sprites.js"
+  },
+  "dependencies": {
+    "express": "^4.22.3",
+    "phaser": "^3.90.0",
+    "socket.io": "^4.8.4"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
+  },
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true
+}
