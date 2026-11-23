@@ -177,3 +177,22 @@ test('impossible recipe falls back to the hand-made rows', () => {
   assert.strictEqual(res.fallback, true);
   assert.deepStrictEqual(res.rows, FALLBACK);
 });
+
+// ---------- Slice 3: lava river ----------
+test('river recipes always leave the door reachable across the bridge for 200 seeds', () => {
+  const { PLAIN } = require('../shared/rooms');
+  const recipe = {
+    shape: PLAIN, fallback: PLAIN, river: { x: 11 },
+    scatter: [{ kind: 'pillar', count: [2, 4], size: [1, 1] }, { kind: 'puddle', count: 2, size: [2, 2] }],
+    monsters: { golem: 1, archer: 2, bat: 2 }
+  };
+  for (let seed = 1; seed <= 200; seed++) {
+    const built = buildRoom(recipe, makeRng(seed));
+    assert.strictEqual(built.fallback, false, 'seed ' + seed);
+    assert.deepStrictEqual(built.bridge, { tx: 11, stops: [2, 3, 4, 5, 6, 7, 8, 9] });
+    for (let y = 1; y <= 11; y++) {
+      assert.strictEqual(built.rows[y][11] + built.rows[y][12], 'll', `nothing on the river, seed ${seed}`);
+    }
+    assert.ok(built.rows.join('').includes('G'));
+  }
+});

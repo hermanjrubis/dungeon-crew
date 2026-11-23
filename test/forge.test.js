@@ -163,3 +163,47 @@ test('a pillar stops a jet beam', () => {
   assert.strictEqual(me(game).hp, 120);
   assert.strictEqual(game.snapshot().jets[0].len, 3);
 });
+
+// ---------- the moving bridge ----------
+const { Game } = require('../server/game');
+const RIVER_ROOM = [
+  'wwwwwwwwww',
+  'wfffllfffw',
+  'wfffllfffw',
+  'wfffllfffw',
+  'wfffllfffw',
+  'wfffllfffw',
+  'wfffllfffw',
+  'wwwwwwwwww'
+];
+RIVER_ROOM[3] = 'weffllfffd';
+function bridgeGame() {
+  const floors = [{ name: 'Forge', roomNames: [], shop: 'crown', rooms: [{ layout: RIVER_ROOM, bridge: { tx: 4, stops: [1, 3, 5] } }, { layout: OPEN }] }];
+  return new Game([{ id: 'p0', name: 'Kai', heroClass: 'knight', color: 'orange' }], { floors, transitions: false, rng: () => 0 });
+}
+
+test('the bridge stays 3 s, flickers 1 s, then moves to another stop', () => {
+  const game = bridgeGame();
+  run(game, 2.9);
+  assert.deepStrictEqual(game.snapshot().bridge, { x: 192, y: 48, w: 96, h: 96, warn: false });
+  run(game, 0.2);
+  assert.strictEqual(game.snapshot().bridge.warn, true);
+  run(game, 1.5);
+  assert.deepStrictEqual(game.snapshot().bridge, { x: 192, y: 144, w: 96, h: 96, warn: false });
+});
+
+test('bridge carries riders', () => {
+  const game = bridgeGame();
+  Object.assign(me(game), { x: 240, y: 96 });
+  run(game, 4.6);
+  assert.deepStrictEqual([me(game).x, me(game).y], [240, 192]);
+  assert.strictEqual(me(game).hp, 120);
+});
+
+test('standing on lava under the bridge is safe', () => {
+  const game = bridgeGame();
+  Object.assign(me(game), { x: 220, y: 80 });
+  run(game, 1);
+  assert.strictEqual(me(game).hp, 120);
+  assert.ok(forge.onBridge(game, 220, 80));
+});

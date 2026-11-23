@@ -59,7 +59,7 @@ class Game {
     this.floorIndex = index;
     this.floor = this.floors[index];
     this.layouts = this.floor.rooms.map((r, k) => {
-      if (r.layout) return { rows: r.layout, dark: r.dark ? [r.dark] : [], torches: (r.torches || []).map((t) => ({ ...t })) };
+      if (r.layout) return { rows: r.layout, dark: r.dark ? [r.dark] : [], torches: (r.torches || []).map((t) => ({ ...t })), bridge: r.bridge || null };
       return buildRoom(r.recipe, makeRng(this.seed + index * 1000 + k));
     });
     this.roomIndex = 0;

@@ -22,9 +22,19 @@ const JET_FIRE = 1;
 const JET_DAMAGE = 15;
 const JET_HALF_WIDTH = 24;
 
+const BRIDGE_STAY = 3;    // the bridge rests this long...
+const BRIDGE_WARN = 1;    // ...then flickers this long...
+const BRIDGE_GLIDE = 0.5; // ...then slides to its next stop
+
 // Called whenever a room loads: find this room's vents and jets.
-function reset(game) {
+function reset(game, layout = {}) {
   game.forgeStart = game.time;
+  // The bridge over a lava river: 2 tiles wide, 2 tiles tall, carries riders.
+  const b = layout.bridge;
+  game.bridge = b ? {
+    x: b.tx * T, y: b.stops[0] * T, w: 2 * T, h: 2 * T,
+    stops: b.stops.map((s) => s * T), stop: 0, arrivedAt: game.time, glide: null
+  } : null;
   game.vents = [];
   game.jets = [];
   const { grid, w, h } = game.room;
@@ -74,14 +84,49 @@ function respawnPoint(game) {
   return { x: game.room.entry.x, y: game.room.entry.y };
 }
 
-// Is this spot lava right now?
+function onBridge(game, x, y) {
+  const b = game.bridge;
+  return !!b && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+}
+
+// Is this spot lava right now? (Lava under the bridge is safe.)
 function isLava(game, x, y) {
-  return tiles.tileAt(game.room, x, y) === 'l';
+  return tiles.tileAt(game.room, x, y) === 'l' && !onBridge(game, x, y);
+}
+
+function updateBridge(game) {
+  const b = game.bridge;
+  if (!b) return;
+  const riders = game.alivePlayers().filter((p) => onBridge(game, p.x, p.y));
+  const before = b.y;
+  if (!b.glide && game.time >= b.arrivedAt + BRIDGE_STAY + BRIDGE_WARN - EPS) {
+    const others = b.stops.map((_, i) => i).filter((i) => i !== b.stop);
+    const next = others[Math.floor(game.rng() * others.length)];
+    b.glide = { from: b.y, to: b.stops[next], start: game.time, next };
+    game.event({ type: 'bridgemove', x: b.x, y: b.stops[next] });
+  }
+  if (b.glide) {
+    const t = Math.min(1, (game.time - b.glide.start) / BRIDGE_GLIDE);
+    b.y = b.glide.from + (b.glide.to - b.glide.from) * t;
+    if (t >= 1 - EPS) {
+      b.y = b.glide.to;
+      b.stop = b.glide.next;
+      b.glide = null;
+      b.arrivedAt = game.time;
+    }
+  }
+  for (const p of riders) p.y += b.y - before;
+}
+
+function bridgeWarn(game) {
+  const b = game.bridge;
+  return !!b && !b.glide && game.time >= b.arrivedAt + BRIDGE_STAY - EPS;
 }
 
 function update(game, dt) {
   if (!game.vents) reset(game);
   const hurtable = game.enemies.filter((e) => !e.flying && !e.invulnerable);
+  updateBridge(game);
 
   // Lava
   for (const p of game.alivePlayers()) {
@@ -148,10 +193,12 @@ function update(game, dt) {
 }
 
 function snapshot(game) {
+  const b = game.bridge;
   return {
+    bridge: b ? { x: b.x, y: Math.round(b.y), w: b.w, h: b.h, warn: bridgeWarn(game) } : null,
     vents: (game.vents || []).map((v) => ({ x: v.x, y: v.y, state: ventState(game, v.i) })),
     jets: (game.jets || []).map((j) => ({ x: j.x, y: j.y, dx: j.dir.x, dy: j.dir.y, len: j.len, state: jetState(game, j.group) }))
   };
 }
 
-module.exports = { reset, update, snapshot, ventState, jetState, respawnPoint, isLava };
+module.exports = { reset, update, snapshot, ventState, jetState, respawnPoint, isLava, onBridge };

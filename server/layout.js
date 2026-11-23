@@ -12,12 +12,12 @@
 // If 50 tries all break a rule, the recipe's hand-made `fallback` is used.
 
 const LETTERS = { spikes: 's', puddle: 'u', poison: 'o', pillar: 'w' };
-const MONSTER_LETTERS = { gloop: 'g', bat: 'b', archer: 'a', sporecap: 'c' };
+const MONSTER_LETTERS = { gloop: 'g', bat: 'b', archer: 'a', sporecap: 'c', golem: 'G' };
 const TRIES = 50;
 const SPOT_TRIES = 200;
 const KEEP_CLEAR = 2;
 const MONSTER_MIN_DIST = 5;
-const BLOCKING = 'wpx'; // tiles a safe path can't cross
+const BLOCKING = 'wpxvlj'; // tiles a safe path can't cross
 
 function find(grid, ch) {
   const out = [];
@@ -58,6 +58,15 @@ function tryBuild(recipe, rng) {
       for (let x = kx - KEEP_CLEAR; x <= kx + KEEP_CLEAR; x++) keep.add(x + ',' + y);
     }
   }
+  // A lava river 2 tiles wide, top to bottom, crossed by a moving bridge.
+  let bridge = null;
+  if (recipe.river) {
+    const rx = recipe.river.x;
+    for (let y = 1; y < h - 1; y++) { grid[y][rx] = 'l'; grid[y][rx + 1] = 'l'; }
+    const stops = [];
+    for (let y = 2; y <= h - 4; y++) stops.push(y);
+    bridge = { tx: rx, stops };
+  }
   const free = (x, y) => y >= 0 && y < h && x >= 0 && x < w && grid[y][x] === 'f' && !keep.has(x + ',' + y);
 
   // Scatter traps and pillars.
@@ -87,8 +96,10 @@ function tryBuild(recipe, rng) {
     }
   }
 
-  // The door must still be reachable.
-  const reach = reachable(grid, entry);
+  // The door must still be reachable. The bridge reaches every part of the
+  // river in time, so for this check the river counts as walkable.
+  const walkGrid = bridge ? grid.map((row) => row.map((c) => (c === 'l' ? 'f' : c))) : grid;
+  const reach = reachable(walkGrid, entry);
   if (!doors.some(([x, y]) => reach.has(x + ',' + y))) return null;
 
   // Monsters: plain floor, far enough from the entrance, reachable.
@@ -120,7 +131,7 @@ function tryBuild(recipe, rng) {
     }
   }
 
-  return { rows: grid.map((r) => r.join('')), dark, torches };
+  return { rows: grid.map((r) => r.join('')), dark, torches, bridge };
 }
 
 function buildRoom(recipe, rng) {
@@ -132,6 +143,7 @@ function buildRoom(recipe, rng) {
     rows: recipe.fallback.slice(),
     dark: recipe.dark ? [recipe.dark] : [],
     torches: (recipe.fallbackTorches || []).map((t) => ({ ...t })),
+    bridge: recipe.fallbackBridge || null,
     fallback: true
   };
 }
