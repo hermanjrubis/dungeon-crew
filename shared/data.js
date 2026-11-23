@@ -48,8 +48,8 @@
     halfmother: { name: 'Half Mother', hp: 60, dmg: 8, speed: 55, r: 26, xp: 0, gold: [0, 0], boss: true }
   };
 
-  // XP needed to reach level 1..5. Each level after 1 gives +10 max HP and +2 damage.
-  const LEVELS = [0, 50, 120, 220, 350];
+  // XP needed to reach level 1..8. Each level after 1 gives +10 max HP and +2 damage.
+  const LEVELS = [0, 50, 120, 220, 350, 500, 700, 950];
   const LEVEL_HP = 10;
   const LEVEL_DMG = 2;
 
@@ -68,8 +68,30 @@
   const SET_NAME = 'Cellar Guard Set';
   const SET_BONUS = 'Poison damage −50%. Useful in Floor 2.';
 
+  // One shop per floor (the floor's `shop` in rooms.js picks which).
+  const SHOPS = {
+    cellar: {
+      setName: SET_NAME, setBonus: SET_BONUS, setPieces: ['helm', 'mail', 'boots'],
+      items: SHOP_ITEMS, weapons: SHOP_WEAPONS
+    },
+    forge: {
+      setName: 'Forgewalker Set',
+      setBonus: 'Less damage from lava and burning. Built for Floor 3.',
+      setPieces: ['helm2', 'plate2', 'boots2'],
+      items: [
+        { id: 'helm2', name: 'Copper Helm', slot: 'Head', price: 80, once: true, effect: { maxHp: 20 }, text: '+20 max HP' },
+        { id: 'plate2', name: 'Forge Plate', slot: 'Chest', price: 110, once: true, effect: { defense: 6 }, text: '+6 defense' },
+        { id: 'boots2', name: 'Ashstep Boots', slot: 'Feet', price: 90, once: true, effect: { speedMul: 0.15 }, text: '+15% move speed' },
+        { id: 'weapon2', name: 'Class weapon', slot: 'Weapon', price: 120, once: true, effect: { weaponBonus: 14 }, text: '+14 damage' },
+        { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
+        { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
+      ],
+      weapons: { knight: 'Steel Sword', archer: 'Longbow', mage: 'Crystal Staff' }
+    }
+  };
+
   return {
     TICK_RATE, CLASSES, COLORS, HEROES, MONSTERS, LEVELS, LEVEL_HP, LEVEL_DMG,
-    POTION_HEAL, SHOP_ITEMS, SHOP_WEAPONS, SET_NAME, SET_BONUS
+    POTION_HEAL, SHOP_ITEMS, SHOP_WEAPONS, SET_NAME, SET_BONUS, SHOPS
   };
 });

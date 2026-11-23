@@ -1,11 +1,15 @@
-// The camp shop after Floor 1. Each player spends their own gold.
+// The camp shop after each floor. Each player spends their own gold.
+// The floor's `shop` (in shared/rooms.js) picks which shop from shared/data.js.
 const data = require('../shared/data');
+
+const shopOf = (game) => data.SHOPS[game.floor.shop] || data.SHOPS.cellar;
 
 function buy(game, playerId, itemId) {
   const p = game.players.get(playerId);
   if (!p) return { ok: false, error: 'Not in this game' };
   if (game.phase !== 'shop') return { ok: false, error: 'Shop is closed' };
-  const item = data.SHOP_ITEMS.find((i) => i.id === itemId);
+  const store = shopOf(game);
+  const item = store.items.find((i) => i.id === itemId);
   if (!item) return { ok: false, error: 'No such item' };
   if (item.once && p.owned.includes(itemId)) return { ok: false, error: 'Already owned' };
   if (p.gold < item.price) return { ok: false, error: 'Not enough gold' };
@@ -16,9 +20,9 @@ function buy(game, playerId, itemId) {
   if (fx.maxHp) { p.maxHp += fx.maxHp; p.hp += fx.maxHp; }
   if (fx.defense) p.defense += fx.defense;
   if (fx.speedMul) p.speedMul += fx.speedMul;
-  if (fx.weaponBonus) {
+  if (fx.weaponBonus && fx.weaponBonus > p.weaponBonus) {
     p.weaponBonus = fx.weaponBonus;
-    p.weaponName = data.SHOP_WEAPONS[p.heroClass];
+    p.weaponName = store.weapons[p.heroClass];
   }
   if (fx.potions) p.potions += fx.potions;
   if (fx.feathers) p.feathers += fx.feathers;
@@ -32,21 +36,38 @@ function setShopReady(game, playerId, ready) {
   checkDone(game);
 }
 
-// Everyone still connected is ready: Floor 1 is finished.
+// Everyone still connected is ready: go to the next floor, or finish.
 function checkDone(game) {
   if (game.phase !== 'shop' || game.players.size === 0) return;
-  if ([...game.players.values()].every((p) => p.ready)) {
+  if (![...game.players.values()].every((p) => p.ready)) return;
+  if (game.floorIndex < game.floors.length - 1) {
+    for (const p of game.players.values()) {
+      p.ready = false;
+      p.downed = false;
+      p.hp = p.maxHp;
+      p.mana = p.maxMana;
+      p.slows = {};
+    }
+    game.startFloor(game.floorIndex + 1);
+    game.event({ type: 'phase', phase: 'playing' });
+  } else {
     game.phase = 'done';
     game.event({ type: 'phase', phase: 'done' });
   }
 }
 
 function shopState(game) {
+  const store = shopOf(game);
+  const next = game.floors[game.floorIndex + 1];
   return {
-    items: data.SHOP_ITEMS,
-    weapons: data.SHOP_WEAPONS,
-    setName: data.SET_NAME,
-    setBonus: data.SET_BONUS,
+    items: store.items,
+    weapons: store.weapons,
+    setName: store.setName,
+    setBonus: store.setBonus,
+    setPieces: store.setPieces,
+    floorIndex: game.floorIndex,
+    floorName: game.floor.name,
+    nextFloorName: next ? next.name : null,
     players: [...game.players.values()].map((p) => ({
       id: p.id, name: p.name, heroClass: p.heroClass, color: p.color,
       gold: p.gold, owned: p.owned, ready: p.ready, potions: p.potions, feathers: p.feathers,

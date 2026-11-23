@@ -571,6 +571,8 @@
         start();
       });
       Net.on('game:snapshot', (snap) => {
+        // Coming back from the shop into the next floor.
+        if (App.screen === 'shop' && snap.phase === 'playing') App.show('game');
         latest = snap;
         buffer.push({ at: performance.now(), snap });
         if (buffer.length > 12) buffer.shift();

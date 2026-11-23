@@ -1,7 +1,6 @@
 // Camp shop after Floor 1, and the end screen.
 (function () {
   const { HEROES, COLORS } = DC.data;
-  const ARMOR = ['helm', 'mail', 'boots'];
   let busy = false;
 
   function esc(s) {
@@ -12,7 +11,10 @@
     const me = state.players.find((p) => p.id === App.me);
     if (!me) return;
     const root = document.getElementById('shop');
+    const ARMOR = state.setPieces;
     const pieces = ARMOR.filter((id) => me.owned.includes(id)).length;
+    const floorNo = state.floorIndex + 1;
+    const readyLabel = state.nextFloorName ? `Ready for Floor ${floorNo + 1}` : 'Finish the run';
     const readyCount = state.players.filter((p) => p.ready).length;
 
     const items = state.items.map((item) => {
@@ -39,7 +41,7 @@
     root.innerHTML = `
       <div class="shop-top">
         <div>
-          <p class="eyebrow">Floor 1 cleared · Camp</p>
+          <p class="eyebrow">Floor ${floorNo} cleared · Camp</p>
           <h1 class="screen-title">Blacksmith's Shop</h1>
         </div>
         <span class="shop-gold">${me.gold} gold</span>
@@ -64,7 +66,7 @@
         <div class="team-strip">${team}</div>
         <div class="lobby-actions">
           <span class="muted">${readyCount} of ${state.players.length} ready</span>
-          <button type="button" id="shop-ready" class="btn btn-big ${me.ready ? 'btn-outline' : 'btn-teal'}">${me.ready ? 'Not ready yet' : 'Ready for Floor 2'}</button>
+          <button type="button" id="shop-ready" class="btn btn-big ${me.ready ? 'btn-outline' : 'btn-teal'}">${me.ready ? 'Not ready yet' : readyLabel}</button>
         </div>
       </div>`;
 
@@ -91,8 +93,8 @@
     root.innerHTML = `
       <div class="end-card">
         <p class="eyebrow">Victory</p>
-        <h1>Floor 1 cleared!</h1>
-        <p class="lead">The Gloop Mother is beaten. Floor 2, the Fungal Caverns, is coming soon.</p>
+        <h1>Floor ${state.floorIndex + 1} cleared!</h1>
+        <p class="lead">${esc(state.floorName)} is beaten. Floor ${state.floorIndex + 2} is coming soon.</p>
         <div class="end-team">${cards}</div>
         <button type="button" id="end-menu" class="btn btn-primary btn-big">Back to menu</button>
       </div>`;

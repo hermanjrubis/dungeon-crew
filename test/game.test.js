@@ -186,7 +186,7 @@ test('xp levels you up: +10 max HP and +2 damage', () => {
   assert.strictEqual(me.maxHp, 130);
   assert.strictEqual(game.playerDamage(me), dmg + 2);
   game.addXp(me, 10000);
-  assert.strictEqual(me.level, 5);
+  assert.strictEqual(me.level, 8); // the level cap is 8 since Slice 2
 });
 
 test('boss HP scales with extra players', () => {
