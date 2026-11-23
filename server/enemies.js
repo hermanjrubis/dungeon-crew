@@ -5,6 +5,7 @@ const archer = require('./archer');
 const sporecap = require('./sporecap');
 const queen = require('./queen');
 const golem = require('./golem');
+const king = require('./king');
 const { dist, pickTarget, moveEnemy, walkToward, contactDamage } = require('./ai');
 
 const EPS = 1e-6;
@@ -161,6 +162,7 @@ function updateEnemy(game, e, dt) {
   else if (e.type === 'seed') sporecap.updateSeed(game, e, dt);
   else if (e.type === 'queen') queen.updateQueen(game, e, dt);
   else if (e.type === 'golem') golem.updateGolem(game, e, dt);
+  else if (e.type === 'king') king.updateKing(game, e, dt);
   else if (e.boss) boss.updateBoss(game, e, dt);
 }
 
