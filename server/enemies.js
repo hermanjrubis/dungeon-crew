@@ -2,6 +2,7 @@
 // Every attack has a "tell" state (squish, screech) so players can react.
 const boss = require('./boss');
 const archer = require('./archer');
+const sporecap = require('./sporecap');
 const { dist, pickTarget, moveEnemy, walkToward, contactDamage } = require('./ai');
 
 const EPS = 1e-6;
@@ -154,6 +155,8 @@ function updateEnemy(game, e, dt) {
   else if (e.type === 'bat') updateBat(game, e, dt);
   else if (e.type === 'archer') archer.updateArcher(game, e, dt);
   else if (e.type === 'bones') archer.updateBones(game, e, dt);
+  else if (e.type === 'sporecap') sporecap.updateSporecap(game, e, dt);
+  else if (e.type === 'seed') sporecap.updateSeed(game, e, dt);
   else if (e.boss) boss.updateBoss(game, e, dt);
 }
 

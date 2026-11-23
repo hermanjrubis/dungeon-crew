@@ -457,7 +457,7 @@ class Game {
       })),
       enemies: this.enemies.map((e) => ({
         id: e.id, type: e.type, x: r(e.x), y: r(e.y), hp: e.hp, maxHp: e.maxHp, state: e.state,
-        rebuildAt: e.rebuildAt || 0,
+        rebuildAt: e.rebuildAt || 0, growAt: e.growAt || 0,
         stunned: this.time < e.stunUntil
       })),
       projectiles: this.projectiles.map((pr) => ({ id: pr.id, kind: pr.kind, x: r(pr.x), y: r(pr.y) })),

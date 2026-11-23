@@ -48,6 +48,8 @@
     // Floor 2. The Bone Archer's reward is paid when its bones are destroyed.
     archer: { name: 'Bone Archer', hp: 30, dmg: 8, speed: 90, r: 16, xp: 0, gold: [0, 0], reward: { xp: 15, gold: [5, 8] } },
     bones: { name: 'Bones', hp: 1, dmg: 0, speed: 0, r: 14, xp: 0, gold: [0, 0], flying: true },
+    sporecap: { name: 'Sporecap', hp: 40, dmg: 0, speed: 0, r: 18, xp: 12, gold: [4, 6] },
+    seed: { name: 'Spore Seed', hp: 1, dmg: 0, speed: 0, r: 8, xp: 0, gold: [0, 0] },
     halfmother: { name: 'Half Mother', hp: 60, dmg: 8, speed: 55, r: 26, xp: 0, gold: [0, 0], boss: true }
   };
 
