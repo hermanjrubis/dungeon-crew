@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dungeon Crew</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/knight-orange.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 1. Main menu -->
+  <section id="menu" class="screen">
+    <div class="menu-main">
+      <p class="eyebrow">Co-op dungeon crawler · 2–4 players</p>
+      <h1 class="title">Dungeon<br>Crew</h1>
+      <p class="lead">Team up with friends, clear the rooms, grab the loot, and beat the boss on every floor.</p>
+      <form id="menu-form" class="menu-form" autocomplete="off">
+        <label for="name-input">Your name</label>
+        <input id="name-input" type="text" maxlength="12" placeholder="Enter a name">
+        <button id="create-btn" type="button" class="btn btn-primary btn-big">Create room</button>
+        <div class="join-row">
+          <label for="code-input" class="sr-only">Room code</label>
+          <input id="code-input" type="text" maxlength="4" placeholder="Room code" class="code-input">
+          <button id="join-btn" type="submit" class="btn btn-outline">Join</button>
+        </div>
+        <p id="menu-error" class="error" role="alert"></p>
+      </form>
+    </div>
+    <aside class="panel how-to">
+      <h2>How to play</h2>
+      <ul class="keys">
+        <li><kbd>W A S D</kbd><span>Move</span></li>
+        <li><kbd>Click</kbd><span>Attack toward the mouse</span></li>
+        <li><kbd>Q</kbd><span>Main skill</span></li>
+        <li><kbd>Space</kbd><span>Second skill</span></li>
+        <li><kbd>E</kbd><span>Hold next to a downed friend to revive</span></li>
+        <li><kbd>1 · 2</kbd><span>Health Potion · Revive Feather</span></li>
+      </ul>
+    </aside>
+  </section>
+
+  <!-- 2. Lobby + character select -->
+  <section id="lobby" class="screen hidden">
+    <header class="lobby-top">
+      <h1 class="screen-title">Choose your hero</h1>
+      <div class="room-code">
+        <span class="muted">Room</span>
+        <span id="room-code" class="code"></span>
+        <button id="copy-link" type="button" class="btn btn-small btn-outline">Copy invite link</button>
+      </div>
+    </header>
+    <div class="lobby-body">
+      <div class="lobby-left">
+        <div id="hero-list" class="hero-list"></div>
+        <div class="panel color-panel">
+          <span class="label">Your color</span>
+          <div id="color-list" class="color-list"></div>
+          <span id="color-note" class="muted small"></span>
+        </div>
+      </div>
+      <div class="hero-preview panel">
+        <img id="preview-img" alt="" width="240" height="240">
+        <span id="preview-name" class="preview-name"></span>
+      </div>
+      <div class="hero-details panel">
+        <p id="hero-desc" class="hero-desc"></p>
+        <div id="hero-stats" class="stats"></div>
+        <h2 class="label">Skills</h2>
+        <div id="hero-skills" class="skills"></div>
+      </div>
+    </div>
+    <footer class="lobby-bottom">
+      <div id="team-strip" class="team-strip"></div>
+      <div class="lobby-actions">
+        <button id="leave-btn" type="button" class="btn btn-outline">Leave</button>
+        <button id="lock-btn" type="button" class="btn btn-primary btn-big">Lock in</button>
+        <button id="start-btn" type="button" class="btn btn-teal btn-big hidden">Start game</button>
+      </div>
+      <p id="lobby-error" class="error" role="alert"></p>
+    </footer>
+  </section>
+
+  <!-- 3. The dungeon -->
+  <section id="game" class="screen hidden">
+    <div id="game-canvas"></div>
+    <div id="hud"></div>
+  </section>
+
+  <!-- 4. Camp shop -->
+  <section id="shop" class="screen hidden"></section>
+
+  <!-- 5. End screen -->
+  <section id="end" class="screen hidden"></section>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/vendor/phaser.min.js"></script>
+  <script src="/shared/tiles.js"></script>
+  <script src="/shared/data.js"></script>
+  <script src="/shared/rooms.js"></script>
+  <script src="/shared/sprites.js"></script>
+  <script src="js/net.js"></script>
+  <script src="js/ui/menu.js"></script>
+  <script src="js/ui/lobby.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
