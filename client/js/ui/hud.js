@@ -33,7 +33,8 @@
       </div>
       <div class="hud-box hud-help">Hold <b>E</b> next to a downed friend to revive them.</div>
       <div class="hud-down hidden" data-r="down">You're down!<br><span class="muted">A teammate can hold E next to you to revive you.</span></div>
-      <div class="hud-banner hidden" data-r="banner"></div>`;
+      <div class="hud-banner hidden" data-r="banner"></div>
+      <div class="hud-hurt" data-r="hurt"></div>`;
     for (const n of hud().querySelectorAll('[data-r]')) refs[n.dataset.r] = n;
     built = true;
   }
@@ -90,6 +91,14 @@
       refs.potions.textContent = me.potions;
       refs.feathers.textContent = me.feathers;
       refs.down.classList.toggle('hidden', !me.downed);
+    },
+
+    // A quick red glow around the screen when you get hit.
+    hurt() {
+      if (!built) build();
+      refs.hurt.classList.remove('show');
+      void refs.hurt.offsetWidth; // restart the fade
+      refs.hurt.classList.add('show');
     },
 
     banner(text, ms = 1800) {

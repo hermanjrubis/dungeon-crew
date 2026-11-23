@@ -36,6 +36,11 @@
       this.roomIndex = -1;
       this.slashes = [];
       this.floaters = [];
+      this.fx = new Effects(this);
+      this.statusLayer = this.add.graphics().setDepth(6);
+      this.flashUntil = new Map(); // sprite id -> time the hit flash ends
+      this.ghostAt = new Map();    // sprite id -> time of the last afterimage
+      this.lastShot = new Map();   // projectile id -> previous position
 
       this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,Q,SPACE,E,ONE,TWO');
       this.input.mouse.disableContextMenu();
@@ -81,6 +86,7 @@
       this.drawEntities(snap, time);
       this.drawShots(snap);
       this.drawEffects(dt);
+      this.fx.update(dt);
       for (const ev of pendingEvents.splice(0)) this.onEvent(ev, snap);
     }
 
@@ -194,6 +200,7 @@
           g.lineStyle(3, 0xe5534b, 0.9).strokeEllipse(z.x, z.y, z.r * 2, z.r * 1.4);
         } else if (z.kind === 'slime') {
           g.fillStyle(0xa94fc0, 0.35).fillCircle(z.x, z.y, z.r);
+          g.fillStyle(0xe3a6ee, 0.35).fillCircle(z.x - z.r * 0.3, z.y - z.r * 0.3, z.r * 0.3);
         } else if (z.kind === 'arrowRain') {
           g.fillStyle(0x5ec8b8, 0.12).fillCircle(z.x, z.y, z.r);
           g.lineStyle(2, 0x5ec8b8, 0.8).strokeCircle(z.x, z.y, z.r);
@@ -204,9 +211,19 @@
             const ry = z.y + Math.sin(a) * z.r * 0.6 + ((time / 3 + i * 20) % 30) - 15;
             g.lineBetween(rx, ry - 10, rx, ry);
           }
+          if (Math.random() < 0.35) {
+            const a = Math.random() * Math.PI * 2;
+            const d = Math.random() * z.r;
+            this.fx.burst(z.x + Math.cos(a) * d, z.y + Math.sin(a) * d, 0xcfc8de, 3, 'spark', 'fx-square');
+          }
         } else if (z.kind === 'healCircle') {
           g.fillStyle(0x5ec8b8, 0.18 + 0.08 * pulse).fillCircle(z.x, z.y, z.r);
           g.lineStyle(2, 0x5ec8b8, 0.9).strokeCircle(z.x, z.y, z.r);
+          if (Math.random() < 0.5) {
+            const a = Math.random() * Math.PI * 2;
+            const d = Math.random() * z.r;
+            this.fx.burst(z.x + Math.cos(a) * d, z.y + Math.sin(a) * d, 0x7ee8c8, 1, 'rise', 'fx-plus');
+          }
         } else if (z.kind === 'fireBlast') {
           g.fillStyle(0xf2a541, 0.55).fillCircle(z.x, z.y, z.r);
         } else if (z.kind === 'taunt') {
@@ -231,6 +248,7 @@
     }
 
     drawEntities(snap, time) {
+      this.statusLayer.clear();
       const seen = new Set();
       const past = interpolated(snap);
 
@@ -242,6 +260,11 @@
         const s = this.spriteFor(id, `${p.heroClass}-${p.color}`, isMe ? p.name + ' (you)' : p.name, DC.data.COLORS[p.color]);
         s.body.setPosition(pos.x, pos.y - 6).setFlipX(Math.abs(p.aim) > Math.PI / 2).setScale(1, 1);
         s.body.setAlpha(p.downed ? 0.35 : p.rolling ? 0.6 : 1).setAngle(p.downed ? 90 : 0);
+        if ((this.flashUntil.get(id) || 0) > time) s.body.setTintFill(0xff5a50); else s.body.clearTint();
+        if (p.rolling && time - (this.ghostAt.get(id) || 0) > 35) {
+          this.ghostAt.set(id, time);
+          this.fx.ghost(s.body, DC.data.COLORS[p.color] ? parseInt(DC.data.COLORS[p.color].slice(1), 16) : 0xffffff);
+        }
         s.label.setPosition(pos.x, pos.y - 34);
         s.bar.clear();
         drawBar(s.bar, pos.x, pos.y - 32, p.hp / p.maxHp, 0xe5534b);
@@ -269,8 +292,17 @@
         if (e.state === 'squish') { sx = 1.25; sy = 0.7; }
         if (e.state === 'leap') lift = 18;
         s.body.setPosition(pos.x, pos.y - lift).setScale(sx, sy);
-        const flash = (e.state === 'screech' || e.state === 'squish') && Math.floor(time / 100) % 2 === 0;
-        if (flash) s.body.setTintFill(0xffffff); else if (e.state === 'swoop') s.body.setTint(0xf2a541); else s.body.clearTint();
+        const tell = (e.state === 'screech' || e.state === 'squish') && Math.floor(time / 100) % 2 === 0;
+        const hit = (this.flashUntil.get(id) || 0) > time;
+        if (hit || tell) s.body.setTintFill(0xffffff);
+        else if (e.state === 'swoop') s.body.setTint(0xf2a541);
+        else if (e.stunned) s.body.setTint(0xb8b0d0);
+        else s.body.clearTint();
+        if (e.state === 'swoop' && time - (this.ghostAt.get(id) || 0) > 40) {
+          this.ghostAt.set(id, time);
+          this.fx.ghost(s.body, 0xf2a541);
+        }
+        this.drawStatus(e, pos, time);
         s.bar.clear();
         if (e.state !== 'airborne') {
           const big = e.type === 'mother' || e.type === 'halfmother';
@@ -290,13 +322,47 @@
     drawShots(snap) {
       const g = this.shotLayer;
       g.clear();
+      const alive = new Set();
       for (const pr of snap.projectiles) {
-        if (pr.kind === 'arrow') g.fillStyle(0xe9e4d4).fillCircle(pr.x, pr.y, 4);
-        else if (pr.kind === 'bolt') g.fillStyle(0x6c9bf2).fillCircle(pr.x, pr.y, 6);
-        else if (pr.kind === 'fireball') {
+        alive.add(pr.id);
+        const prev = this.lastShot.get(pr.id) || pr;
+        const ang = Math.atan2(pr.y - prev.y, pr.x - prev.x);
+        if (pr.kind === 'arrow') {
+          // a little arrow pointing where it flies, with a pale streak behind it
+          const cx = Math.cos(ang);
+          const cy = Math.sin(ang);
+          g.lineStyle(2, 0xcfc8de, 0.35).lineBetween(pr.x - cx * 34, pr.y - cy * 34, pr.x, pr.y);
+          g.lineStyle(3, 0xe9e4d4, 1).lineBetween(pr.x - cx * 14, pr.y - cy * 14, pr.x + cx * 6, pr.y + cy * 6);
+          g.fillStyle(0xffffff).fillTriangle(pr.x + cx * 10, pr.y + cy * 10, pr.x - cy * 4, pr.y + cx * 4, pr.x + cy * 4, pr.y - cx * 4);
+        } else if (pr.kind === 'bolt') {
+          g.fillStyle(0x6c9bf2, 0.35).fillCircle(pr.x, pr.y, 11);
+          g.fillStyle(0xb8d0ff).fillCircle(pr.x, pr.y, 5);
+          this.fx.burst(pr.x, pr.y, 0x6c9bf2, 1, 'trail');
+        } else if (pr.kind === 'fireball') {
+          g.fillStyle(0xe5622b, 0.4).fillCircle(pr.x, pr.y, 15);
           g.fillStyle(0xf2a541).fillCircle(pr.x, pr.y, 9);
           g.fillStyle(0xfff1b8).fillCircle(pr.x, pr.y, 4);
+          this.fx.burst(pr.x, pr.y, 0xf2a541, 2, 'trail');
+          this.fx.burst(pr.x, pr.y, 0xe5622b, 1, 'trail');
         }
+        this.lastShot.set(pr.id, { x: pr.x, y: pr.y });
+      }
+      for (const id of this.lastShot.keys()) if (!alive.has(id)) this.lastShot.delete(id);
+    }
+
+    // Stun stars and "!" warnings above monsters.
+    drawStatus(e, pos, time) {
+      const g = this.statusLayer;
+      const big = e.type === 'mother' || e.type === 'halfmother';
+      const top = pos.y - (big ? 62 : 38);
+      if (e.stunned) {
+        for (let i = 0; i < 3; i++) {
+          const a = time / 180 + (i * Math.PI * 2) / 3;
+          g.fillStyle(0xf2c14e).fillCircle(pos.x + Math.cos(a) * 14, top + Math.sin(a) * 4, 3);
+        }
+      }
+      if (e.state === 'squish' || e.state === 'screech') {
+        g.fillStyle(0xe5534b).fillRect(pos.x - 3, top - 18, 6, 12).fillRect(pos.x - 3, top - 3, 6, 5);
       }
     }
 
@@ -325,13 +391,123 @@
       this.floaters.push({ text: t, life: 0.8 });
     }
 
-    onEvent(ev, snap) {
-      if (ev.type === 'damage') {
-        if (ev.enemyId) this.floatText(ev.x, ev.y - 20, String(ev.amount), '#FFFFFF');
-        else {
-          const p = snap.players.find((q) => q.id === ev.targetId);
-          if (p) this.floatText(p.x, p.y - 40, '-' + ev.amount, '#FF8A80');
+    // How each hero skill looks when it's used.
+    castEffect(ev, snap) {
+      const fx = this.fx;
+      const color = (() => {
+        const p = snap.players.find((q) => q.id === ev.by);
+        return p ? parseInt(DC.data.COLORS[p.color].slice(1), 16) : 0xffffff;
+      })();
+      if (ev.skill === 'bash') {
+        fx.ring(ev.x, ev.y, { from: 20, to: 100, life: 0.25, color: 0xb8d0ff, width: 10, arc: { aim: ev.aim, spread: 1.05 } });
+        fx.ring(ev.x, ev.y, { from: 10, to: 80, life: 0.25, color: 0xffffff, width: 5, arc: { aim: ev.aim, spread: 0.9 }, delay: 0.05 });
+        fx.burst(ev.x + Math.cos(ev.aim) * 50, ev.y + Math.sin(ev.aim) * 50, 0xb8d0ff, 14, 'spark', 'fx-square');
+        fx.shake(110, 0.006);
+      } else if (ev.skill === 'taunt') {
+        for (let i = 0; i < 3; i++) fx.ring(ev.x, ev.y, { from: 20, to: 240, life: 0.6, color: 0xf2a541, width: 6, delay: i * 0.12 });
+        fx.burst(ev.x, ev.y, 0xf2a541, 16, 'burst');
+        for (const e of snap.enemies) {
+          if (Math.hypot(e.x - ev.x, e.y - ev.y) <= 240) this.floatText(e.x, e.y - 44, '!', '#F2A541');
         }
+      } else if (ev.skill === 'arrowRain') {
+        const tx = ev.x + Math.cos(ev.aim) * 360;
+        const ty = ev.y + Math.sin(ev.aim) * 360;
+        fx.ring(tx, ty, { from: 96, to: 20, life: 0.3, color: 0x5ec8b8, width: 4 });
+        fx.burst(ev.x, ev.y, 0x5ec8b8, 8, 'rise');
+      } else if (ev.skill === 'roll') {
+        fx.burst(ev.x, ev.y, 0xcfc8de, 10, 'smoke');
+      } else if (ev.skill === 'fireball') {
+        fx.burst(ev.x + Math.cos(ev.aim) * 24, ev.y + Math.sin(ev.aim) * 24, 0xf2a541, 14, 'flame');
+      } else if (ev.skill === 'heal') {
+        fx.ring(ev.x, ev.y, { from: 10, to: 96, life: 0.5, color: 0x7ee8c8, width: 6, fill: 0.2 });
+        fx.burst(ev.x, ev.y, 0x7ee8c8, 20, 'rise', 'fx-plus');
+      }
+      if (color && ev.skill !== 'heal' && ev.skill !== 'taunt') fx.burst(ev.x, ev.y, color, 4, 'spark');
+    }
+
+    onEvent(ev, snap) {
+      const fx = this.fx;
+      const now = this.time.now;
+      const playerAt = (id) => snap.players.find((q) => q.id === id);
+      if (ev.type === 'damage') {
+        if (ev.enemyId) {
+          this.floatText(ev.x, ev.y - 20, String(ev.amount), '#FFFFFF');
+          this.flashUntil.set('e:' + ev.enemyId, now + 90);
+          fx.burst(ev.x, ev.y, 0xfff1b8, 6, 'spark', 'fx-square');
+        } else {
+          const p = playerAt(ev.targetId);
+          if (p) {
+            this.floatText(p.x, p.y - 40, '-' + ev.amount, '#FF8A80');
+            this.flashUntil.set('p:' + p.id, now + 120);
+            fx.burst(p.x, p.y, 0xe5534b, 8, 'spark', 'fx-square');
+          }
+          if (ev.targetId === App.me) {
+            fx.shake(120, 0.004);
+            Hud.hurt();
+          }
+        }
+      } else if (ev.type === 'cast') this.castEffect(ev, snap);
+      else if (ev.type === 'explode') {
+        fx.ring(ev.x, ev.y, { from: 10, to: ev.r + 10, life: 0.35, color: 0xf2a541, width: 8, fill: 0.35 });
+        fx.burst(ev.x, ev.y, 0xf2a541, 26, 'flame');
+        fx.burst(ev.x, ev.y, 0xe5622b, 14, 'flame');
+        fx.burst(ev.x, ev.y, 0x5a5066, 10, 'smoke');
+        fx.shake(160, 0.007);
+      } else if (ev.type === 'heal') {
+        const p = playerAt(ev.targetId);
+        if (p) {
+          this.floatText(p.x + 14, p.y - 44, '+' + ev.amount, '#7EE8C8');
+          fx.burst(p.x, p.y, 0x7ee8c8, 6, 'rise', 'fx-plus');
+        }
+      } else if (ev.type === 'land') {
+        fx.ring(ev.x, ev.y, { from: 8, to: ev.r + 30, life: 0.3, color: 0xc76bd9, width: 6, fill: 0.25 });
+        fx.burst(ev.x, ev.y, 0xc76bd9, 14, 'drip');
+      } else if (ev.type === 'bite') {
+        fx.clawMarks(ev.x, ev.y);
+      } else if (ev.type === 'screech') {
+        for (let i = 0; i < 3; i++) fx.ring(ev.x, ev.y, { from: 10, to: ev.r, life: 0.45, color: 0xb9a6e8, width: 4, delay: i * 0.08 });
+        fx.burst(ev.x, ev.y, 0xb9a6e8, 10, 'spark');
+      } else if (ev.type === 'kill') {
+        const color = Effects.MONSTER_COLORS[ev.enemyType] || 0xffffff;
+        const big = ev.enemyType === 'mother' || ev.enemyType === 'halfmother';
+        fx.burst(ev.x, ev.y, color, big ? 40 : 16, 'drip');
+        fx.burst(ev.x, ev.y, 0xffffff, big ? 16 : 6, 'spark');
+        fx.burst(ev.x, ev.y, 0x5a5066, big ? 10 : 4, 'smoke');
+        if (big) fx.shake(250, 0.01);
+      } else if (ev.type === 'flop') {
+        fx.ring(ev.x, ev.y, { from: 20, to: 110, life: 0.45, color: 0xffffff, width: 8, fill: 0.2 });
+        fx.ring(ev.x, ev.y, { from: 10, to: 80, life: 0.4, color: 0xa94fc0, width: 6, delay: 0.06 });
+        fx.burst(ev.x, ev.y, 0xa94fc0, 30, 'drip');
+        fx.burst(ev.x, ev.y, 0x7a6248, 16, 'rubble', 'fx-square');
+        fx.shake(320, 0.014);
+      } else if (ev.type === 'brood') {
+        const m = snap.enemies.find((e) => e.id === ev.enemyId);
+        if (m) fx.burst(m.x, m.y - 20, 0xc76bd9, 18, 'drip');
+      } else if (ev.type === 'spike') {
+        fx.burst(ev.x, ev.y, 0xe9e4d4, 8, 'spark', 'fx-square');
+      } else if (ev.type === 'crumble') {
+        fx.burst(ev.x, ev.y, 0x7a6248, 18, 'rubble', 'fx-square');
+        fx.burst(ev.x, ev.y, 0x5a5066, 6, 'smoke');
+      }
+      if (ev.type === 'split') {
+        fx.burst(ev.x, ev.y, 0xa94fc0, 50, 'drip');
+        fx.ring(ev.x, ev.y, { from: 20, to: 140, life: 0.5, color: 0xe3a6ee, width: 8 });
+        fx.shake(300, 0.012);
+      } else if (ev.type === 'levelup') {
+        const p = playerAt(ev.targetId);
+        if (p) {
+          fx.ring(p.x, p.y, { from: 10, to: 70, life: 0.6, color: 0xf2c14e, width: 5 });
+          fx.burst(p.x, p.y, 0xf2c14e, 24, 'rise');
+        }
+      } else if (ev.type === 'revived') {
+        const p = playerAt(ev.targetId);
+        if (p) {
+          fx.ring(p.x, p.y, { from: 10, to: 60, life: 0.5, color: 0x5ec8b8, width: 5 });
+          fx.burst(p.x, p.y, 0x5ec8b8, 18, 'rise');
+        }
+      } else if (ev.type === 'fall') {
+        const p = playerAt(ev.targetId);
+        if (p) fx.burst(p.x, p.y, 0x5a5066, 10, 'smoke');
       } else if (ev.type === 'roomclear') Hud.banner(ev.roomIndex === snap.roomCount - 1 ? 'Floor 1 cleared!' : 'Room clear! Door open →');
       else if (ev.type === 'nextroom') Hud.banner(ev.roomIndex === snap.roomCount - 1 ? 'Boss room: Gloop Mother!' : `Room ${ev.roomIndex + 1}`);
       else if (ev.type === 'reset') Hud.banner('Everyone fell! Room restarts', 2400);
