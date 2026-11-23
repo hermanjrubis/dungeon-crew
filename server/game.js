@@ -7,6 +7,7 @@ const { FLOOR1 } = require('../shared/rooms');
 const heroes = require('./heroes');
 const enemies = require('./enemies');
 const hazards = require('./hazards');
+const shop = require('./shop');
 
 const REVIVE_RANGE = 48;
 const REVIVE_TIME = 3;
@@ -106,6 +107,19 @@ class Game {
 
   removePlayer(id) {
     this.players.delete(id);
+    shop.checkDone(this); // a player leaving the shop shouldn't block the others
+  }
+
+  buy(id, itemId) {
+    return shop.buy(this, id, itemId);
+  }
+
+  setShopReady(id, ready) {
+    shop.setShopReady(this, id, ready);
+  }
+
+  shopState() {
+    return shop.shopState(this);
   }
 
   alivePlayers() {
