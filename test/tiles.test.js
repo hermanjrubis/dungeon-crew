@@ -84,3 +84,24 @@ test('in every Floor 1 room the door can be reached from the entry without cross
     assert.ok(found, `room ${i + 1}: no safe path from entry to door`);
   });
 });
+
+test('every floor room, recipe shape and fallback is 24x13, and hand-made rooms have a safe path', () => {
+  const { FLOORS } = require('../shared/rooms');
+  const { reachable } = require('../server/layout');
+  for (const floor of FLOORS) {
+    floor.rooms.forEach((room, i) => {
+      const grids = room.layout ? [room.layout] : [room.recipe.shape, room.recipe.fallback];
+      for (const rows of grids) {
+        assert.strictEqual(rows.length, 13, `${floor.name} room ${i + 1}`);
+        rows.forEach((r) => assert.strictEqual(r.length, 24, `${floor.name} room ${i + 1}: ${r}`));
+      }
+      const last = i === floor.rooms.length - 1;
+      const rows = room.layout || room.recipe.fallback;
+      const grid = rows.map((r) => [...r]);
+      const ey = rows.findIndex((r) => r.includes('e'));
+      const reach = reachable(grid, [rows[ey].indexOf('e'), ey]);
+      const doorOk = last || rows.some((r, y) => [...r].some((c, x) => c === 'd' && reach.has(x + ',' + y)));
+      assert.ok(doorOk, `${floor.name} room ${i + 1} has no safe path`);
+    });
+  }
+});

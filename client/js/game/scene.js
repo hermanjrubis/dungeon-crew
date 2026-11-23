@@ -3,7 +3,6 @@
 // screen (prediction) and is gently pulled to where the server says it is.
 (function () {
   const { TILE, parseRoom, moveWithCollision } = DC.tiles;
-  const { FLOOR1 } = DC.rooms;
   const W = DC.tiles.ROOM_W * TILE;
   const H = DC.tiles.ROOM_H * TILE;
   const INTERP_DELAY = 100; // ms: draw others slightly in the past so movement is smooth
@@ -33,7 +32,7 @@
       this.tileKey = '';
       this.me = null;           // my predicted position { x, y }
       this.room = null;
-      this.roomIndex = -1;
+      this.roomKey = '';
       this.slashes = [];
       this.floaters = [];
       this.fx = new Effects(this);
@@ -75,9 +74,10 @@
       if (!latest) return;
       const dt = Math.min(deltaMs / 1000, 0.1);
       const snap = latest;
-      if (snap.roomIndex !== this.roomIndex) {
-        this.roomIndex = snap.roomIndex;
-        this.room = parseRoom(FLOOR1[snap.roomIndex]);
+      if (snap.room.key !== this.roomKey) {
+        // The server picked this room's layout; build it from the rows it sent.
+        this.roomKey = snap.room.key;
+        this.room = parseRoom(snap.room.rows);
         this.me = null;
       }
       this.drawTiles(snap);
@@ -122,7 +122,7 @@
     // ---------- the room ----------
 
     drawTiles(snap) {
-      const key = [snap.roomIndex, snap.doorOpen, snap.spikes, snap.broken.join(','), snap.cracking.join(',')].join('|');
+      const key = [snap.room.key, snap.doorOpen, snap.spikes, snap.broken.join(','), snap.cracking.join(',')].join('|');
       if (key === this.tileKey) return;
       this.tileKey = key;
       const g = this.tileLayer;
@@ -536,7 +536,7 @@
     for (let i = buffer.length - 1; i > 0; i--) {
       if (buffer[i - 1].at <= renderAt) { a = buffer[i - 1]; b = buffer[i]; break; }
     }
-    if (!a || a.snap.roomIndex !== snap.roomIndex || b.snap.roomIndex !== snap.roomIndex) return out;
+    if (!a || a.snap.room.key !== snap.room.key || b.snap.room.key !== snap.room.key) return out;
     const t = Math.max(0, Math.min(1, (renderAt - a.at) / Math.max(1, b.at - a.at)));
     const index = (list, prefix) => new Map(list.map((o) => [prefix + o.id, o]));
     const before = new Map([...index(a.snap.players, 'p:'), ...index(a.snap.enemies, 'e:')]);

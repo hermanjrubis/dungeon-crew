@@ -3,7 +3,9 @@
 // Browsers only send their key presses (setInput) and draw snapshot().
 const tiles = require('../shared/tiles');
 const data = require('../shared/data');
-const { FLOOR1, FLOOR1_NAME, FLOOR1_ROOM_NAMES } = require('../shared/rooms');
+const { FLOORS } = require('../shared/rooms');
+const { buildRoom } = require('./layout');
+const { makeRng } = require('./rng');
 
 // How long each title card stays up, in seconds. The game is frozen meanwhile.
 const CARD_TIME = { start: 2, room: 1.6, boss: 2.2, reset: 1.6, floorclear: 2.5 };
@@ -28,13 +30,16 @@ function sanitizeInput(raw) {
 }
 
 class Game {
-  constructor(players, { rooms = FLOOR1, rng = Math.random, transitions = true, roomNames = FLOOR1_ROOM_NAMES } = {}) {
+  // `rooms` (a list of hand-made room rows) makes a one-floor game, used by tests.
+  constructor(players, { floors = FLOORS, rooms = null, rng = Math.random, seed = null, transitions = true } = {}) {
     this.rng = rng;
+    this.seed = seed === null ? Math.floor(Math.random() * 2 ** 31) : seed;
     this.transitionsOn = transitions;
-    this.roomNames = roomNames;
     this.transition = null; // the title card on screen: { kind, title, subtitle, until }
     this.shopAt = null;     // when the floor-cleared card ends and the shop opens
-    this.roomDefs = rooms;
+    this.floors = rooms
+      ? [{ ...FLOORS[0], rooms: rooms.map((layout) => ({ layout })) }]
+      : floors;
     this.roomIndex = 0;
     this.time = 0;
     this.phase = 'playing';
@@ -45,12 +50,25 @@ class Game {
     this.players = new Map();
     this.startCount = players.length; // boss HP is scaled by the starting team size
     for (const info of players) this.players.set(info.id, this.makePlayer(info));
+    this.startFloor(0);
+  }
+
+  // Build this floor's rooms (random ones get a fresh layout) and enter room 1.
+  startFloor(index) {
+    this.floorIndex = index;
+    this.floor = this.floors[index];
+    this.layouts = this.floor.rooms.map((r, k) => {
+      if (r.layout) return { rows: r.layout, dark: r.dark ? [r.dark] : [], torches: (r.torches || []).map((t) => ({ ...t })) };
+      return buildRoom(r.recipe, makeRng(this.seed + index * 1000 + k));
+    });
+    this.roomIndex = 0;
+    this.phase = 'playing';
     this.loadRoom();
-    this.showCard('start', `Floor 1 · ${FLOOR1_NAME}`, `Room 1 of ${this.roomDefs.length} · ${this.roomName(0)}`);
+    this.showCard('start', `Floor ${index + 1} · ${this.floor.name}`, `Room 1 of ${this.layouts.length} · ${this.roomName(0)}`);
   }
 
   roomName(i) {
-    return this.roomNames[i] || '';
+    return (this.floor.roomNames && this.floor.roomNames[i]) || '';
   }
 
   // Put up a title card. While it's showing, nothing moves.
@@ -80,7 +98,11 @@ class Game {
   // ---------- rooms ----------
 
   loadRoom() {
-    this.room = tiles.parseRoom(this.roomDefs[this.roomIndex]);
+    const layout = this.layouts[this.roomIndex];
+    this.room = tiles.parseRoom(layout.rows);
+    this.dark = layout.dark;
+    this.torches = layout.torches.map((t) => ({ x: t.tx * tiles.TILE + tiles.TILE / 2, y: t.ty * tiles.TILE + tiles.TILE / 2, lit: false }));
+    this.allDark = false;
     this.doorOpen = false;
     this.enemies = [];
     this.projectiles = [];
@@ -103,7 +125,7 @@ class Game {
     this.roomIndex++;
     this.loadRoom();
     this.event({ type: 'nextroom', roomIndex: this.roomIndex });
-    const n = this.roomDefs.length;
+    const n = this.layouts.length;
     if (this.roomIndex === n - 1) this.showCard('boss', 'Boss room', `Room ${n} of ${n} · ${this.roomName(this.roomIndex)}`);
     else this.showCard('room', `Room ${this.roomIndex + 1} of ${n}`, this.roomName(this.roomIndex));
   }
@@ -359,9 +381,9 @@ class Game {
     if (!this.doorOpen && this.enemies.length === 0) {
       this.doorOpen = true;
       this.event({ type: 'roomclear', roomIndex: this.roomIndex });
-      if (this.roomIndex === this.roomDefs.length - 1) {
+      if (this.roomIndex === this.layouts.length - 1) {
         if (this.transitionsOn) {
-          this.showCard('floorclear', 'Floor 1 cleared!', 'Heading to the camp shop…');
+          this.showCard('floorclear', `Floor ${this.floorIndex + 1} cleared!`, 'Heading to the camp shop…');
           this.shopAt = this.transition.until;
         } else {
           this.phase = 'shop';
@@ -372,7 +394,7 @@ class Game {
     }
 
     // Walk through the open door: everyone goes to the next room.
-    if (this.doorOpen && this.roomIndex < this.roomDefs.length - 1) {
+    if (this.doorOpen && this.roomIndex < this.layouts.length - 1) {
       const atDoor = this.alivePlayers().some((p) => tiles.tileAt(this.room, p.x, p.y) === 'd');
       if (atDoor) this.nextRoom();
     }
@@ -387,7 +409,17 @@ class Game {
       pausedBy: this.paused && this.players.has(this.pausedBy) ? this.players.get(this.pausedBy).name : null,
       transition: this.transition ? { ...this.transition } : null,
       roomIndex: this.roomIndex,
-      roomCount: this.roomDefs.length,
+      roomCount: this.layouts.length,
+      floorIndex: this.floorIndex,
+      floorName: this.floor.name,
+      floorCount: this.floors.length,
+      room: {
+        key: `${this.floorIndex}:${this.roomIndex}`,
+        rows: this.layouts[this.roomIndex].rows,
+        dark: this.dark,
+        torches: this.torches.map((t) => ({ x: t.x, y: t.y, lit: t.lit }))
+      },
+      allDark: this.allDark,
       doorOpen: this.doorOpen,
       broken: [...this.broken],
       cracking: [...this.cracking.keys()],

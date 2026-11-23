@@ -139,7 +139,7 @@
           ${p.downed ? '<b style="color:#FF8A80">DOWN</b>' : `<div class="hud-bar hp"><i style="width:${(p.hp / p.maxHp) * 100}%"></i></div>`}
         </div>`).join('');
 
-      refs.roomTitle.textContent = `Floor 1 · Room ${snap.roomIndex + 1} of ${snap.roomCount}`;
+      refs.roomTitle.textContent = `Floor ${snap.floorIndex + 1} · Room ${snap.roomIndex + 1} of ${snap.roomCount}`;
       refs.roomDots.innerHTML = Array.from({ length: snap.roomCount }, (_, i) => {
         const cls = [i < snap.roomIndex ? 'done' : i === snap.roomIndex ? 'here' : '', i === snap.roomCount - 1 ? 'boss' : ''].join(' ');
         return `<span class="${cls}" title="${i === snap.roomCount - 1 ? 'Boss room' : 'Room ' + (i + 1)}"></span>`;
