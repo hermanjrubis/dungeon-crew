@@ -103,6 +103,8 @@ class Game {
     this.dark = layout.dark;
     this.torches = layout.torches.map((t) => ({ x: t.tx * tiles.TILE + tiles.TILE / 2, y: t.ty * tiles.TILE + tiles.TILE / 2, lit: false }));
     this.allDark = false;
+    this.nextRock = undefined; // first stalactite is scheduled when the room starts
+    this.rocks = [];           // falling rocks: { x, y, at }
     this.doorOpen = false;
     this.enemies = [];
     this.projectiles = [];
