@@ -11,7 +11,8 @@
     "test": "node --test --test-timeout=20000 test/*.test.js",
     "sprites": "node tools/make-sprites.js",
     "cloud:dev": "wrangler dev",
-    "cloud:deploy": "wrangler deploy"
+    "cloud:deploy": "wrangler deploy",
+    "build:web": "node tools/build-web.js"
   },
   "dependencies": {
     "express": "^4.22.3",
