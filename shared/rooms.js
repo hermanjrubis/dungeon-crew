@@ -74,5 +74,9 @@
     ]
   ];
 
-  return { FLOOR1 };
+  // Names shown on the title card when you enter each room.
+  const FLOOR1_NAME = 'Sunken Cellar';
+  const FLOOR1_ROOM_NAMES = ['The Damp Entrance', 'The Sinkhole', 'Hall of Traps', "Gloop Mother's Lair"];
+
+  return { FLOOR1, FLOOR1_NAME, FLOOR1_ROOM_NAMES };
 });

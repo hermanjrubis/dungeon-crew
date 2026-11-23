@@ -3,7 +3,10 @@
 // Browsers only send their key presses (setInput) and draw snapshot().
 const tiles = require('../shared/tiles');
 const data = require('../shared/data');
-const { FLOOR1 } = require('../shared/rooms');
+const { FLOOR1, FLOOR1_NAME, FLOOR1_ROOM_NAMES } = require('../shared/rooms');
+
+// How long each title card stays up, in seconds. The game is frozen meanwhile.
+const CARD_TIME = { start: 2, room: 1.6, boss: 2.2, reset: 1.6, floorclear: 2.5 };
 const heroes = require('./heroes');
 const enemies = require('./enemies');
 const hazards = require('./hazards');
@@ -25,8 +28,12 @@ function sanitizeInput(raw) {
 }
 
 class Game {
-  constructor(players, { rooms = FLOOR1, rng = Math.random } = {}) {
+  constructor(players, { rooms = FLOOR1, rng = Math.random, transitions = true, roomNames = FLOOR1_ROOM_NAMES } = {}) {
     this.rng = rng;
+    this.transitionsOn = transitions;
+    this.roomNames = roomNames;
+    this.transition = null; // the title card on screen: { kind, title, subtitle, until }
+    this.shopAt = null;     // when the floor-cleared card ends and the shop opens
     this.roomDefs = rooms;
     this.roomIndex = 0;
     this.time = 0;
@@ -39,6 +46,18 @@ class Game {
     this.startCount = players.length; // boss HP is scaled by the starting team size
     for (const info of players) this.players.set(info.id, this.makePlayer(info));
     this.loadRoom();
+    this.showCard('start', `Floor 1 · ${FLOOR1_NAME}`, `Room 1 of ${this.roomDefs.length} · ${this.roomName(0)}`);
+  }
+
+  roomName(i) {
+    return this.roomNames[i] || '';
+  }
+
+  // Put up a title card. While it's showing, nothing moves.
+  showCard(kind, title, subtitle) {
+    if (!this.transitionsOn) return;
+    this.transition = { kind, title, subtitle, until: this.time + CARD_TIME[kind] };
+    this.event({ type: 'transition', kind, title, subtitle });
   }
 
   makePlayer({ id, name, heroClass, color }) {
@@ -84,6 +103,9 @@ class Game {
     this.roomIndex++;
     this.loadRoom();
     this.event({ type: 'nextroom', roomIndex: this.roomIndex });
+    const n = this.roomDefs.length;
+    if (this.roomIndex === n - 1) this.showCard('boss', 'Boss room', `Room ${n} of ${n} · ${this.roomName(this.roomIndex)}`);
+    else this.showCard('room', `Room ${this.roomIndex + 1} of ${n}`, this.roomName(this.roomIndex));
   }
 
   resetRoom() {
@@ -96,6 +118,7 @@ class Game {
       p.stunUntil = 0;
     }
     this.event({ type: 'reset' });
+    this.showCard('reset', 'Everyone fell!', 'Try the room again');
   }
 
   // ---------- players ----------
@@ -305,6 +328,18 @@ class Game {
     if (!(dt > 0) || this.phase !== 'playing' || this.paused || this.players.size === 0) return;
     this.time += dt;
 
+    // A title card is up: everything waits.
+    if (this.transition) {
+      if (this.time < this.transition.until - 1e-9) return;
+      this.transition = null;
+    }
+    if (this.shopAt !== null) {
+      this.shopAt = null;
+      this.phase = 'shop';
+      this.event({ type: 'phase', phase: 'shop' });
+      return;
+    }
+
     for (const p of this.players.values()) heroes.updatePlayer(this, p, dt);
     heroes.updateProjectiles(this, dt);
     heroes.updateZones(this, dt);
@@ -325,8 +360,13 @@ class Game {
       this.doorOpen = true;
       this.event({ type: 'roomclear', roomIndex: this.roomIndex });
       if (this.roomIndex === this.roomDefs.length - 1) {
-        this.phase = 'shop';
-        this.event({ type: 'phase', phase: 'shop' });
+        if (this.transitionsOn) {
+          this.showCard('floorclear', 'Floor 1 cleared!', 'Heading to the camp shop…');
+          this.shopAt = this.transition.until;
+        } else {
+          this.phase = 'shop';
+          this.event({ type: 'phase', phase: 'shop' });
+        }
         return;
       }
     }
@@ -345,6 +385,7 @@ class Game {
       phase: this.phase,
       paused: this.paused,
       pausedBy: this.paused && this.players.has(this.pausedBy) ? this.players.get(this.pausedBy).name : null,
+      transition: this.transition ? { ...this.transition } : null,
       roomIndex: this.roomIndex,
       roomCount: this.roomDefs.length,
       doorOpen: this.doorOpen,

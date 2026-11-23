@@ -196,3 +196,31 @@ kbd {
 .pause-card h2 { margin: 0; font-family: var(--pixel); font-size: 44px; color: var(--orange); }
 .pause-card p { margin: 0; font-size: 15px; }
 .pause-card .keys kbd { min-width: 92px; }
+
+/* title cards between stages */
+.stage-card {
+  position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  background: radial-gradient(circle at 50% 50%, #1E1A2A 0%, #08070C 70%); z-index: 5; text-align: center; pointer-events: auto;
+}
+.stage-card.show { display: flex; }
+.stage-card.leaving { animation: card-out .45s ease-in forwards; }
+.stage-eyebrow { font-size: 14px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--teal); animation: rise-in .5s ease-out both; }
+.stage-title { font-family: var(--pixel); font-size: 72px; line-height: 1; color: var(--text); animation: pop-in .55s cubic-bezier(.2, 1.4, .4, 1) both; animation-delay: .08s; text-shadow: 0 4px 0 #000; }
+.stage-line { width: 0; height: 3px; margin-top: 6px; background: var(--orange); border-radius: 2px; animation: line-grow .6s ease-out forwards; animation-delay: .25s; }
+.stage-sub { font-size: 18px; color: var(--muted); animation: rise-in .5s ease-out both; animation-delay: .35s; }
+.kind-boss { background: repeating-linear-gradient(135deg, #1a0b0e 0 22px, #120709 22px 44px); }
+.kind-boss .stage-eyebrow { color: var(--red); animation: rise-in .5s ease-out both, blink .5s steps(2) infinite .5s; }
+.kind-boss .stage-title { color: var(--red); font-size: 88px; animation: pop-in .55s cubic-bezier(.2, 1.4, .4, 1) both, shake .4s ease-in-out .6s 2; }
+.kind-boss .stage-line { background: var(--red); }
+.kind-reset .stage-title { color: #FF8A80; }
+.kind-reset .stage-line { background: var(--red); }
+.kind-floorclear .stage-eyebrow { color: var(--orange); }
+.kind-floorclear .stage-title { color: var(--orange); font-size: 84px; text-shadow: 0 0 30px rgba(242,165,65,.45), 0 4px 0 #000; }
+.kind-start .stage-title { color: var(--orange); }
+@keyframes card-out { to { opacity: 0; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes pop-in { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+@keyframes line-grow { to { width: 220px; } }
+@keyframes blink { 50% { opacity: .3; } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+.pause-overlay { z-index: 6; }

@@ -48,8 +48,13 @@ test('two players create, join, pick, lock, start and get snapshots', async () =
     assert.strictEqual(mira.heroClass, 'archer');
     assert.strictEqual(mira.color, 'teal');
 
+    // The game opens with a title card; wait for it to finish.
+    assert.strictEqual(snap.transition.kind, 'start');
+    let current = snap;
+    while (current.transition) current = await once(b, 'game:snapshot');
+
     // Holding right moves Mira on the server.
-    const x0 = mira.x;
+    const x0 = current.players.find((p) => p.name === 'Mira').x;
     b.emit('input', { right: true, aim: 0 });
     await new Promise((r) => setTimeout(r, 300));
     const later = await once(b, 'game:snapshot');

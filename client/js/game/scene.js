@@ -95,7 +95,7 @@
     predictMe(snap, dt) {
       const server = snap.players.find((p) => p.id === App.me);
       if (!server) return;
-      if (!this.me || snap.paused || server.downed || server.rolling || server.stunned) {
+      if (!this.me || snap.paused || snap.transition || server.downed || server.rolling || server.stunned) {
         this.me = { x: server.x, y: server.y };
         return;
       }
@@ -508,9 +508,7 @@
       } else if (ev.type === 'fall') {
         const p = playerAt(ev.targetId);
         if (p) fx.burst(p.x, p.y, 0x5a5066, 10, 'smoke');
-      } else if (ev.type === 'roomclear') Hud.banner(ev.roomIndex === snap.roomCount - 1 ? 'Floor 1 cleared!' : 'Room clear! Door open →');
-      else if (ev.type === 'nextroom') Hud.banner(ev.roomIndex === snap.roomCount - 1 ? 'Boss room: Gloop Mother!' : `Room ${ev.roomIndex + 1}`);
-      else if (ev.type === 'reset') Hud.banner('Everyone fell! Room restarts', 2400);
+      } else if (ev.type === 'roomclear' && ev.roomIndex < snap.roomCount - 1) Hud.banner('Room clear! Door open →');
       else if (ev.type === 'levelup' && ev.targetId === App.me) Hud.banner(`Level up! Level ${ev.level}`);
       else if (ev.type === 'split') Hud.banner('She split in two!');
       else if (ev.type === 'resumed') Hud.banner(`Resumed by ${ev.by}`, 1200);

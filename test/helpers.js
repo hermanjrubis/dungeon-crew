@@ -41,7 +41,7 @@ function makeGame(classes, rooms, opts = {}) {
   const players = classes.map((heroClass, i) => ({
     id: 'p' + i, name: 'P' + i, heroClass, color: ['orange', 'blue', 'teal', 'pink'][i]
   }));
-  return new Game(players, { rooms, rng: () => 0, ...opts });
+  return new Game(players, { rooms, rng: () => 0, transitions: false, ...opts });
 }
 
 // Run the game for `seconds` in 0.05 s ticks.

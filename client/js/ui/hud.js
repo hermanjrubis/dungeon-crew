@@ -39,6 +39,12 @@
       <div class="hud-down hidden" data-r="down">You're down!<br><span class="muted">A teammate can hold E next to you to revive you.</span></div>
       <div class="hud-banner hidden" data-r="banner"></div>
       <div class="hud-hurt" data-r="hurt"></div>
+      <div class="stage-card" data-r="card" aria-live="polite">
+        <span class="stage-eyebrow" data-r="cardEyebrow"></span>
+        <span class="stage-title" data-r="cardTitle"></span>
+        <span class="stage-line"></span>
+        <span class="stage-sub" data-r="cardSub"></span>
+      </div>
       <div class="pause-overlay hidden" data-r="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title">
         <div class="pause-card">
           <h2 id="pause-title">Paused</h2>
@@ -70,6 +76,27 @@
     built = true;
   }
 
+  // Title card between stages. The server freezes the game while it's up.
+  const EYEBROWS = { start: 'Dungeon Crew', room: 'Next room', boss: 'Warning', reset: 'Oh no', floorclear: 'Victory' };
+  let cardKey = '';
+  function showCard(snap) {
+    const t = snap.transition;
+    if (!t) {
+      refs.card.className = 'stage-card';
+      cardKey = '';
+      return;
+    }
+    const key = t.kind + t.until;
+    if (key !== cardKey) {
+      cardKey = key;
+      refs.cardEyebrow.textContent = EYEBROWS[t.kind] || '';
+      refs.cardTitle.textContent = t.title;
+      refs.cardSub.textContent = t.subtitle;
+    }
+    const leaving = t.until - snap.t < 0.45;
+    refs.card.className = `stage-card show kind-${t.kind}${leaving ? ' leaving' : ''}`;
+  }
+
   function bar(fill, text, value, max) {
     fill.style.width = (max > 0 ? Math.max(0, Math.min(1, value / max)) * 100 : 0) + '%';
     if (text) text.textContent = `${Math.round(value)}/${max}`;
@@ -84,6 +111,7 @@
     update(snap, meId) {
       if (!built) build();
       lastSnap = snap;
+      showCard(snap);
       const wasPaused = !refs.pause.classList.contains('hidden');
       refs.pause.classList.toggle('hidden', !snap.paused);
       refs.pausedBy.textContent = snap.pausedBy ? `${snap.pausedBy} paused the game for everyone. Anyone can resume.` : '';
