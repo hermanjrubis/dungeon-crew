@@ -75,6 +75,15 @@ function createServer({ port = 3000 } = {}) {
       const room = lobby.roomOf(socket.id);
       const players = [...room.players.values()].map(({ id, name, heroClass, color }) => ({ id, name, heroClass, color }));
       room.game = new Game(players);
+      // Testing switches: DEBUG_FLOOR=2 starts on Floor 2 with 300 gold; DEBUG_ROOM=3 jumps to room 4 (counting from 0).
+      if (process.env.DEBUG_FLOOR) {
+        room.game.startFloor(Math.max(0, Math.min(room.game.floors.length - 1, Number(process.env.DEBUG_FLOOR) - 1)));
+        for (const pl of room.game.players.values()) pl.gold = 300;
+      }
+      if (process.env.DEBUG_ROOM) {
+        room.game.roomIndex = Math.max(0, Math.min(room.game.layouts.length - 1, Number(process.env.DEBUG_ROOM)));
+        room.game.loadRoom();
+      }
       if (process.env.DEBUG_SKIP_TO_SHOP) {
         room.game.phase = 'shop';
         for (const pl of room.game.players.values()) pl.gold = 150;

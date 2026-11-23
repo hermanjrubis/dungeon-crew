@@ -37,6 +37,9 @@
       this.floaters = [];
       this.fx = new Effects(this);
       this.statusLayer = this.add.graphics().setDepth(6);
+      this.darkLayer = this.add.graphics().setDepth(6.5);  // darkness covers monsters and shots
+      this.glowLayer = this.add.graphics().setDepth(6.6);  // the Queen's glowing spots show through it
+      this.torchHint = this.add.text(0, 0, 'Hold E to light', { fontFamily: 'Inter, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#F2C14E', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(8).setVisible(false);
       this.flashUntil = new Map(); // sprite id -> time the hit flash ends
       this.ghostAt = new Map();    // sprite id -> time of the last afterimage
       this.lastShot = new Map();   // projectile id -> previous position
@@ -86,6 +89,8 @@
       this.drawEntities(snap, time);
       this.drawShots(snap);
       this.drawEffects(dt);
+      this.drawTorches(snap, time);
+      this.drawDarkness(snap, time);
       this.fx.update(dt);
       for (const ev of pendingEvents.splice(0)) this.onEvent(ev, snap);
     }
@@ -160,6 +165,10 @@
           g.fillStyle(0x8c84a3);
           for (let i = 0; i < 4; i++) g.fillRect(x + 4 + i * 11, y, 5, TILE);
         }
+      } else if (ch === 'o') {
+        g.fillStyle(0x2f5e3a).fillRect(x, y, TILE, TILE);
+        g.fillStyle(0x6fa86a, 0.8).fillCircle(x + 14, y + 16, 5).fillCircle(x + 32, y + 28, 7).fillCircle(x + 20, y + 36, 3);
+        g.lineStyle(1, 0x264a2f).strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
       } else if (ch === 'p') {
         g.fillStyle(0x08070c).fillRect(x, y, TILE, TILE);
       } else if (ch === 'u') {
@@ -226,6 +235,23 @@
           }
         } else if (z.kind === 'fireBlast') {
           g.fillStyle(0xf2a541, 0.55).fillCircle(z.x, z.y, z.r);
+        } else if (z.kind === 'poisonCloud') {
+          for (let i = 0; i < 5; i++) {
+            const a = time / 700 + i * 1.3;
+            g.fillStyle(0x6fa86a, 0.16).fillCircle(z.x + Math.cos(a) * z.r * 0.35, z.y + Math.sin(a) * z.r * 0.35, z.r * 0.7);
+          }
+          if (Math.random() < 0.4) this.fx.burst(z.x + (Math.random() - 0.5) * z.r, z.y + (Math.random() - 0.5) * z.r, 0x9bd17a, 1, 'rise');
+        } else if (z.kind === 'safeCircle') {
+          g.fillStyle(0x5ec8b8, 0.18 + 0.12 * pulse).fillCircle(z.x, z.y, z.r);
+          g.lineStyle(4, 0xb8f0e4, 0.9).strokeCircle(z.x, z.y, z.r);
+        } else if (z.kind === 'vineRing') {
+          const left = Math.max(0, (z.until - snap.t) / 1);
+          g.lineStyle(4, 0x4f8a6a, 0.9).strokeCircle(z.x, z.y, z.r * (0.6 + 0.4 * left));
+          g.lineStyle(2, 0x9bd17a, 0.8).strokeCircle(z.x, z.y, z.r * (0.3 + 0.3 * left));
+        } else if (z.kind === 'rockShadow') {
+          const grown = 1 - Math.max(0, Math.min(1, (z.until - snap.t) / 1));
+          g.fillStyle(0x000000, 0.25 + 0.4 * grown).fillEllipse(z.x, z.y, z.r * 2 * (0.4 + 0.6 * grown), z.r * 1.4 * (0.4 + 0.6 * grown));
+          g.lineStyle(2, 0xe5534b, 0.4 + 0.5 * grown).strokeEllipse(z.x, z.y, z.r * 2, z.r * 1.4);
         } else if (z.kind === 'taunt') {
           g.lineStyle(4, 0xf2a541, 0.8).strokeCircle(z.x, z.y, z.r * 0.5);
         }
@@ -260,7 +286,18 @@
         const s = this.spriteFor(id, `${p.heroClass}-${p.color}`, isMe ? p.name + ' (you)' : p.name, DC.data.COLORS[p.color]);
         s.body.setPosition(pos.x, pos.y - 6).setFlipX(Math.abs(p.aim) > Math.PI / 2).setScale(1, 1);
         s.body.setAlpha(p.downed ? 0.35 : p.rolling ? 0.6 : 1).setAngle(p.downed ? 90 : 0);
-        if ((this.flashUntil.get(id) || 0) > time) s.body.setTintFill(0xff5a50); else s.body.clearTint();
+        if ((this.flashUntil.get(id) || 0) > time) s.body.setTintFill(0xff5a50);
+        else if (p.poisoned) s.body.setTint(Math.floor(time / 150) % 2 ? 0x9bd17a : 0xffffff);
+        else s.body.clearTint();
+        if (p.poisoned && Math.random() < 0.15) this.fx.burst(pos.x, pos.y - 10, 0x9bd17a, 1, 'rise');
+        if (p.rooted) {
+          const g = this.statusLayer;
+          g.lineStyle(3, 0x4f8a6a, 1);
+          for (let i = 0; i < 4; i++) {
+            const a = i * Math.PI / 2 + time / 400;
+            g.lineBetween(pos.x + Math.cos(a) * 18, pos.y + 14, pos.x + Math.cos(a + 0.6) * 8, pos.y - 6);
+          }
+        }
         if (p.rolling && time - (this.ghostAt.get(id) || 0) > 35) {
           this.ghostAt.set(id, time);
           this.fx.ghost(s.body, DC.data.COLORS[p.color] ? parseInt(DC.data.COLORS[p.color].slice(1), 16) : 0xffffff);
@@ -284,18 +321,22 @@
         const id = 'e:' + e.id;
         seen.add(id);
         const pos = past.get(id) || e;
-        const s = this.spriteFor(id, e.type);
+        const s = this.spriteFor(id, DC.sprites.enemyTexture(e.type));
         s.body.setVisible(e.state !== 'airborne');
         let sx = 1;
         let sy = 1;
         let lift = 0;
         if (e.state === 'squish') { sx = 1.25; sy = 0.7; }
+        if (e.state === 'swell') { sx = 1.3; sy = 1.3; }
+        if (e.type === 'seed') { const k = 1 + 0.12 * Math.sin(time / 150); sx = k; sy = k; }
+        s.body.setAlpha(e.state === 'shimmer' ? 0.25 + 0.5 * Math.abs(Math.sin(time / 60)) : 1);
         if (e.state === 'leap') lift = 18;
         s.body.setPosition(pos.x, pos.y - lift).setScale(sx, sy);
-        const tell = (e.state === 'screech' || e.state === 'squish') && Math.floor(time / 100) % 2 === 0;
+        const tell = ['screech', 'squish', 'draw', 'swell'].includes(e.state) && Math.floor(time / 100) % 2 === 0;
         const hit = (this.flashUntil.get(id) || 0) > time;
         if (hit || tell) s.body.setTintFill(0xffffff);
         else if (e.state === 'swoop') s.body.setTint(0xf2a541);
+        else if (e.state === 'storm') s.body.setTint(0x9bd17a);
         else if (e.stunned) s.body.setTint(0xb8b0d0);
         else s.body.clearTint();
         if (e.state === 'swoop' && time - (this.ghostAt.get(id) || 0) > 40) {
@@ -304,9 +345,20 @@
         }
         this.drawStatus(e, pos, time);
         s.bar.clear();
-        if (e.state !== 'airborne') {
-          const big = e.type === 'mother' || e.type === 'halfmother';
+        if (e.state !== 'airborne' && e.type !== 'bones' && e.type !== 'seed') {
+          const big = e.type === 'mother' || e.type === 'halfmother' || e.type === 'queen';
           drawBar(s.bar, pos.x, pos.y - (big ? 52 : 30), e.hp / e.maxHp, 0xc76bd9, big ? 80 : 36);
+        }
+        if (e.type === 'bones' && e.rebuildAt) {
+          // ring that fills up until the archer rebuilds itself
+          const done = 1 - Math.max(0, Math.min(1, (e.rebuildAt - snap.t) / 5));
+          s.bar.lineStyle(3, 0xe9e4d4, 0.9).beginPath();
+          s.bar.arc(pos.x, pos.y, 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * done).strokePath();
+        }
+        if (e.type === 'seed' && e.growAt) {
+          const done = 1 - Math.max(0, Math.min(1, (e.growAt - snap.t) / 10));
+          s.bar.lineStyle(2, 0x5ec8b8, 0.9).beginPath();
+          s.bar.arc(pos.x, pos.y, 16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * done).strokePath();
         }
       }
 
@@ -319,6 +371,65 @@
       }
     }
 
+    // Torches: unlit sticks, or flickering flames once someone lights them.
+    drawTorches(snap, time) {
+      const g = this.glowLayer;
+      g.clear();
+      let hint = null;
+      for (const t of snap.room.torches) {
+        g.fillStyle(0x5c3b1e).fillRect(t.x - 3, t.y - 8, 6, 22);
+        if (t.lit) {
+          const f = 1 + 0.15 * Math.sin(time / 70 + t.x);
+          g.fillStyle(0xf2a541, 0.25).fillCircle(t.x, t.y - 12, 22 * f);
+          g.fillStyle(0xf2a541).fillCircle(t.x, t.y - 12, 8 * f);
+          g.fillStyle(0xfff1b8).fillCircle(t.x, t.y - 13, 4 * f);
+        } else {
+          g.fillStyle(0x3a3350).fillCircle(t.x, t.y - 12, 6);
+          if (this.me && Math.hypot(this.me.x - t.x, this.me.y - t.y) < 70) hint = t;
+        }
+      }
+      this.torchHint.setVisible(!!hint);
+      if (hint) this.torchHint.setPosition(hint.x, hint.y - 34);
+      // Warnings must be readable in the dark too.
+      for (const z of snap.zones) {
+        if (z.kind === 'safeCircle') g.lineStyle(4, 0xb8f0e4, 0.9).strokeCircle(z.x, z.y, z.r);
+        if (z.kind === 'vineRing' || z.kind === 'rockShadow') g.lineStyle(2, 0xe5534b, 0.7).strokeCircle(z.x, z.y, z.r);
+      }
+      // The Queen's glowing spots show even in the dark.
+      for (const e of snap.enemies) {
+        if (e.type !== 'queen' || e.state === 'shimmer' || !snap.allDark) continue;
+        for (const [dx, dy] of [[-14, -22], [10, -26], [0, -12], [-20, -6], [18, -8]]) {
+          g.fillStyle(0x5ec8b8, 0.35).fillCircle(e.x + dx, e.y + dy, 7);
+          g.fillStyle(0xb8f0e4).fillCircle(e.x + dx, e.y + dy, 3);
+        }
+      }
+    }
+
+    // Dark zones: you only see about 3 tiles around yourself, plus lit torches.
+    drawDarkness(snap) {
+      const g = this.darkLayer;
+      g.clear();
+      if (!snap.allDark && !snap.room.dark.length) return;
+      const room = this.room;
+      const lights = [];
+      if (this.me) lights.push({ x: this.me.x, y: this.me.y, r: 144 });
+      for (const t of snap.room.torches) if (t.lit) lights.push({ x: t.x, y: t.y, r: 192 });
+      const inDark = (tx, ty) => snap.allDark || snap.room.dark.some(([x0, y0, x1, y1]) => tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1);
+      for (let ty = 0; ty < room.h; ty++) {
+        for (let tx = 0; tx < room.w; tx++) {
+          if (!inDark(tx, ty)) continue;
+          const cx = tx * TILE + TILE / 2;
+          const cy = ty * TILE + TILE / 2;
+          let shade = 0.94;
+          for (const l of lights) {
+            const d = Math.hypot(cx - l.x, cy - l.y);
+            shade = Math.min(shade, 0.94 * Math.max(0, Math.min(1, (d - (l.r - 72)) / 72)));
+          }
+          if (shade > 0.01) g.fillStyle(0x05040a, shade).fillRect(tx * TILE, ty * TILE, TILE, TILE);
+        }
+      }
+    }
+
     drawShots(snap) {
       const g = this.shotLayer;
       g.clear();
@@ -327,7 +438,13 @@
         alive.add(pr.id);
         const prev = this.lastShot.get(pr.id) || pr;
         const ang = Math.atan2(pr.y - prev.y, pr.x - prev.x);
-        if (pr.kind === 'arrow') {
+        if (pr.kind === 'enemyArrow') {
+          const cx = Math.cos(ang);
+          const cy = Math.sin(ang);
+          g.lineStyle(2, 0xe5534b, 0.35).lineBetween(pr.x - cx * 30, pr.y - cy * 30, pr.x, pr.y);
+          g.lineStyle(3, 0xffb4a8, 1).lineBetween(pr.x - cx * 14, pr.y - cy * 14, pr.x + cx * 6, pr.y + cy * 6);
+          g.fillStyle(0xe5534b).fillTriangle(pr.x + cx * 10, pr.y + cy * 10, pr.x - cy * 4, pr.y + cx * 4, pr.x + cy * 4, pr.y - cx * 4);
+        } else if (pr.kind === 'arrow') {
           // a little arrow pointing where it flies, with a pale streak behind it
           const cx = Math.cos(ang);
           const cy = Math.sin(ang);
@@ -353,7 +470,7 @@
     // Stun stars and "!" warnings above monsters.
     drawStatus(e, pos, time) {
       const g = this.statusLayer;
-      const big = e.type === 'mother' || e.type === 'halfmother';
+      const big = e.type === 'mother' || e.type === 'halfmother' || e.type === 'queen';
       const top = pos.y - (big ? 62 : 38);
       if (e.stunned) {
         for (let i = 0; i < 3; i++) {
@@ -361,7 +478,7 @@
           g.fillStyle(0xf2c14e).fillCircle(pos.x + Math.cos(a) * 14, top + Math.sin(a) * 4, 3);
         }
       }
-      if (e.state === 'squish' || e.state === 'screech') {
+      if (['squish', 'screech', 'draw', 'swell', 'storm'].includes(e.state)) {
         g.fillStyle(0xe5534b).fillRect(pos.x - 3, top - 18, 6, 12).fillRect(pos.x - 3, top - 3, 6, 5);
       }
     }
@@ -485,6 +602,43 @@
         if (m) fx.burst(m.x, m.y - 20, 0xc76bd9, 18, 'drip');
       } else if (ev.type === 'spike') {
         fx.burst(ev.x, ev.y, 0xe9e4d4, 8, 'spark', 'fx-square');
+      } else if (ev.type === 'rockfall') {
+        fx.burst(ev.x, ev.y, 0x8c84a3, 18, 'rubble', 'fx-square');
+        fx.burst(ev.x, ev.y, 0x5a5066, 8, 'smoke');
+        fx.ring(ev.x, ev.y, { from: 6, to: 44, life: 0.3, color: 0xcfc8de, width: 4 });
+        fx.shake(120, 0.005);
+      } else if (ev.type === 'bonesBroken') {
+        fx.burst(ev.x, ev.y, 0xe9e4d4, 20, 'rubble', 'fx-square');
+        this.floatText(ev.x, ev.y - 30, 'Crushed!', '#E9E4D4');
+      } else if (ev.type === 'rebuild') {
+        fx.ring(ev.x, ev.y, { from: 30, to: 6, life: 0.4, color: 0xe9e4d4, width: 4 });
+        this.floatText(ev.x, ev.y - 40, 'Rebuilt!', '#FF8A80');
+      } else if (ev.type === 'torchlit') {
+        fx.burst(ev.x, ev.y - 10, 0xf2a541, 18, 'flame');
+        fx.ring(ev.x, ev.y, { from: 10, to: 120, life: 0.6, color: 0xf2c14e, width: 3 });
+      } else if (ev.type === 'darkness') {
+        Hud.banner('The lights go out!', 2200);
+        fx.shake(300, 0.01);
+      } else if (ev.type === 'puff') {
+        fx.burst(ev.x, ev.y, 0x9bd17a, 24, 'smoke');
+      } else if (ev.type === 'seed') {
+        fx.burst(ev.x, ev.y, 0x5ec8b8, 8, 'spark');
+      } else if (ev.type === 'sprout') {
+        fx.burst(ev.x, ev.y, 0x9bd17a, 14, 'rise');
+      } else if (ev.type === 'volley') {
+        fx.burst(ev.x, ev.y, 0xffb4a8, 6, 'spark', 'fx-square');
+      } else if (ev.type === 'teleport') {
+        fx.burst(ev.x, ev.y, 0x8e4fb8, 30, 'burst');
+        fx.ring(ev.x, ev.y, { from: 60, to: 10, life: 0.4, color: 0x8e4fb8, width: 6 });
+      } else if (ev.type === 'stormwarn') {
+        Hud.banner('Get in a glowing circle!', 1800);
+      } else if (ev.type === 'storm') {
+        for (const p of snap.players) fx.burst(p.x, p.y, 0x9bd17a, 12, 'smoke');
+        fx.shake(250, 0.01);
+      } else if (ev.type === 'rooted') {
+        fx.burst(ev.x, ev.y, 0x4f8a6a, 14, 'rubble', 'fx-square');
+      } else if (ev.type === 'guard') {
+        fx.burst(ev.x, ev.y, 0x9bd17a, 20, 'rise');
       } else if (ev.type === 'crumble') {
         fx.burst(ev.x, ev.y, 0x7a6248, 18, 'rubble', 'fx-square');
         fx.burst(ev.x, ev.y, 0x5a5066, 6, 'smoke');
