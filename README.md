@@ -2,10 +2,16 @@
 
 A co-op dungeon crawler for 2–4 players that runs in the browser. Friends join a
 room with a 4-letter code, pick a hero (Knight, Archer or Mage), and fight
-through Floor 1, the Sunken Cellar: three rooms of Gloops, Skitterbats, spike
-traps and crumbling floors, then the Gloop Mother boss, then a camp shop.
+through two floors:
 
-This is **Slice 1**. Floors 2–4, more bosses and the dragon come in later slices.
+- **Floor 1 · Sunken Cellar** — Gloops, Skitterbats, spike traps, crumbling floors, puddles, and the **Gloop Mother**.
+- **Floor 2 · Fungal Caverns** — Bone Archers, Sporecaps, poison pools, falling stalactites, dark rooms lit with torches, and the **Spore Queen**.
+
+After each floor there's a camp shop. Your level, gold and gear carry over.
+**The traps move:** every new game places the spikes, pits, puddles, poison pools,
+pillars and monsters differently (the room walls and the boss rooms stay the same).
+
+Floors 3–4 and the dragon come in later slices.
 
 ## Run it
 
@@ -43,7 +49,7 @@ networks block devices from talking to each other; then use the online option be
 | Mouse click | Attack toward the mouse |
 | Q | Main skill (Shield Bash / Arrow Rain / Fireball) |
 | Space | Second skill (Taunt / Dodge Roll / Heal Circle) |
-| E (hold) | Revive a downed teammate next to you (3 seconds) |
+| E (hold) | Revive a downed teammate next to you (3 seconds), or light a torch |
 | 1 | Drink a Health Potion |
 | 2 | Use a Revive Feather on the nearest downed teammate |
 | Esc or the ⏸ button | Pause for the whole team (anyone can resume) |
@@ -83,9 +89,11 @@ players' screens the same and makes cheating hard.
 ## Changing the game
 
 - **Balance:** edit the numbers in `shared/data.js` (hero HP, damage, cooldowns, monster stats, shop prices).
-- **Rooms:** edit the letter grids in `shared/rooms.js`. Every row must be 24 letters and each room 13 rows.
-  `w` wall, `f` floor, `s` spikes, `x` cracked floor, `p` pit, `u` puddle, `d` door, `e` entry,
-  `g` Gloop, `b` Skitterbat, `M` Gloop Mother.
+- **Rooms:** `shared/rooms.js` holds the floors. Normal rooms are *recipes*: a fixed shape plus what to
+  scatter at random (`spikes`, `pit`, `puddle`, `poison`, `pillar`) and which monsters to place. Boss rooms are
+  hand-drawn letter grids (24 letters × 13 rows): `w` wall, `f` floor, `s` spikes, `x` cracked floor, `p` pit,
+  `u` puddle, `o` poison pool, `d` door, `e` entry, `g` Gloop, `b` Skitterbat, `a` Bone Archer, `c` Sporecap,
+  `M` Gloop Mother, `Q` Spore Queen. The random builder (`server/layout.js`) always keeps a safe path to the door.
 - **Art:** replace any PNG in `client/assets/` with your own drawing of the same file name and size
   (heroes 48×48, Gloop and bat 48×48, Mini Gloop 32×32, Gloop Mother 96×96, Half Mother 64×64).
   `npm run sprites` rebuilds the placeholder art from `shared/sprites.js` (it overwrites the PNGs).
@@ -99,4 +107,10 @@ npm test
 The tests check the game rules (combat, monsters, hazards, the boss, the shop, the lobby)
 and start a real server with two fake players to check the multiplayer connection.
 
-Testing the shop quickly: `DEBUG_SKIP_TO_SHOP=1 npm start` jumps straight to the shop with 150 gold.
+Testing shortcuts (set before `npm start`):
+
+- `DEBUG_SKIP_TO_SHOP=1` — jump straight to the shop with 150 gold.
+- `DEBUG_FLOOR=2` — start on Floor 2 with 300 gold.
+- `DEBUG_ROOM=3` — start in room 4 of that floor (counting from 0), e.g. the boss.
+
+On Windows PowerShell: `$env:DEBUG_FLOOR=2; npm start`.
