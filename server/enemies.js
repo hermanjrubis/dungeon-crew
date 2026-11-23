@@ -1,6 +1,7 @@
 // Monster AI for Floor 1: Gloop, Mini Gloop and Skitterbat.
 // Every attack has a "tell" state (squish, screech) so players can react.
 const boss = require('./boss');
+const archer = require('./archer');
 const { dist, pickTarget, moveEnemy, walkToward, contactDamage } = require('./ai');
 
 const EPS = 1e-6;
@@ -151,6 +152,8 @@ function updateEnemy(game, e, dt) {
   if (game.time < e.stunUntil) return;
   if (e.type === 'gloop' || e.type === 'minigloop') updateGloop(game, e, dt);
   else if (e.type === 'bat') updateBat(game, e, dt);
+  else if (e.type === 'archer') archer.updateArcher(game, e, dt);
+  else if (e.type === 'bones') archer.updateBones(game, e, dt);
   else if (e.boss) boss.updateBoss(game, e, dt);
 }
 
@@ -163,6 +166,7 @@ function onEnemyDeath(game, e, { reward }) {
       moveEnemy(game, mini, off, 0);
     }
   }
+  if (e.type === 'archer') archer.onArcherDeath(game, e, { reward });
   if (e.boss) boss.onBossDeath(game, e, { reward });
 }
 

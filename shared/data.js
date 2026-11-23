@@ -45,6 +45,9 @@
     minigloop: { name: 'Mini Gloop', hp: 8, dmg: 3, speed: 70, r: 10, xp: 3, gold: [1, 1] },
     bat: { name: 'Skitterbat', hp: 12, dmg: 4, speed: 160, r: 14, xp: 8, gold: [3, 6], flying: true },
     mother: { name: 'Gloop Mother', hp: 250, dmg: 10, speed: 40, r: 40, xp: 100, gold: [40, 40], hpPerExtraPlayer: 0.5, boss: true },
+    // Floor 2. The Bone Archer's reward is paid when its bones are destroyed.
+    archer: { name: 'Bone Archer', hp: 30, dmg: 8, speed: 90, r: 16, xp: 0, gold: [0, 0], reward: { xp: 15, gold: [5, 8] } },
+    bones: { name: 'Bones', hp: 1, dmg: 0, speed: 0, r: 14, xp: 0, gold: [0, 0], flying: true },
     halfmother: { name: 'Half Mother', hp: 60, dmg: 8, speed: 55, r: 26, xp: 0, gold: [0, 0], boss: true }
   };
 
