@@ -95,7 +95,7 @@
     predictMe(snap, dt) {
       const server = snap.players.find((p) => p.id === App.me);
       if (!server) return;
-      if (!this.me || server.downed || server.rolling || server.stunned) {
+      if (!this.me || snap.paused || server.downed || server.rolling || server.stunned) {
         this.me = { x: server.x, y: server.y };
         return;
       }
@@ -513,6 +513,7 @@
       else if (ev.type === 'reset') Hud.banner('Everyone fell! Room restarts', 2400);
       else if (ev.type === 'levelup' && ev.targetId === App.me) Hud.banner(`Level up! Level ${ev.level}`);
       else if (ev.type === 'split') Hud.banner('She split in two!');
+      else if (ev.type === 'resumed') Hud.banner(`Resumed by ${ev.by}`, 1200);
       else if (ev.type === 'fall') {
         const p = snap.players.find((q) => q.id === ev.targetId);
         if (p) this.floatText(p.x, p.y - 40, 'Fell!', '#FF8A80');

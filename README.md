@@ -46,6 +46,7 @@ networks block devices from talking to each other; then use the online option be
 | E (hold) | Revive a downed teammate next to you (3 seconds) |
 | 1 | Drink a Health Potion |
 | 2 | Use a Revive Feather on the nearest downed teammate |
+| Esc or the ⏸ button | Pause for the whole team (anyone can resume) |
 
 If everyone goes down, the room starts over.
 

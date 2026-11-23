@@ -5,6 +5,7 @@
   const hud = () => document.getElementById('hud');
   let built = false;
   let bannerTimer = null;
+  let lastSnap = null;
   const refs = {};
 
   function build() {
@@ -19,6 +20,9 @@
         </div>
       </div>
       <div class="hud-box hud-team" data-r="team"></div>
+      <button type="button" class="hud-pause-btn" data-r="pauseBtn" aria-label="Pause (Esc)" title="Pause (Esc)">
+        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>
+      </button>
       <div class="hud-box hud-room">
         <span class="room-title" data-r="roomTitle"></span>
         <div class="room-dots" data-r="roomDots"></div>
@@ -34,8 +38,35 @@
       <div class="hud-box hud-help">Hold <b>E</b> next to a downed friend to revive them.</div>
       <div class="hud-down hidden" data-r="down">You're down!<br><span class="muted">A teammate can hold E next to you to revive you.</span></div>
       <div class="hud-banner hidden" data-r="banner"></div>
-      <div class="hud-hurt" data-r="hurt"></div>`;
+      <div class="hud-hurt" data-r="hurt"></div>
+      <div class="pause-overlay hidden" data-r="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+        <div class="pause-card">
+          <h2 id="pause-title">Paused</h2>
+          <p class="muted" data-r="pausedBy"></p>
+          <button type="button" class="btn btn-primary btn-big" data-r="resumeBtn">Resume</button>
+          <ul class="keys">
+            <li><kbd>W A S D</kbd><span>Move</span></li>
+            <li><kbd>Click</kbd><span>Attack toward the mouse</span></li>
+            <li><kbd>Q</kbd><span>Main skill</span></li>
+            <li><kbd>Space</kbd><span>Second skill</span></li>
+            <li><kbd>E</kbd><span>Hold next to a downed friend to revive</span></li>
+            <li><kbd>1 · 2</kbd><span>Health Potion · Revive Feather</span></li>
+            <li><kbd>Esc</kbd><span>Pause / resume</span></li>
+          </ul>
+          <button type="button" class="btn btn-outline" data-r="leaveBtn">Leave game</button>
+        </div>
+      </div>`;
     for (const n of hud().querySelectorAll('[data-r]')) refs[n.dataset.r] = n;
+    refs.pauseBtn.addEventListener('click', () => Net.pause(true));
+    refs.resumeBtn.addEventListener('click', () => Net.pause(false));
+    refs.leaveBtn.addEventListener('click', () => {
+      if (confirm('Leave this game? Your team keeps playing without you.')) location.href = location.pathname;
+    });
+    // Esc pauses, and Esc again resumes.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || App.screen !== 'game' || !lastSnap) return;
+      Net.pause(!lastSnap.paused);
+    });
     built = true;
   }
 
@@ -52,6 +83,11 @@
   window.Hud = {
     update(snap, meId) {
       if (!built) build();
+      lastSnap = snap;
+      const wasPaused = !refs.pause.classList.contains('hidden');
+      refs.pause.classList.toggle('hidden', !snap.paused);
+      refs.pausedBy.textContent = snap.pausedBy ? `${snap.pausedBy} paused the game for everyone. Anyone can resume.` : '';
+      if (snap.paused && !wasPaused) refs.resumeBtn.focus();
       const me = snap.players.find((p) => p.id === meId);
       if (!me) return;
       const hero = HEROES[me.heroClass];

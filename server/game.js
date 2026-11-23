@@ -31,6 +31,8 @@ class Game {
     this.roomIndex = 0;
     this.time = 0;
     this.phase = 'playing';
+    this.paused = false;
+    this.pausedBy = null; // id of the player who paused
     this.nextId = 1;
     this.events = [];
     this.players = new Map();
@@ -105,8 +107,18 @@ class Game {
     p.aim = p.input.aim;
   }
 
+  // Pause or resume for the whole team. Anyone in the game can do either.
+  setPaused(id, paused) {
+    const p = this.players.get(id);
+    if (!p || this.phase !== 'playing') return;
+    this.paused = !!paused;
+    this.pausedBy = this.paused ? id : null;
+    this.event({ type: this.paused ? 'paused' : 'resumed', by: p.name });
+  }
+
   removePlayer(id) {
     this.players.delete(id);
+    if (this.pausedBy === id) { this.paused = false; this.pausedBy = null; }
     shop.checkDone(this); // a player leaving the shop shouldn't block the others
   }
 
@@ -290,7 +302,7 @@ class Game {
 
   tick(dt) {
     dt = Math.min(dt, 0.1);
-    if (!(dt > 0) || this.phase !== 'playing' || this.players.size === 0) return;
+    if (!(dt > 0) || this.phase !== 'playing' || this.paused || this.players.size === 0) return;
     this.time += dt;
 
     for (const p of this.players.values()) heroes.updatePlayer(this, p, dt);
@@ -331,6 +343,8 @@ class Game {
     return {
       t: Math.round(this.time * 1000) / 1000,
       phase: this.phase,
+      paused: this.paused,
+      pausedBy: this.paused && this.players.has(this.pausedBy) ? this.players.get(this.pausedBy).name : null,
       roomIndex: this.roomIndex,
       roomCount: this.roomDefs.length,
       doorOpen: this.doorOpen,

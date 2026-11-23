@@ -90,6 +90,11 @@ function createServer({ port = 3000 } = {}) {
       if (room && room.game) room.game.setInput(socket.id, p);
     });
 
+    on('game:pause', (p) => {
+      const room = lobby.roomOf(socket.id);
+      if (room && room.game) room.game.setPaused(socket.id, p.paused === true);
+    });
+
     on('shop:buy', (p, reply) => {
       const room = lobby.roomOf(socket.id);
       if (!room || !room.game) return reply({ ok: false, error: 'Not in a game' });

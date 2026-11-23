@@ -24,6 +24,7 @@
     sendInput: (input) => socket.emit('input', input),
     buy: (itemId) => ask('shop:buy', { itemId }),
     ready: (ready) => socket.emit('shop:ready', { ready }),
+    pause: (paused) => socket.emit('game:pause', { paused }),
     on: (event, fn) => socket.on(event, fn)
   };
 })();
