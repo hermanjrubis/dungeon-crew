@@ -201,6 +201,10 @@ function updateZones(game, dt) {
         }
         z.nextTick += z.every;
       }
+    } else if (z.kind === 'slime') {
+      for (const p of game.players.values()) {
+        if (Math.hypot(p.x - z.x, p.y - z.y) <= z.r) game.applySlow(p, 'slime', 0.4, 0.1);
+      }
     } else if (z.kind === 'healCircle') {
       while (z.nextTick <= game.time + EPS && z.nextTick <= z.until + EPS) {
         for (const p of game.players.values()) {
