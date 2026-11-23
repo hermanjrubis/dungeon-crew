@@ -61,3 +61,26 @@ test('outside the map counts as wall', () => {
   const room = tiles.parseRoom(SMALL);
   assert.strictEqual(tiles.tileAt(room, -5, -5), 'w');
 });
+
+test('in every Floor 1 room the door can be reached from the entry without crossing pits', () => {
+  FLOOR1.forEach((rows, i) => {
+    const room = tiles.parseRoom(rows);
+    const start = [Math.floor(room.entry.x / TILE), Math.floor(room.entry.y / TILE)];
+    const seen = new Set([start.join(',')]);
+    const queue = [start];
+    let found = i === FLOOR1.length - 1; // the boss room has no next room
+    while (queue.length && !found) {
+      const [x, y] = queue.shift();
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx;
+        const ny = y + dy;
+        const ch = room.grid[ny] && room.grid[ny][nx];
+        if (!ch || ch === 'w' || ch === 'p' || ch === 'x' || seen.has(nx + ',' + ny)) continue;
+        if (ch === 'd') { found = true; break; }
+        seen.add(nx + ',' + ny);
+        queue.push([nx, ny]);
+      }
+    }
+    assert.ok(found, `room ${i + 1}: no safe path from entry to door`);
+  });
+});

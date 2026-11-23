@@ -6,7 +6,7 @@
 //   At half HP she splits into two Half Mothers. Her gold and XP are given
 //   when the last half dies.
 const data = require('../shared/data');
-const { dist, pickTarget, walkToward, contactDamage } = require('./ai');
+const { dist, pickTarget, walkToward, contactDamage, moveEnemy } = require('./ai');
 
 const EPS = 1e-6;
 const FLOP_EVERY = 6;
@@ -40,7 +40,11 @@ function updateBoss(game, e, dt) {
     return;
   }
   if (game.time >= e.timers.brood - EPS) {
-    for (const off of [-1, 1]) game.spawnEnemy('gloop', e.x + off * (e.r + 20), e.y, { noReward: true });
+    for (const off of [-1, 1]) {
+      // Start on the mother and slide out, so a wall can't trap them.
+      const g = game.spawnEnemy('gloop', e.x, e.y, { noReward: true });
+      moveEnemy(game, g, off * (e.r + 20), 0);
+    }
     e.timers.brood = game.time + BROOD_EVERY;
     game.event({ type: 'brood', enemyId: e.id });
   }
@@ -85,7 +89,8 @@ function split(game, e) {
   const { x, y } = e;
   game.killEnemy(e, { reward: false });
   for (const off of [-1, 1]) {
-    const half = game.spawnEnemy('halfmother', x + off * 40, y);
+    const half = game.spawnEnemy('halfmother', x, y);
+    moveEnemy(game, half, off * 40, 0);
     half.timers.flop = game.time + 2 + (off > 0 ? 1.5 : 0); // don't flop together
   }
   game.event({ type: 'split', x: Math.round(x), y: Math.round(y) });

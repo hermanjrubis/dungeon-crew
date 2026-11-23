@@ -107,3 +107,21 @@ test('the mother gives her gold and xp only once, when the last half dies', () =
   assert.strictEqual(me.gold, 40);
   assert.strictEqual(me.xp, 100);
 });
+
+test('halves and brood gloops never appear inside a wall when the mother is next to one', () => {
+  const tiles = require('../shared/tiles');
+  const game = makeGame(['knight'], ARENA);
+  const me = game.players.get('p0');
+  me.x = 600; me.y = 312;
+  const m = game.spawnEnemy('mother', 48 + 41, 312); // pressed against the left wall
+  m.timers.flop = 999;
+  m.timers.brood = game.time;
+  game.tick(0.05);
+  game.damageEnemy(m, 130, 'p0');
+  game.tick(0.05);
+  const inWall = (e) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].some(([sx, sy]) =>
+    tiles.isSolid(tiles.tileAt(game.room, e.x + sx * (e.r - 1), e.y + sy * (e.r - 1)), {}));
+  const spawned = game.enemies.filter((e) => e.type === 'halfmother' || e.type === 'gloop');
+  assert.strictEqual(spawned.length, 4);
+  for (const e of spawned) assert.ok(!inWall(e), `${e.type} at ${e.x},${e.y} is inside a wall`);
+});
