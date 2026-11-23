@@ -188,9 +188,13 @@ class Game {
     return [...this.players.values()].filter((p) => !p.downed);
   }
 
+  // The Hollow Crown set gives the whole team +10% damage while a wearer
+  // is standing. Two wearers don't stack it.
   playerDamage(p) {
     const hero = data.HEROES[p.heroClass];
-    return hero.baseDmg + p.weaponBonus + data.LEVEL_DMG * (p.level - 1);
+    const base = hero.baseDmg + p.weaponBonus + data.LEVEL_DMG * (p.level - 1);
+    const crown = this.alivePlayers().some((q) => this.crownSet(q));
+    return crown ? Math.round(base * 1.1) : base;
   }
 
   damagePlayer(p, amount, source, { ignoreDefense = false, ignoreInvuln = false } = {}) {

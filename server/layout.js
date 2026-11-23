@@ -8,10 +8,11 @@
 //   - monsters start on plain floor, at least 5 tiles from the entrance,
 //     somewhere players can walk to
 //   - there is always a path from the entrance to the door that never
-//     crosses a pit or cracked floor
+//     crosses a pit, cracked floor, a geyser vent or lava (the moving bridge
+//     counts as a way across a lava river)
 // If 50 tries all break a rule, the recipe's hand-made `fallback` is used.
 
-const LETTERS = { spikes: 's', puddle: 'u', poison: 'o', pillar: 'w' };
+const LETTERS = { spikes: 's', puddle: 'u', poison: 'o', pillar: 'w', vent: 'v' };
 const MONSTER_LETTERS = { gloop: 'g', bat: 'b', archer: 'a', sporecap: 'c', golem: 'G' };
 const TRIES = 50;
 const SPOT_TRIES = 200;
@@ -66,6 +67,18 @@ function tryBuild(recipe, rng) {
     const stops = [];
     for (let y = 2; y <= h - 4; y++) stops.push(y);
     bridge = { tx: rx, stops };
+  }
+  // Flame-jet nozzles sit in the top and bottom walls (taking turns), at
+  // least 2 columns apart and away from the entrance and door columns.
+  if (recipe.jets) {
+    let cols = [];
+    for (let x = 4; x <= w - 5; x++) cols.push(x);
+    for (let i = 0; i < recipe.jets; i++) {
+      if (!cols.length) return null;
+      const x = cols[Math.floor(rng() * cols.length)];
+      grid[i % 2 === 0 ? 0 : h - 1][x] = 'j';
+      cols = cols.filter((c) => Math.abs(c - x) >= 2);
+    }
   }
   const free = (x, y) => y >= 0 && y < h && x >= 0 && x < w && grid[y][x] === 'f' && !keep.has(x + ',' + y);
 
