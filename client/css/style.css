@@ -175,3 +175,5 @@ kbd {
 .end-team { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
 .end-team .panel { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 20px; }
 .end-team img { image-rendering: pixelated; }
+.shop-me .stat { grid-template-columns: 70px 1fr auto; }
+.shop-me .stat-value { white-space: nowrap; }
