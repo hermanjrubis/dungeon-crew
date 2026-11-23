@@ -135,65 +135,41 @@
       const room = this.room;
       const broken = new Set(snap.broken);
       const cracking = new Set(snap.cracking);
+      // What's on a tile; cracked floor that broke counts as a pit.
+      const at = (tx, ty) => {
+        if (ty < 0 || ty >= room.h || tx < 0 || tx >= room.w) return 'w';
+        return broken.has(ty * room.w + tx) ? 'p' : room.grid[ty][tx];
+      };
+      const isBorder = (tx, ty) => tx === 0 || ty === 0 || tx === room.w - 1 || ty === room.h - 1;
+
+      // 1) floor under everything except outer walls and pits
       for (let ty = 0; ty < room.h; ty++) {
         for (let tx = 0; tx < room.w; tx++) {
-          const x = tx * TILE;
-          const y = ty * TILE;
-          const idx = ty * room.w + tx;
-          let ch = room.grid[ty][tx];
-          if (broken.has(idx)) ch = 'p';
-          this.drawTile(g, ch, x, y, snap, cracking.has(idx));
+          const ch = at(tx, ty);
+          if (ch === 'p' || (ch === 'w' && isBorder(tx, ty)) || ch === 'd') continue;
+          drawFloor(g, tx, ty);
         }
       }
-    }
-
-    drawTile(g, ch, x, y, snap, isCracking) {
-      const floor = () => {
-        g.fillStyle(0x2a2438).fillRect(x, y, TILE, TILE);
-        g.lineStyle(1, 0x241f30).strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
-      };
-      if (ch === 'w') {
-        g.fillStyle(0x3d3452).fillRect(x, y, TILE, TILE);
-        g.fillStyle(0x4a4063).fillRect(x, y, TILE, 6);
-        g.lineStyle(1, 0x332b45).strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
-      } else if (ch === 'd') {
-        if (snap.doorOpen) {
-          g.fillStyle(0x2a2438).fillRect(x, y, TILE, TILE);
-          g.fillStyle(0xf2a541, 0.35).fillRect(x, y, TILE, TILE);
-        } else {
-          g.fillStyle(0x1e1a2a).fillRect(x, y, TILE, TILE);
-          g.fillStyle(0x8c84a3);
-          for (let i = 0; i < 4; i++) g.fillRect(x + 4 + i * 11, y, 5, TILE);
+      // 2) walls, doors and things lying on the floor
+      for (let ty = 0; ty < room.h; ty++) {
+        for (let tx = 0; tx < room.w; tx++) {
+          const ch = at(tx, ty);
+          const x = tx * TILE;
+          const y = ty * TILE;
+          if (ch === 'w' && isBorder(tx, ty)) drawWall(g, x, y, tx, ty);
+          else if (ch === 'd') drawDoor(g, x, y, snap.doorOpen);
+          else if (ch === 'p') drawPit(g, tx, ty, at);
+          else if (ch === 'u') drawPool(g, tx, ty, at, 'u', 0x324a66, 0x6b8fb3);
+          else if (ch === 'o') drawPool(g, tx, ty, at, 'o', 0x2c5636, 0x9bd17a);
+          else if (ch === 'x') drawCracked(g, tx, ty, cracking.has(ty * room.w + tx));
+          else if (ch === 's') drawSpikes(g, x, y, snap.spikes);
         }
-      } else if (ch === 'o') {
-        g.fillStyle(0x2f5e3a).fillRect(x, y, TILE, TILE);
-        g.fillStyle(0x6fa86a, 0.8).fillCircle(x + 14, y + 16, 5).fillCircle(x + 32, y + 28, 7).fillCircle(x + 20, y + 36, 3);
-        g.lineStyle(1, 0x264a2f).strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
-      } else if (ch === 'p') {
-        g.fillStyle(0x08070c).fillRect(x, y, TILE, TILE);
-      } else if (ch === 'u') {
-        g.fillStyle(0x3e5c7a).fillRect(x, y, TILE, TILE);
-        g.lineStyle(2, 0x5b7d9e, 0.6).strokeEllipse(x + 24, y + 26, 26, 10);
-      } else if (ch === 'x') {
-        g.fillStyle(isCracking ? 0x9a7a52 : 0x7a6248).fillRect(x, y, TILE, TILE);
-        g.lineStyle(2, 0x3e2a19);
-        g.beginPath(); g.moveTo(x + 8, y + 10); g.lineTo(x + 24, y + 24); g.lineTo(x + 18, y + 40); g.moveTo(x + 24, y + 24); g.lineTo(x + 40, y + 18); g.strokePath();
-      } else if (ch === 's') {
-        floor();
-        const state = snap.spikes;
-        for (let i = 0; i < 3; i++) {
-          for (let j = 0; j < 3; j++) {
-            const cx = x + 10 + i * 14;
-            const cy = y + 10 + j * 14;
-            if (state === 'up') {
-              g.fillStyle(0xe9e4d4).fillTriangle(cx - 5, cy + 5, cx + 5, cy + 5, cx, cy - 7);
-            } else {
-              g.fillStyle(state === 'rattle' ? 0xf2a541 : 0x15121e).fillCircle(cx, cy, state === 'rattle' ? 4 : 3);
-            }
-          }
+      }
+      // 3) pillars last, so their shadow falls on the floor below them
+      for (let ty = 0; ty < room.h; ty++) {
+        for (let tx = 0; tx < room.w; tx++) {
+          if (at(tx, ty) === 'w' && !isBorder(tx, ty)) drawPillar(g, tx * TILE, ty * TILE, at(tx, ty + 1) === 'w');
         }
-      } else {
-        floor();
       }
     }
 
@@ -672,6 +648,147 @@
       } else if (ev.type === 'revived') {
         const p = snap.players.find((q) => q.id === ev.targetId);
         if (p) this.floatText(p.x, p.y - 40, 'Revived!', '#5EC8B8');
+      }
+    }
+  }
+
+  // ---------- tile art ----------
+  // Every trap is drawn on top of the same dungeon floor so it blends in.
+  // `hash` gives each tile its own small variation (stable, not random each frame).
+  function hash(tx, ty) {
+    let h = (tx * 73856093) ^ (ty * 19349663);
+    h = Math.imul(h ^ (h >>> 13), 0x5bd1e995);
+    return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
+  }
+
+  const FLOOR_SHADES = [0x2a2438, 0x2b2539, 0x29233a, 0x2c263b];
+
+  function drawFloor(g, tx, ty) {
+    const x = tx * TILE;
+    const y = ty * TILE;
+    const r = hash(tx, ty);
+    g.fillStyle(FLOOR_SHADES[Math.floor(r * FLOOR_SHADES.length)]).fillRect(x, y, TILE, TILE);
+    g.lineStyle(1, 0x241f30).strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
+    if (r < 0.18) g.fillStyle(0x332c45).fillCircle(x + 10 + r * 120, y + 34 - r * 60, 2).fillCircle(x + 16 + r * 100, y + 38 - r * 50, 1.5);
+    else if (r > 0.9) {
+      g.lineStyle(1, 0x221d2e);
+      g.beginPath(); g.moveTo(x + 8, y + 30); g.lineTo(x + 18, y + 26); g.lineTo(x + 24, y + 32); g.strokePath();
+    }
+  }
+
+  function drawWall(g, x, y, tx, ty) {
+    g.fillStyle(0x3d3452).fillRect(x, y, TILE, TILE);
+    g.fillStyle(0x4a4063).fillRect(x, y, TILE, 6);
+    g.lineStyle(1, 0x332b45).strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
+    // bricks
+    g.lineStyle(1, 0x342c47);
+    g.lineBetween(x, y + 24, x + TILE, y + 24);
+    const off = (tx + ty) % 2 ? 16 : 32;
+    g.lineBetween(x + off, y + 6, x + off, y + 24);
+    g.lineBetween(x + (off + 24) % TILE, y + 24, x + (off + 24) % TILE, y + TILE);
+  }
+
+  function drawDoor(g, x, y, open) {
+    if (open) {
+      g.fillStyle(0x2a2438).fillRect(x, y, TILE, TILE);
+      g.fillStyle(0xf2a541, 0.35).fillRect(x, y, TILE, TILE);
+    } else {
+      g.fillStyle(0x1e1a2a).fillRect(x, y, TILE, TILE);
+      g.fillStyle(0x8c84a3);
+      for (let i = 0; i < 4; i++) g.fillRect(x + 4 + i * 11, y, 5, TILE);
+    }
+  }
+
+  // A stone column. It fills its whole tile, the same space it blocks.
+  function drawPillar(g, x, y, pillarBelow) {
+    if (!pillarBelow) g.fillStyle(0x000000, 0.35).fillRect(x + 2, y + TILE, TILE - 4, 8);
+    g.fillStyle(0x3d3452).fillRect(x + 2, y + 12, TILE - 4, TILE - 12);
+    g.fillStyle(0x5a4f78).fillRect(x + 2, y + 2, TILE - 4, 12);
+    g.fillStyle(0x6e618f).fillRect(x + 4, y + 3, TILE - 8, 2);
+    g.lineStyle(1, 0x342c47).lineBetween(x + 2, y + 30, x + TILE - 2, y + 30);
+    g.lineBetween(x + 24, y + 14, x + 24, y + 30);
+    g.lineStyle(2, 0x1b1725).strokeRect(x + 2, y + 2, TILE - 4, TILE - 4);
+  }
+
+  // A hole in the floor, with a visible far wall and rims that match the floor.
+  function drawPit(g, tx, ty, at) {
+    const x = tx * TILE;
+    const y = ty * TILE;
+    const open = (dx, dy) => at(tx + dx, ty + dy) !== 'p';
+    g.fillStyle(0x07060b).fillRect(x, y, TILE, TILE);
+    if (open(0, -1)) {
+      g.fillStyle(0x221d30).fillRect(x, y, TILE, 12);
+      g.fillStyle(0x151220).fillRect(x, y + 12, TILE, 8);
+      g.fillStyle(0x3a3350).fillRect(x, y, TILE, 2);
+    }
+    g.fillStyle(0x3a3350);
+    if (open(-1, 0)) g.fillRect(x, y, 3, TILE);
+    if (open(1, 0)) g.fillRect(x + TILE - 3, y, 3, TILE);
+    if (open(0, 1)) g.fillRect(x, y + TILE - 3, TILE, 3);
+  }
+
+  // Puddles and poison pools: one smooth pool across neighbouring tiles.
+  function drawPool(g, tx, ty, at, me, color, shine) {
+    const x = tx * TILE;
+    const y = ty * TILE;
+    const same = (dx, dy) => at(tx + dx, ty + dy) === me;
+    const inset = 5;
+    const l = same(-1, 0) ? 0 : inset;
+    const r = same(1, 0) ? 0 : inset;
+    const t = same(0, -1) ? 0 : inset;
+    const b = same(0, 1) ? 0 : inset;
+    const round = (a, c) => (a && c ? 14 : 0.01);
+    g.fillStyle(color).fillRoundedRect(x + l, y + t, TILE - l - r, TILE - t - b, {
+      tl: round(!same(-1, 0), !same(0, -1)), tr: round(!same(1, 0), !same(0, -1)),
+      bl: round(!same(-1, 0), !same(0, 1)), br: round(!same(1, 0), !same(0, 1))
+    });
+    const h = hash(tx, ty);
+    if (me === 'u') {
+      g.lineStyle(2, shine, 0.55);
+      g.lineBetween(x + 10 + h * 12, y + 16 + h * 10, x + 22 + h * 12, y + 16 + h * 10);
+      g.lineBetween(x + 20 - h * 8, y + 32 - h * 6, x + 28 - h * 8, y + 32 - h * 6);
+    } else {
+      g.fillStyle(shine, 0.7).fillCircle(x + 12 + h * 20, y + 14 + h * 14, 4).fillCircle(x + 30 - h * 10, y + 32 - h * 8, 3);
+      g.fillStyle(shine, 0.4).fillCircle(x + 22, y + 24 + h * 8, 2);
+    }
+  }
+
+  // Cracked floor: the same floor with cracks, so it's a warning, not a block.
+  function drawCracked(g, tx, ty, cracking) {
+    const x = tx * TILE;
+    const y = ty * TILE;
+    const h = hash(tx, ty);
+    g.fillStyle(0x6b5640, 0.22).fillRect(x, y, TILE, TILE);
+    if (cracking) g.fillStyle(0xf2a541, 0.22).fillRect(x, y, TILE, TILE);
+    g.lineStyle(2, cracking ? 0xf2a541 : 0x16121e);
+    const cx = x + 18 + h * 12;
+    const cy = y + 18 + h * 12;
+    g.beginPath();
+    g.moveTo(cx, cy); g.lineTo(x + 4, y + 8 + h * 20);
+    g.moveTo(cx, cy); g.lineTo(x + 40 - h * 10, y + 4);
+    g.moveTo(cx, cy); g.lineTo(x + 30 + h * 10, y + 44);
+    g.moveTo(cx + 6, cy + 8); g.lineTo(x + 44, y + 30 - h * 10);
+    g.strokePath();
+  }
+
+  // A metal trap plate. Holes glow orange just before the spikes come up.
+  function drawSpikes(g, x, y, state) {
+    g.fillStyle(0x211c2e).fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
+    g.lineStyle(2, 0x3a3350).strokeRect(x + 4, y + 4, TILE - 8, TILE - 8);
+    g.fillStyle(0x4a4063);
+    for (const [bx, by] of [[8, 8], [40, 8], [8, 40], [40, 40]]) g.fillCircle(x + bx, y + by, 1.5);
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        const cx = x + 14 + i * 10;
+        const cy = y + 14 + j * 10;
+        if (state === 'up') {
+          g.fillStyle(0xcfc8de).fillTriangle(cx - 4, cy + 4, cx + 4, cy + 4, cx, cy - 7);
+          g.fillStyle(0x8c84a3).fillTriangle(cx - 4, cy + 4, cx, cy + 4, cx, cy - 7);
+        } else if (state === 'rattle') {
+          g.fillStyle(0xf2a541).fillCircle(cx, cy, 3);
+        } else {
+          g.fillStyle(0x0d0b12).fillCircle(cx, cy, 2.5);
+        }
       }
     }
   }
