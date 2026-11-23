@@ -345,7 +345,8 @@ class Game {
         cd: { attack: Math.max(0, r((p.cd.attack - this.time) * 10) / 10),
           q: Math.max(0, r((p.cd.q - this.time) * 10) / 10),
           space: Math.max(0, r((p.cd.space - this.time) * 10) / 10) },
-        weaponName: p.weaponName, swingAt: p.swingAt || 0
+        weaponName: p.weaponName, swingAt: p.swingAt || 0,
+        speed: Math.round(data.HEROES[p.heroClass].speed * (1 + p.speedMul) * this.slowFactor(p))
       })),
       enemies: this.enemies.map((e) => ({
         id: e.id, type: e.type, x: r(e.x), y: r(e.y), hp: e.hp, maxHp: e.maxHp, state: e.state

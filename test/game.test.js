@@ -206,3 +206,12 @@ test('snapshot has rounded positions and room info', () => {
   assert.ok(Number.isInteger(s.players[0].x));
   assert.strictEqual(s.enemies[0].type, 'gloop');
 });
+
+test('snapshot tells each browser its current walking speed for smooth movement', () => {
+  const game = makeGame(['knight'], EMPTY_ROOMS);
+  const me = p(game, 0);
+  assert.strictEqual(game.snapshot().players[0].speed, 150);
+  me.speedMul = 0.1;
+  game.applySlow(me, 'test', 0.5, 10);
+  assert.strictEqual(game.snapshot().players[0].speed, 83);
+});
