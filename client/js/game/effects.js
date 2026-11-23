@@ -109,7 +109,8 @@
 
   // Colors for each monster's death burst.
   Effects.MONSTER_COLORS = {
-    gloop: 0xc76bd9, minigloop: 0xe3a6ee, bat: 0x8e7bb0, mother: 0xa94fc0, halfmother: 0xa94fc0
+    gloop: 0xc76bd9, minigloop: 0xe3a6ee, bat: 0x8e7bb0, mother: 0xa94fc0, halfmother: 0xa94fc0,
+    golem: 0x8c84a3, king: 0xc77dff, dragon: 0xe5622b
   };
 
   window.Effects = Effects;

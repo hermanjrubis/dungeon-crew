@@ -67,6 +67,18 @@
       '.vvosssssssssov.', 'v..ossssssssso.v', 'v..ohsssssssho.v', '.v.ohsssssssho.v',
       '..voooooooooov..', '.gvv..g..g..vvg.', 'vv............vv', '................'
     ],
+    golem: [
+      '................', '.....oooooo.....', '....oddddddo....', '...odeddddedo...',
+      '...oddddddddo...', '..ooodccccdooo..', '.oddddddddddddo.', 'odddcddddddcdddo',
+      'oddddcddddcddddo', 'oddoddddddddoddo', 'oddoddcdcdddoddo', '.oooddddddddooo.',
+      '...oddddddddo...', '...oddo..oddo...', '..odddo..odddo..', '..ooooo..ooooo..'
+    ],
+    king: [
+      '...y..y..y..y...', '...yyyyyyyyyy...', '...oooooooooo...', '...okkkkkkkko...',
+      '...okekkkkeko...', '...okkkkkkkko...', '....oooooooo....', '.pooaaaaaaaaoop.',
+      'ppoaaaayyaaaaopp', 'ppoaaaaaaaaaaopp', 'ppoaaoaaaaoaaopp', 'pp.oaaaaaaaao.pp',
+      'pp.oaaaooaaao.pp', 'p..oaao..oaao..p', '...oaao..oaao...', '...oooo..oooo...'
+    ],
     mother: [
       '....g..g..g.....', '....gggggggg....', '....oooooooo....', '..oobbbbbbbboo..',
       '.obblbbbbbbbbbo.', '.obllbbbbbbbbbo.', 'obbwkbbbbbbwkbbo', 'obbkkbbbbbbkkbbo',
@@ -90,6 +102,8 @@
     sporecap: { o: '#2A1A14', c: '#D9734E', d: '#F7E6C9', s: '#EADBC0', h: '#BFAE90', k: '#120A16', g: '#5EC8B8' },
     seed: { o: '#1F3A2E', g: '#5EC8B8', l: '#B8F0E4', t: '#6FA86A' },
     queen: { o: '#2A1A14', c: '#8E4FB8', d: '#5EC8B8', s: '#EADBC0', h: '#BFAE90', k: '#120A16', m: '#7A2E3A', v: '#4F8A6A', g: '#5EC8B8' },
+    golem: { o: '#1E1A22', d: '#6E6378', e: '#F2A541', c: '#E5622B' },
+    king: { o: '#120E18', y: '#F2C14E', k: '#1B1524', e: '#C77DFF', a: '#4A4063', p: '#5B2A6E' },
     mother: { o: '#2A1533', b: '#A94FC0', l: '#E3A6EE', w: '#FFFFFF', k: '#120A16', m: '#120A16', g: '#F2A541', n: '#E3A6EE' }
   };
 
@@ -112,6 +126,8 @@
     out.push({ file: 'sporecap.png', key: 'sporecap', rows: MAPS.sporecap, palette: MONSTER_PALETTES.sporecap, size: 48 });
     out.push({ file: 'seed.png', key: 'seed', rows: MAPS.seed, palette: MONSTER_PALETTES.seed, size: 32 });
     out.push({ file: 'queen.png', key: 'queen', rows: MAPS.queen, palette: MONSTER_PALETTES.queen, size: 96 });
+    out.push({ file: 'golem.png', key: 'golem', rows: MAPS.golem, palette: MONSTER_PALETTES.golem, size: 64 });
+    out.push({ file: 'king.png', key: 'king', rows: MAPS.king, palette: MONSTER_PALETTES.king, size: 96 });
     out.push({ file: 'halfmother.png', key: 'halfmother', rows: MAPS.mother, palette: MONSTER_PALETTES.mother, size: 64 });
     return out;
   }

@@ -18,8 +18,9 @@
     const readyCount = state.players.filter((p) => p.ready).length;
 
     const items = state.items.map((item) => {
-      const name = item.id === 'weapon' ? state.weapons[me.heroClass] : item.name;
-      const slot = item.id === 'weapon' ? `${HEROES[me.heroClass].name} weapon` : item.slot;
+      const isWeapon = item.slot === 'Weapon';
+      const name = isWeapon ? state.weapons[me.heroClass] : item.name;
+      const slot = isWeapon ? `${HEROES[me.heroClass].name} weapon` : item.slot;
       const owned = item.once && me.owned.includes(item.id);
       const action = owned
         ? '<span class="owned-tag">Owned · equipped</span>'

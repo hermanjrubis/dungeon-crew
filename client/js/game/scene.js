@@ -5,7 +5,9 @@
   const { TILE, parseRoom, moveWithCollision } = DC.tiles;
   const W = DC.tiles.ROOM_W * TILE;
   const H = DC.tiles.ROOM_H * TILE;
-  const INTERP_DELAY = 100; // ms: draw others slightly in the past so movement is smooth
+  const INTERP_DELAY = 100;
+  // Big monsters get a wide health bar higher up: [bar offset, bar width].
+  const BIG = { mother: [52, 80], halfmother: [52, 80], queen: [52, 80], king: [56, 90], dragon: [74, 120] }; // ms: draw others slightly in the past so movement is smooth
 
   let game = null;
   let scene = null;
@@ -25,6 +27,7 @@
     create() {
       scene = this;
       this.tileLayer = this.add.graphics();
+      this.hazardLayer = this.add.graphics(); // lava, geysers, jets and the bridge (animated)
       this.zoneLayer = this.add.graphics();
       this.fxLayer = this.add.graphics().setDepth(5);
       this.shotLayer = this.add.graphics().setDepth(6);
@@ -84,6 +87,7 @@
         this.me = null;
       }
       this.drawTiles(snap);
+      this.drawHazards(snap, time);
       this.predictMe(snap, dt);
       this.drawZones(snap, time);
       this.drawEntities(snap, time);
@@ -146,7 +150,7 @@
       for (let ty = 0; ty < room.h; ty++) {
         for (let tx = 0; tx < room.w; tx++) {
           const ch = at(tx, ty);
-          if (ch === 'p' || (ch === 'w' && isBorder(tx, ty)) || ch === 'd') continue;
+          if (ch === 'p' || ch === 'l' || isBorder(tx, ty)) continue;
           drawFloor(g, tx, ty);
         }
       }
@@ -157,6 +161,8 @@
           const x = tx * TILE;
           const y = ty * TILE;
           if (ch === 'w' && isBorder(tx, ty)) drawWall(g, x, y, tx, ty);
+          else if (ch === 'j') { drawWall(g, x, y, tx, ty); drawNozzle(g, x, y, tx, ty, room); }
+          else if (ch === 'v') drawVent(g, x, y);
           else if (ch === 'd') drawDoor(g, x, y, snap.doorOpen);
           else if (ch === 'p') drawPit(g, tx, ty, at);
           else if (ch === 'u') drawPool(g, tx, ty, at, 'u', 0x324a66, 0x6b8fb3);
@@ -169,6 +175,65 @@
       for (let ty = 0; ty < room.h; ty++) {
         for (let tx = 0; tx < room.w; tx++) {
           if (at(tx, ty) === 'w' && !isBorder(tx, ty)) drawPillar(g, tx * TILE, ty * TILE, at(tx, ty + 1) === 'w');
+        }
+      }
+    }
+
+    // ---------- lava, geysers, flame jets and the bridge (moving every frame) ----------
+
+    drawHazards(snap, time) {
+      const g = this.hazardLayer;
+      g.clear();
+      const room = this.room;
+      const melted = new Set(snap.melted || []);
+      const isLava = (tx, ty) => tx >= 0 && ty >= 0 && tx < room.w && ty < room.h &&
+        (room.grid[ty][tx] === 'l' || melted.has(ty * room.w + tx));
+      for (let ty = 0; ty < room.h; ty++) {
+        for (let tx = 0; tx < room.w; tx++) if (isLava(tx, ty)) drawLava(g, tx, ty, time, isLava);
+      }
+      const b = snap.bridge;
+      if (b) {
+        const a = b.warn ? 0.45 + 0.55 * Math.abs(Math.sin(time / 70)) : 1;
+        g.fillStyle(0x000000, 0.35).fillRect(b.x + 4, b.y + 8, b.w, b.h);
+        g.fillStyle(0x4a3f3a, a).fillRect(b.x, b.y, b.w, b.h);
+        g.fillStyle(0x5e514a, a).fillRect(b.x, b.y, b.w, 6);
+        g.lineStyle(2, 0x2a2220, a);
+        for (let i = 1; i < 4; i++) g.lineBetween(b.x + 2, b.y + i * (b.h / 4), b.x + b.w - 2, b.y + i * (b.h / 4));
+        g.lineStyle(3, b.warn ? 0xf2a541 : 0x1b1725, a).strokeRect(b.x + 1.5, b.y + 1.5, b.w - 3, b.h - 3);
+      }
+      for (const v of snap.vents || []) {
+        if (v.state === 'glow') {
+          const pulse = 0.5 + 0.5 * Math.sin(time / 80);
+          g.fillStyle(0xe5622b, 0.25 + 0.3 * pulse).fillCircle(v.x, v.y, 20 + 6 * pulse);
+          g.fillStyle(0xf2a541, 0.8).fillCircle(v.x, v.y, 8);
+        } else if (v.state === 'erupt') {
+          const wob = Math.sin(time / 50) * 3;
+          g.fillStyle(0xe5622b, 0.35).fillCircle(v.x, v.y, 40);
+          g.fillStyle(0xe5622b).fillRect(v.x - 14 + wob, v.y - 70, 28, 70);
+          g.fillStyle(0xf2a541).fillRect(v.x - 8 + wob, v.y - 76, 16, 76);
+          g.fillStyle(0xfff1b8).fillRect(v.x - 3 + wob, v.y - 60, 6, 56);
+          g.fillStyle(0xf2a541).fillCircle(v.x + wob, v.y - 76, 12);
+          if (Math.random() < 0.5) this.fx.burst(v.x, v.y - 60, 0xf2a541, 2, 'drip');
+        }
+      }
+      for (const j of snap.jets || []) {
+        const mx = j.x + j.dx * TILE / 2;
+        const my = j.y + j.dy * TILE / 2;
+        if (j.state === 'hiss') {
+          if (Math.random() < 0.6) this.fx.burst(mx, my, 0xf2a541, 1, 'spark');
+          g.fillStyle(0xf2a541, 0.5 + 0.5 * Math.abs(Math.sin(time / 40))).fillCircle(mx, my, 6);
+        } else if (j.state === 'fire') {
+          const len = j.len * TILE;
+          const horiz = j.dx !== 0;
+          const x0 = horiz ? (j.dx > 0 ? mx : mx - len) : j.x - 15;
+          const y0 = horiz ? j.y - 15 : (j.dy > 0 ? my : my - len);
+          const w = horiz ? len : 30;
+          const h = horiz ? 30 : len;
+          g.fillStyle(0xe5622b, 0.55).fillRect(x0, y0, w, h);
+          g.fillStyle(0xf2a541, 0.9).fillRect(horiz ? x0 : x0 + 7, horiz ? y0 + 7 : y0, horiz ? w : 16, horiz ? 16 : h);
+          g.fillStyle(0xfff1b8, 0.9).fillRect(horiz ? x0 : x0 + 12, horiz ? y0 + 12 : y0, horiz ? w : 6, horiz ? 6 : h);
+          const t = Math.random();
+          if (Math.random() < 0.7) this.fx.burst(mx + j.dx * len * t, my + j.dy * len * t, 0xf2a541, 1, 'flame');
         }
       }
     }
@@ -263,9 +328,11 @@
         s.body.setPosition(pos.x, pos.y - 6).setFlipX(Math.abs(p.aim) > Math.PI / 2).setScale(1, 1);
         s.body.setAlpha(p.downed ? 0.35 : p.rolling ? 0.6 : 1).setAngle(p.downed ? 90 : 0);
         if ((this.flashUntil.get(id) || 0) > time) s.body.setTintFill(0xff5a50);
+        else if (p.burning) s.body.setTint(Math.floor(time / 120) % 2 ? 0xf2a541 : 0xffffff);
         else if (p.poisoned) s.body.setTint(Math.floor(time / 150) % 2 ? 0x9bd17a : 0xffffff);
         else s.body.clearTint();
         if (p.poisoned && Math.random() < 0.15) this.fx.burst(pos.x, pos.y - 10, 0x9bd17a, 1, 'rise');
+        if (p.burning && Math.random() < 0.35) this.fx.burst(pos.x + (Math.random() - 0.5) * 16, pos.y - 4, 0xf2a541, 1, 'rise');
         if (p.rooted) {
           const g = this.statusLayer;
           g.lineStyle(3, 0x4f8a6a, 1);
@@ -308,11 +375,14 @@
         s.body.setAlpha(e.state === 'shimmer' ? 0.25 + 0.5 * Math.abs(Math.sin(time / 60)) : 1);
         if (e.state === 'leap') lift = 18;
         s.body.setPosition(pos.x, pos.y - lift).setScale(sx, sy);
-        const tell = ['screech', 'squish', 'draw', 'swell'].includes(e.state) && Math.floor(time / 100) % 2 === 0;
+        if (e.type === 'golem' || e.type === 'king') s.body.setFlipX(Math.abs(e.facing) > Math.PI / 2);
+        if (e.state === 'raise') { sx = 1.1; sy = 1.15; s.body.setScale(sx, sy); }
+        const tell = ['screech', 'squish', 'draw', 'swell', 'raise', 'ring'].includes(e.state) && Math.floor(time / 100) % 2 === 0;
         const hit = (this.flashUntil.get(id) || 0) > time;
         if (hit || tell) s.body.setTintFill(0xffffff);
         else if (e.state === 'swoop') s.body.setTint(0xf2a541);
         else if (e.state === 'storm') s.body.setTint(0x9bd17a);
+        else if (e.state === 'ring') s.body.setTint(0xc77dff);
         else if (e.stunned) s.body.setTint(0xb8b0d0);
         else s.body.clearTint();
         if (e.state === 'swoop' && time - (this.ghostAt.get(id) || 0) > 40) {
@@ -322,8 +392,8 @@
         this.drawStatus(e, pos, time);
         s.bar.clear();
         if (e.state !== 'airborne' && e.type !== 'bones' && e.type !== 'seed') {
-          const big = e.type === 'mother' || e.type === 'halfmother' || e.type === 'queen';
-          drawBar(s.bar, pos.x, pos.y - (big ? 52 : 30), e.hp / e.maxHp, 0xc76bd9, big ? 80 : 36);
+          const [off, width] = BIG[e.type] || [e.type === 'golem' ? 40 : 30, 36];
+          drawBar(s.bar, pos.x, pos.y - off, e.hp / e.maxHp, 0xc76bd9, width);
         }
         if (e.type === 'bones' && e.rebuildAt) {
           // ring that fills up until the archer rebuilds itself
@@ -431,6 +501,11 @@
           g.fillStyle(0x6c9bf2, 0.35).fillCircle(pr.x, pr.y, 11);
           g.fillStyle(0xb8d0ff).fillCircle(pr.x, pr.y, 5);
           this.fx.burst(pr.x, pr.y, 0x6c9bf2, 1, 'trail');
+        } else if (pr.kind === 'shadowBolt') {
+          g.fillStyle(0x5b2a6e, 0.5).fillCircle(pr.x, pr.y, 13);
+          g.fillStyle(0xc77dff).fillCircle(pr.x, pr.y, 7);
+          g.fillStyle(0xf1dcff).fillCircle(pr.x, pr.y, 3);
+          this.fx.burst(pr.x, pr.y, 0xc77dff, 1, 'trail');
         } else if (pr.kind === 'fireball') {
           g.fillStyle(0xe5622b, 0.4).fillCircle(pr.x, pr.y, 15);
           g.fillStyle(0xf2a541).fillCircle(pr.x, pr.y, 9);
@@ -446,15 +521,14 @@
     // Stun stars and "!" warnings above monsters.
     drawStatus(e, pos, time) {
       const g = this.statusLayer;
-      const big = e.type === 'mother' || e.type === 'halfmother' || e.type === 'queen';
-      const top = pos.y - (big ? 62 : 38);
+      const top = pos.y - (BIG[e.type] ? BIG[e.type][0] + 10 : e.type === 'golem' ? 48 : 38);
       if (e.stunned) {
         for (let i = 0; i < 3; i++) {
           const a = time / 180 + (i * Math.PI * 2) / 3;
           g.fillStyle(0xf2c14e).fillCircle(pos.x + Math.cos(a) * 14, top + Math.sin(a) * 4, 3);
         }
       }
-      if (['squish', 'screech', 'draw', 'swell', 'storm'].includes(e.state)) {
+      if (['squish', 'screech', 'draw', 'swell', 'storm', 'raise', 'ring'].includes(e.state)) {
         g.fillStyle(0xe5534b).fillRect(pos.x - 3, top - 18, 6, 12).fillRect(pos.x - 3, top - 3, 6, 5);
       }
     }
@@ -524,7 +598,8 @@
       const playerAt = (id) => snap.players.find((q) => q.id === id);
       if (ev.type === 'damage') {
         if (ev.enemyId) {
-          this.floatText(ev.x, ev.y - 20, String(ev.amount), '#FFFFFF');
+          this.floatText(ev.x, ev.y - 20, String(ev.amount), ev.armored ? '#9A93AD' : '#FFFFFF');
+          if (ev.armored) fx.burst(ev.x, ev.y, 0x8c84a3, 4, 'rubble', 'fx-square');
           this.flashUntil.set('e:' + ev.enemyId, now + 90);
           fx.burst(ev.x, ev.y, 0xfff1b8, 6, 'spark', 'fx-square');
         } else {
@@ -562,7 +637,7 @@
         fx.burst(ev.x, ev.y, 0xb9a6e8, 10, 'spark');
       } else if (ev.type === 'kill') {
         const color = Effects.MONSTER_COLORS[ev.enemyType] || 0xffffff;
-        const big = ev.enemyType === 'mother' || ev.enemyType === 'halfmother';
+        const big = !!BIG[ev.enemyType];
         fx.burst(ev.x, ev.y, color, big ? 40 : 16, 'drip');
         fx.burst(ev.x, ev.y, 0xffffff, big ? 16 : 6, 'spark');
         fx.burst(ev.x, ev.y, 0x5a5066, big ? 10 : 4, 'smoke');
@@ -615,6 +690,44 @@
         fx.burst(ev.x, ev.y, 0x4f8a6a, 14, 'rubble', 'fx-square');
       } else if (ev.type === 'guard') {
         fx.burst(ev.x, ev.y, 0x9bd17a, 20, 'rise');
+      } else if (ev.type === 'erupt') {
+        fx.burst(ev.x, ev.y - 20, 0xf2a541, 24, 'flame');
+        fx.burst(ev.x, ev.y, 0xe5622b, 12, 'drip');
+        fx.ring(ev.x, ev.y, { from: 10, to: 46, life: 0.3, color: 0xf2a541, width: 5 });
+        fx.shake(90, 0.003);
+      } else if (ev.type === 'jetfire') {
+        fx.burst(ev.x + ev.dx * TILE / 2, ev.y + ev.dy * TILE / 2, 0xf2a541, 12, 'flame');
+      } else if (ev.type === 'lavafall') {
+        const p = playerAt(ev.targetId);
+        if (p) {
+          fx.burst(p.x, p.y, 0xf2a541, 20, 'flame');
+          this.floatText(p.x, p.y - 40, 'Lava!', '#F2A541');
+        }
+      } else if (ev.type === 'slam') {
+        fx.ring(ev.x, ev.y, { from: 10, to: ev.r, life: 0.35, color: 0xcfc8de, width: 8, fill: 0.2 });
+        fx.burst(ev.x, ev.y, 0x8c84a3, 26, 'rubble', 'fx-square');
+        fx.burst(ev.x, ev.y, 0x5a5066, 10, 'smoke');
+        fx.shake(220, 0.01);
+      } else if (ev.type === 'sweep') {
+        fx.ring(ev.x, ev.y, { from: 30, to: 120, life: 0.3, color: 0xc77dff, width: 12, arc: { aim: ev.aim, spread: 1.25 } });
+        fx.ring(ev.x, ev.y, { from: 20, to: 100, life: 0.3, color: 0xffffff, width: 5, arc: { aim: ev.aim, spread: 1.1 }, delay: 0.04 });
+        fx.shake(150, 0.007);
+      } else if (ev.type === 'court') {
+        for (const c of ev.at || []) {
+          fx.ring(c.x, c.y, { from: 40, to: 6, life: 0.4, color: 0xc77dff, width: 4 });
+          fx.burst(c.x, c.y, 0xc76bd9, 14, 'drip');
+        }
+        Hud.banner('The King calls his court!', 1600);
+      } else if (ev.type === 'crownflare') {
+        fx.burst(ev.x, ev.y - 50, 0xf2c14e, 40, 'burst');
+        fx.ring(ev.x, ev.y, { from: 20, to: 200, life: 0.6, color: 0xc77dff, width: 8 });
+        fx.shake(350, 0.012);
+        Hud.banner("The King's crown flares!", 2200);
+      } else if (ev.type === 'ringwarn') {
+        fx.ring(ev.x, ev.y, { from: 90, to: 30, life: 1.5, color: 0xc77dff, width: 4 });
+      } else if (ev.type === 'shadowring') {
+        fx.ring(ev.x, ev.y, { from: 20, to: 150, life: 0.4, color: 0xc77dff, width: 6 });
+        fx.burst(ev.x, ev.y, 0xc77dff, 24, 'burst');
       } else if (ev.type === 'crumble') {
         fx.burst(ev.x, ev.y, 0x7a6248, 18, 'rubble', 'fx-square');
         fx.burst(ev.x, ev.y, 0x5a5066, 6, 'smoke');
@@ -791,6 +904,44 @@
         }
       }
     }
+  }
+
+  // Lava: a dark red pool with slowly moving bright cracks, and a crust where
+  // it meets solid ground.
+  function drawLava(g, tx, ty, time, isLava) {
+    const x = tx * TILE;
+    const y = ty * TILE;
+    const h = hash(tx, ty);
+    g.fillStyle(0x5a1a12).fillRect(x, y, TILE, TILE);
+    const k = 0.5 + 0.5 * Math.sin(time / 500 + h * 12);
+    g.fillStyle(0xb8381e, 0.7).fillCircle(x + 12 + h * 20, y + 14 + k * 8, 10);
+    g.fillStyle(0xe5622b, 0.5 + 0.4 * k).fillCircle(x + 32 - h * 10, y + 32 - k * 6, 7);
+    g.fillStyle(0xf2a541, 0.35 + 0.4 * (1 - k)).fillCircle(x + 20 + h * 8, y + 30, 3);
+    g.lineStyle(2, 0xe5622b, 0.5 + 0.3 * k);
+    g.lineBetween(x + 4, y + 20 + h * 10, x + 22, y + 26 - k * 4);
+    g.lineBetween(x + 26, y + 10 + k * 4, x + 44, y + 16 + h * 8);
+    g.fillStyle(0x2a1410);
+    if (!isLava(tx, ty - 1)) g.fillRect(x, y, TILE, 4);
+    if (!isLava(tx, ty + 1)) g.fillRect(x, y + TILE - 4, TILE, 4);
+    if (!isLava(tx - 1, ty)) g.fillRect(x, y, 4, TILE);
+    if (!isLava(tx + 1, ty)) g.fillRect(x + TILE - 4, y, 4, TILE);
+  }
+
+  // A geyser vent: a scorched hole in the floor.
+  function drawVent(g, x, y) {
+    g.fillStyle(0x1f1812, 0.9).fillCircle(x + 24, y + 24, 17);
+    g.lineStyle(3, 0x3a3350).strokeCircle(x + 24, y + 24, 17);
+    g.fillStyle(0x3a120c).fillCircle(x + 24, y + 24, 10);
+    g.fillStyle(0xb8381e, 0.6).fillCircle(x + 24, y + 24, 4);
+  }
+
+  // A flame-jet nozzle set into the wall, its mouth facing into the room.
+  function drawNozzle(g, x, y, tx, ty, room) {
+    const horiz = tx === 0 || tx === room.w - 1;
+    g.fillStyle(0x5e5670).fillRect(horiz ? x + 8 : x + 10, horiz ? y + 10 : y + 8, horiz ? 32 : 28, horiz ? 28 : 32);
+    g.fillStyle(0x15121e).fillRect(horiz ? x + 14 : x + 16, horiz ? y + 16 : y + 14, horiz ? 20 : 16, horiz ? 16 : 20);
+    g.fillStyle(0x8c84a3);
+    for (const [bx, by] of [[12, 12], [36, 12], [12, 36], [36, 36]]) g.fillCircle(x + bx, y + by, 1.5);
   }
 
   function drawBar(g, x, y, frac, color, width = 36) {
