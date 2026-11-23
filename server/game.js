@@ -217,7 +217,38 @@ class Game {
   }
 
   playerPoisonResist(p) {
-    return ['helm', 'mail', 'boots'].every((id) => p.owned.includes(id)) ? 0.5 : 0;
+    return this.hasSet(p, ['helm', 'mail', 'boots']) ? 0.5 : 0;
+  }
+
+  hasSet(p, ids) {
+    return ids.every((id) => p.owned.includes(id));
+  }
+
+  forgeSet(p) {
+    return this.hasSet(p, ['helm2', 'plate2', 'boots2']);
+  }
+
+  crownSet(p) {
+    return this.hasSet(p, ['helm3', 'plate3', 'boots3']);
+  }
+
+  // Set on fire: 3 damage a second for 3 s (1 s with the Forgewalker set).
+  // Getting burned again restarts the timer; it never stacks.
+  burnPlayer(p) {
+    if (!p || p.downed) return;
+    p.burnUntil = this.time + (this.forgeSet(p) ? data.BURN.forgeDuration : data.BURN.duration);
+  }
+
+  updateBurning(dt) {
+    for (const p of this.players.values()) {
+      if (p.downed || !(this.time < (p.burnUntil || 0) + 1e-9)) continue;
+      p.burnAcc = (p.burnAcc || 0) + data.BURN.perSecond * dt;
+      const whole = Math.floor(p.burnAcc + 1e-9);
+      if (whole >= 1) {
+        p.burnAcc -= whole;
+        this.damagePlayer(p, whole, 'burn', { ignoreDefense: true });
+      }
+    }
   }
 
   healPlayer(p, amount) {
@@ -385,6 +416,7 @@ class Game {
     heroes.updateProjectiles(this, dt);
     heroes.updateZones(this, dt);
     hazards.updateHazards(this, dt);
+    this.updateBurning(dt);
     for (const e of this.enemies.slice()) {
       if (this.enemies.includes(e)) enemies.updateEnemy(this, e, dt);
     }
@@ -451,6 +483,7 @@ class Game {
         downed: p.downed, revive: Math.round((p.reviveProgress / REVIVE_TIME) * 100) / 100,
         rolling: this.time < p.invulnUntil, stunned: this.time < p.stunUntil,
         rooted: this.time < (p.rootUntil || 0), poisoned: this.time < (p.poisonedUntil || 0),
+        burning: this.time < (p.burnUntil || 0),
         cd: { attack: Math.max(0, r((p.cd.attack - this.time) * 10) / 10),
           q: Math.max(0, r((p.cd.q - this.time) * 10) / 10),
           space: Math.max(0, r((p.cd.space - this.time) * 10) / 10) },

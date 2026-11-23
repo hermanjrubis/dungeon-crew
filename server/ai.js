@@ -1,5 +1,6 @@
 // Helpers every monster uses: choosing a target, moving and touch damage.
 const tiles = require('../shared/tiles');
+const data = require('../shared/data');
 
 const EPS = 1e-6;
 const CONTACT_COOLDOWN = 0.8;
@@ -22,7 +23,9 @@ function pickTarget(game, e) {
 }
 
 function moveEnemy(game, e, dx, dy) {
-  const pos = tiles.moveWithCollision(game.room, e.x, e.y, dx, dy, e.r, { doorOpen: false });
+  // Only monsters marked overLava (Skitterbats) can cross lava.
+  const m = data.MONSTERS[e.type];
+  const pos = tiles.moveWithCollision(game.room, e.x, e.y, dx, dy, e.r, { doorOpen: false, lavaSolid: !(m && m.overLava) });
   e.x = pos.x;
   e.y = pos.y;
 }

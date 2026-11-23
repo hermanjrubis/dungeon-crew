@@ -120,6 +120,15 @@ test('level 8 needs 950 XP', () => {
   assert.strictEqual(me.level, 8);
 });
 
+test('level 10 needs 1600 XP', () => {
+  const game = twoFloorGame();
+  const me = game.players.get('p0');
+  game.addXp(me, 1599);
+  assert.strictEqual(me.level, 9);
+  game.addXp(me, 1);
+  assert.strictEqual(me.level, 10);
+});
+
 // ---------- Floor 2 data ----------
 const { buildRoom } = require('../server/layout');
 const { makeRng } = require('../server/rng');

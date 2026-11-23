@@ -10,10 +10,11 @@
   const ROOM_H = 13; // tiles down
 
   // Letters that mark where things start. They become plain floor after parsing.
-  const SPAWN_LETTERS = { g: 'gloop', b: 'bat', M: 'mother', a: 'archer', c: 'sporecap', Q: 'queen' };
+  const SPAWN_LETTERS = { g: 'gloop', b: 'bat', M: 'mother', a: 'archer', c: 'sporecap', Q: 'queen', G: 'golem', K: 'king', D: 'dragon' };
 
   // Turn a list of text rows into a room object.
   //   w wall, f floor, s spikes, x cracked floor, p pit, u puddle, d door, e entry
+  //   l lava, v geyser vent, j flame-jet nozzle (in a wall), r crumbling platform
   function parseRoom(rows) {
     const grid = [];
     const spawns = [];
@@ -50,8 +51,10 @@
   }
 
   // Can nothing walk or fly through this tile?
+  // Lava is walkable (you fall in), except for monsters that can't cross it.
   function isSolid(ch, opts) {
-    if (ch === 'w') return true;
+    if (ch === 'w' || ch === 'j') return true;
+    if (ch === 'l') return !!(opts && opts.lavaSolid);
     if (ch === 'd') return !(opts && opts.doorOpen);
     return false;
   }
@@ -82,5 +85,5 @@
     return Math.floor(py / TILE) * room.w + Math.floor(px / TILE);
   }
 
-  return { TILE, ROOM_W, ROOM_H, parseRoom, tileAt, isSolid, moveWithCollision, tileIndex };
+  return { TILE, ROOM_W, ROOM_H, SPAWN_LETTERS, parseRoom, tileAt, isSolid, moveWithCollision, tileIndex };
 });
