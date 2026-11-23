@@ -93,11 +93,23 @@ function shoot(game, p, kind, speed, ttl, dmg, extra = {}) {
   });
 }
 
+// Tell every browser a skill was used, so it can draw the effect.
+function announce(game, p, skill) {
+  game.event({ type: 'cast', by: p.id, skill, x: Math.round(p.x), y: Math.round(p.y), aim: Math.round(p.aim * 100) / 100 });
+}
+
+const SKILL_NAMES = {
+  knight: { q: 'bash', space: 'taunt' },
+  archer: { q: 'arrowRain', space: 'roll' },
+  mage: { q: 'fireball', space: 'heal' }
+};
+
 function skillQ(game, p, hero) {
   const s = hero.q;
   if (s.mana && p.mana < s.mana) return;
   if (s.mana) p.mana -= s.mana;
   p.cd.q = game.time + s.cd;
+  announce(game, p, SKILL_NAMES[p.heroClass].q);
 
   if (p.heroClass === 'knight') {
     // Shield Bash: hit, push back and stun everything in front.
@@ -129,6 +141,7 @@ function skillSpace(game, p, hero) {
   if (s.mana && p.mana < s.mana) return;
   if (s.mana) p.mana -= s.mana;
   p.cd.space = game.time + s.cd;
+  announce(game, p, SKILL_NAMES[p.heroClass].space);
 
   if (p.heroClass === 'knight') {
     game.tauntBy = { id: p.id, until: game.time + s.duration, range: s.range };
@@ -188,6 +201,7 @@ function finishProjectile(game, pr) {
     if (Math.hypot(e.x - pr.x, e.y - pr.y) <= pr.blast + e.r) game.damageEnemy(e, pr.dmg, pr.ownerId);
   }
   game.addZone({ kind: 'fireBlast', x: pr.x, y: pr.y, r: pr.blast, until: game.time + 0.3 });
+  game.event({ type: 'explode', x: Math.round(pr.x), y: Math.round(pr.y), r: pr.blast });
 }
 
 // ---------- zones ----------

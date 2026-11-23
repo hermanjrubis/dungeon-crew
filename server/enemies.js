@@ -68,6 +68,7 @@ function leap(game, e) {
   const ny = l.fromY + (l.toY - l.fromY) * t;
   moveEnemy(game, e, nx - e.x, ny - e.y);
   if (t >= 1 - EPS) {
+    game.event({ type: 'land', enemyId: e.id, x: Math.round(e.x), y: Math.round(e.y), r: LANDING_RADIUS });
     for (const p of game.alivePlayers()) {
       if (dist(p, e) <= LANDING_RADIUS + p.r) game.damagePlayer(p, e.dmg, e);
     }
@@ -86,6 +87,7 @@ function updateBat(game, e, dt) {
 
   if (e.state === 'screech') {
     if (game.time >= e.stateUntil - EPS) {
+      game.event({ type: 'screech', x: Math.round(e.x), y: Math.round(e.y), r: SCREECH_RANGE });
       for (const p of game.alivePlayers()) {
         if (dist(p, e) <= SCREECH_RANGE) game.applySlow(p, 'screech', SCREECH_SLOW, SCREECH_SLOW_TIME);
       }
@@ -98,7 +100,10 @@ function updateBat(game, e, dt) {
     const step = SWOOP_SPEED * dt;
     moveEnemy(game, e, e.swoopDir.x * step, e.swoopDir.y * step);
     const bitten = game.alivePlayers().find((p) => dist(p, e) <= p.r + e.r);
-    if (bitten) game.damagePlayer(bitten, e.dmg, e);
+    if (bitten) {
+      game.damagePlayer(bitten, e.dmg, e);
+      game.event({ type: 'bite', targetId: bitten.id, x: Math.round(bitten.x), y: Math.round(bitten.y) });
+    }
     if (bitten || game.time >= e.stateUntil - EPS) {
       e.state = 'retreat';
       e.stateUntil = game.time + RETREAT_TIME;

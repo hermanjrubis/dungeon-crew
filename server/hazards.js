@@ -30,6 +30,9 @@ function updateHazards(game, dt) {
     if (game.time >= at - 1e-6) {
       game.cracking.delete(idx);
       game.broken.add(idx);
+      const tx = idx % game.room.w;
+      const ty = Math.floor(idx / game.room.w);
+      game.event({ type: 'crumble', x: tx * tiles.TILE + tiles.TILE / 2, y: ty * tiles.TILE + tiles.TILE / 2 });
     }
   }
 
@@ -64,6 +67,7 @@ function updateHazards(game, dt) {
 function standOn(game, ent, ch, spikesUp, cycle, hurt) {
   if (ch === 's' && spikesUp && ent.spikeCycle !== cycle) {
     ent.spikeCycle = cycle;
+    game.event({ type: 'spike', x: Math.round(ent.x), y: Math.round(ent.y) });
     hurt();
   } else if (ch === 'x') {
     const idx = tiles.tileIndex(game.room, ent.x, ent.y);

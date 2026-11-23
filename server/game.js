@@ -146,7 +146,9 @@ class Game {
 
   healPlayer(p, amount) {
     if (!p || p.downed) return;
+    const before = p.hp;
     p.hp = Math.min(p.maxHp, p.hp + amount);
+    if (p.hp > before) this.event({ type: 'heal', targetId: p.id, amount: p.hp - before });
   }
 
   revive(p, fraction) {
@@ -243,7 +245,7 @@ class Game {
         this.addXp(p, m.xp);
       }
     }
-    this.event({ type: 'kill', enemyId: e.id, x: Math.round(e.x), y: Math.round(e.y) });
+    this.event({ type: 'kill', enemyId: e.id, enemyType: e.type, x: Math.round(e.x), y: Math.round(e.y) });
     enemies.onEnemyDeath(this, e, { reward });
   }
 
@@ -349,7 +351,8 @@ class Game {
         speed: Math.round(data.HEROES[p.heroClass].speed * (1 + p.speedMul) * this.slowFactor(p))
       })),
       enemies: this.enemies.map((e) => ({
-        id: e.id, type: e.type, x: r(e.x), y: r(e.y), hp: e.hp, maxHp: e.maxHp, state: e.state
+        id: e.id, type: e.type, x: r(e.x), y: r(e.y), hp: e.hp, maxHp: e.maxHp, state: e.state,
+        stunned: this.time < e.stunUntil
       })),
       projectiles: this.projectiles.map((pr) => ({ id: pr.id, kind: pr.kind, x: r(pr.x), y: r(pr.y) })),
       zones: this.zones.map((z) => ({ id: z.id, kind: z.kind, x: r(z.x), y: r(z.y), r: z.r, until: z.until }))
