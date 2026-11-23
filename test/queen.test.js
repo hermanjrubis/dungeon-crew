@@ -87,3 +87,11 @@ test('beating the queen pays 70 gold and 150 XP', () => {
   assert.strictEqual(players[0].gold, 70);
   assert.strictEqual(players[0].xp, 150);
 });
+
+test('royal guard respects the 6 sporecap limit', () => {
+  const { game, q } = setup();
+  for (let i = 0; i < 5; i++) game.spawnEnemy('sporecap', 300 + i * 60, 500, { noReward: true });
+  q.timers.guard = game.time;
+  game.tick(0.05);
+  assert.strictEqual(game.enemies.filter((e) => e.type === 'sporecap' || e.type === 'seed').length, 6);
+});

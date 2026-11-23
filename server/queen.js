@@ -6,6 +6,7 @@
 //   At half HP the whole lair goes dark.
 const tiles = require('../shared/tiles');
 const { dist, contactDamage, moveEnemy } = require('./ai');
+const { MAX_PER_ROOM } = require('./sporecap');
 
 const EPS = 1e-6;
 const T = tiles.TILE;
@@ -61,6 +62,8 @@ function updateQueen(game, e, dt) {
   if (ready('guard')) {
     again('guard');
     for (const off of [-1, 1]) {
+      const crowd = game.enemies.filter((o) => o.type === 'sporecap' || o.type === 'seed').length;
+      if (crowd >= MAX_PER_ROOM) break; // same limit as seeds: never more than 6
       const cap = game.spawnEnemy('sporecap', e.x, e.y, { noReward: true });
       moveEnemy(game, cap, off * (e.r + 30), 0);
     }
