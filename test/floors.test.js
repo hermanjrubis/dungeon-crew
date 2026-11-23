@@ -119,3 +119,27 @@ test('level 8 needs 950 XP', () => {
   game.addXp(me, 1);
   assert.strictEqual(me.level, 8);
 });
+
+// ---------- Floor 2 data ----------
+const { buildRoom } = require('../server/layout');
+const { makeRng } = require('../server/rng');
+
+test('Floor 2 is the Fungal Caverns with 4 rooms, stalactites and the forge shop', () => {
+  const f2 = FLOORS[1];
+  assert.strictEqual(f2.name, 'Fungal Caverns');
+  assert.deepStrictEqual(f2.roomNames, ['Glowing Tunnels', 'Mushroom Grove', 'The Dark Hollow', "Spore Queen's Lair"]);
+  assert.strictEqual(f2.shop, 'forge');
+  assert.strictEqual(f2.stalactites, true);
+  assert.ok(f2.rooms[3].layout.some((r) => r.includes('Q')));
+  assert.strictEqual(f2.rooms[3].torches.length, 4);
+});
+
+test('Floor 2 recipes build valid rooms for 200 seeds', () => {
+  for (const room of FLOORS[1].rooms.filter((r) => r.recipe)) {
+    for (let seed = 1; seed <= 200; seed++) {
+      const built = buildRoom(room.recipe, makeRng(seed));
+      assert.strictEqual(built.fallback, false, 'seed ' + seed);
+      if (room.recipe.torches) assert.strictEqual(built.torches.length, room.recipe.torches);
+    }
+  }
+});

@@ -37,6 +37,36 @@
       'owwwwbbbbbbwwwwo', '.owwwbbffbbwwwo.', '..owobbbbbbowo..', '...o.obbbbo.o...',
       '......obbo......', '.......oo.......', '................', '................'
     ],
+    bonearcher: [
+      '....oooooo......', '...owwwwwwo...b.', '...owkwwkwo...bt', '...owwwwwwo..b.t',
+      '....owsswo...b.t', '.....oooo....b.t', '...oowwwwoo.b..t', '..owoswswsowwwwt',
+      '..ow.owwwo..b..t', '.....oswso...b.t', '.....owwwo...b.t', '....ow.o.wo..b.t',
+      '....ow...wo...bt', '....ow...wo...b.', '...oow...woo....', '................'
+    ],
+    bones: [
+      '................', '................', '................', '................',
+      '................', '................', '................', '.....oooo.......',
+      '....owwwwo......', '....owkwko......', '.....owwo.......', '..oo.......oo...',
+      '...owwwwwwwwo...', '..oo.......oo...', '....owo..owo....', '................'
+    ],
+    sporecap: [
+      '..g..........g..', '.....oooooo.....', '...oocccccdoo...', '..ocdcccccccco..',
+      '.occcccdddcccco.', '.ocddcccdcccdco.', 'ocdddccccccdddco', 'occdccccccccdcco',
+      '.oooooooooooooo.', '....osssssso....', '....osksskso....', '....osssssso....',
+      '...ohssssssho...', '...oooooooooo...', '.g............g.', '................'
+    ],
+    seed: [
+      '................', '................', '................', '................',
+      '................', '......oooo......', '.....oggggo.....', '....ogglgggo....',
+      '....oggggggo....', '....ogggglgo....', '.....oggggo.....', '......oooo......',
+      '.......tt.......', '......t..t......', '................', '................'
+    ],
+    queen: [
+      '...oooooooooo...', '.oocccdccccdcoo.', 'occdddccccdddcco', 'occcdccddccdccco',
+      'oooooooooooooooo', '...ossssssssso..', '...oskkssskksso.', '...osssmmmsssso.',
+      '.vvosssssssssov.', 'v..ossssssssso.v', 'v..ohsssssssho.v', '.v.ohsssssssho.v',
+      '..voooooooooov..', '.gvv..g..g..vvg.', 'vv............vv', '................'
+    ],
     mother: [
       '....g..g..g.....', '....gggggggg....', '....oooooooo....', '..oobbbbbbbboo..',
       '.obblbbbbbbbbbo.', '.obllbbbbbbbbbo.', 'obbwkbbbbbbwkbbo', 'obbkkbbbbbbkkbbo',
@@ -55,6 +85,11 @@
   const MONSTER_PALETTES = {
     gloop: { o: '#2A1533', b: '#C76BD9', l: '#E3A6EE', w: '#FFFFFF', k: '#120A16' },
     bat: { o: '#1A1024', b: '#5B4A7A', w: '#8E7BB0', r: '#F2A541', f: '#FFFFFF' },
+    bonearcher: { o: '#2B2735', w: '#E9E4D4', s: '#B9B2A0', k: '#E5534B', b: '#8A5A2E', t: '#CFC8DE' },
+    bones: { o: '#2B2735', w: '#E9E4D4', k: '#E5534B' },
+    sporecap: { o: '#2A1A14', c: '#D9734E', d: '#F7E6C9', s: '#EADBC0', h: '#BFAE90', k: '#120A16', g: '#5EC8B8' },
+    seed: { o: '#1F3A2E', g: '#5EC8B8', l: '#B8F0E4', t: '#6FA86A' },
+    queen: { o: '#2A1A14', c: '#8E4FB8', d: '#5EC8B8', s: '#EADBC0', h: '#BFAE90', k: '#120A16', m: '#7A2E3A', v: '#4F8A6A', g: '#5EC8B8' },
     mother: { o: '#2A1533', b: '#A94FC0', l: '#E3A6EE', w: '#FFFFFF', k: '#120A16', m: '#120A16', g: '#F2A541', n: '#E3A6EE' }
   };
 
@@ -72,9 +107,20 @@
     out.push({ file: 'minigloop.png', key: 'minigloop', rows: MAPS.gloop, palette: MONSTER_PALETTES.gloop, size: 32 });
     out.push({ file: 'bat.png', key: 'bat', rows: MAPS.bat, palette: MONSTER_PALETTES.bat, size: 48 });
     out.push({ file: 'mother.png', key: 'mother', rows: MAPS.mother, palette: MONSTER_PALETTES.mother, size: 96 });
+    out.push({ file: 'bonearcher.png', key: 'bonearcher', rows: MAPS.bonearcher, palette: MONSTER_PALETTES.bonearcher, size: 48 });
+    out.push({ file: 'bones.png', key: 'bones', rows: MAPS.bones, palette: MONSTER_PALETTES.bones, size: 40 });
+    out.push({ file: 'sporecap.png', key: 'sporecap', rows: MAPS.sporecap, palette: MONSTER_PALETTES.sporecap, size: 48 });
+    out.push({ file: 'seed.png', key: 'seed', rows: MAPS.seed, palette: MONSTER_PALETTES.seed, size: 32 });
+    out.push({ file: 'queen.png', key: 'queen', rows: MAPS.queen, palette: MONSTER_PALETTES.queen, size: 96 });
     out.push({ file: 'halfmother.png', key: 'halfmother', rows: MAPS.mother, palette: MONSTER_PALETTES.mother, size: 64 });
     return out;
   }
 
-  return { MAPS, heroPalette, MONSTER_PALETTES, spriteFiles };
+  // The picture each monster type uses (the Bone Archer's type is 'archer',
+  // which would clash with the Archer hero's pictures).
+  function enemyTexture(type) {
+    return type === 'archer' ? 'bonearcher' : type;
+  }
+
+  return { MAPS, heroPalette, MONSTER_PALETTES, spriteFiles, enemyTexture };
 });
