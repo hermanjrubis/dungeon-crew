@@ -13,6 +13,7 @@ const heroes = require('./heroes');
 const enemies = require('./enemies');
 const hazards = require('./hazards');
 const shop = require('./shop');
+const forge = require('./forge');
 
 const REVIVE_RANGE = 48;
 const REVIVE_TIME = 3;
@@ -112,6 +113,7 @@ class Game {
     this.broken = new Set();     // cracked tiles that became pits
     this.cracking = new Map();   // tile index -> time it breaks
     this.tauntBy = null;
+    forge.reset(this, layout);
     for (const s of this.room.spawns) this.spawnEnemy(s.type, s.x, s.y);
     for (const p of this.players.values()) {
       p.x = this.room.entry.x;
@@ -190,8 +192,8 @@ class Game {
     return hero.baseDmg + p.weaponBonus + data.LEVEL_DMG * (p.level - 1);
   }
 
-  damagePlayer(p, amount, source, { ignoreDefense = false } = {}) {
-    if (!p || p.downed || this.time < p.invulnUntil) return 0;
+  damagePlayer(p, amount, source, { ignoreDefense = false, ignoreInvuln = false } = {}) {
+    if (!p || p.downed || (!ignoreInvuln && this.time < p.invulnUntil)) return 0;
     const dealt = Math.max(1, Math.round(amount - (ignoreDefense ? 0 : p.defense)));
     p.hp = Math.max(0, p.hp - dealt);
     this.event({ type: 'damage', targetId: p.id, amount: dealt });
@@ -416,6 +418,7 @@ class Game {
     heroes.updateProjectiles(this, dt);
     heroes.updateZones(this, dt);
     hazards.updateHazards(this, dt);
+    forge.update(this, dt);
     this.updateBurning(dt);
     for (const e of this.enemies.slice()) {
       if (this.enemies.includes(e)) enemies.updateEnemy(this, e, dt);
@@ -475,6 +478,7 @@ class Game {
       broken: [...this.broken],
       cracking: [...this.cracking.keys()],
       spikes: hazards.spikeState(this.time),
+      ...forge.snapshot(this),
       players: [...this.players.values()].map((p) => ({
         id: p.id, name: p.name, heroClass: p.heroClass, color: p.color,
         x: r(p.x), y: r(p.y), aim: Math.round(p.aim * 100) / 100,
