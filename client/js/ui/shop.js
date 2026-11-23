@@ -129,7 +129,7 @@
           <span class="trophy">Phoenix Feather</span>
           <span class="trophy">300 gold each</span>
         </div>
-        <button type="button" id="end-menu" class="btn btn-primary btn-big">Back to lobby</button>
+        <button type="button" id="end-menu" class="btn btn-primary btn-big">Back to menu</button>
       </div>`;
     root.querySelector('#end-menu').addEventListener('click', () => { location.href = location.pathname; });
   }
