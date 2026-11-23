@@ -22,6 +22,9 @@ const JET_FIRE = 1;
 const JET_DAMAGE = 15;
 const JET_HALF_WIDTH = 24;
 
+const CRUMBLE_WARN = 2;  // a ring shakes this long before it falls
+const MAX_RINGS = 3;
+
 const BRIDGE_STAY = 3;    // the bridge rests this long...
 const BRIDGE_WARN = 1;    // ...then flickers this long...
 const BRIDGE_GLIDE = 0.5; // ...then slides to its next stop
@@ -29,6 +32,10 @@ const BRIDGE_GLIDE = 0.5; // ...then slides to its next stop
 // Called whenever a room loads: find this room's vents and jets.
 function reset(game, layout = {}) {
   game.forgeStart = game.time;
+  game.core = layout.core || null;  // [x0, y0, x1, y1] tiles that never fall
+  game.melted = new Set();          // platform tiles that fell into the lava
+  game.crumbling = new Map();       // tile index -> time it falls
+  game.ringsFallen = 0;
   // The bridge over a lava river: 2 tiles wide, 2 tiles tall, carries riders.
   const b = layout.bridge;
   game.bridge = b ? {
@@ -79,9 +86,49 @@ function jetState(game, group) {
   return 'idle';
 }
 
-// Where a player goes after falling in lava.
+// Where a player goes after falling in lava: the entrance, or on the
+// Roost the middle of the island (the entrance may have fallen).
 function respawnPoint(game) {
+  if (game.core) {
+    const [x0, y0, x1, y1] = game.core;
+    return { x: ((x0 + x1 + 1) / 2) * T, y: ((y0 + y1 + 1) / 2) * T };
+  }
   return { x: game.room.entry.x, y: game.room.entry.y };
+}
+
+// How many rings out from the core a tile is (0 = the core itself).
+function ringOf(game, tx, ty) {
+  if (!game.core) return 0;
+  const [x0, y0, x1, y1] = game.core;
+  return Math.max(0, x0 - tx, tx - x1, y0 - ty, ty - y1);
+}
+
+// Start the outermost standing ring falling. False once 3 rings are gone.
+function crumbleRing(game) {
+  if (!game.core || game.ringsFallen >= MAX_RINGS) return false;
+  const ring = MAX_RINGS - game.ringsFallen;
+  game.ringsFallen++;
+  const { grid, w, h } = game.room;
+  for (let ty = 0; ty < h; ty++) {
+    for (let tx = 0; tx < w; tx++) {
+      const ch = grid[ty][tx];
+      if (ch === 'w' || ch === 'l' || ringOf(game, tx, ty) !== ring) continue;
+      game.crumbling.set(ty * w + tx, game.time + CRUMBLE_WARN);
+    }
+  }
+  game.event({ type: 'ringwarn2', ring });
+  return true;
+}
+
+function updateCrumbling(game) {
+  let fell = false;
+  for (const [idx, at] of game.crumbling) {
+    if (game.time < at - EPS) continue;
+    game.crumbling.delete(idx);
+    game.melted.add(idx);
+    fell = true;
+  }
+  if (fell) game.event({ type: 'ringfall' });
 }
 
 function onBridge(game, x, y) {
@@ -91,7 +138,8 @@ function onBridge(game, x, y) {
 
 // Is this spot lava right now? (Lava under the bridge is safe.)
 function isLava(game, x, y) {
-  return tiles.tileAt(game.room, x, y) === 'l' && !onBridge(game, x, y);
+  const lava = tiles.tileAt(game.room, x, y) === 'l' || (game.melted && game.melted.has(tiles.tileIndex(game.room, x, y)));
+  return lava && !onBridge(game, x, y);
 }
 
 function updateBridge(game) {
@@ -127,6 +175,7 @@ function update(game, dt) {
   if (!game.vents) reset(game);
   const hurtable = game.enemies.filter((e) => !e.flying && !e.invulnerable);
   updateBridge(game);
+  updateCrumbling(game);
 
   // Lava
   for (const p of game.alivePlayers()) {
@@ -195,10 +244,12 @@ function update(game, dt) {
 function snapshot(game) {
   const b = game.bridge;
   return {
+    melted: [...(game.melted || [])],
+    crumbling: [...(game.crumbling ? game.crumbling.keys() : [])],
     bridge: b ? { x: b.x, y: Math.round(b.y), w: b.w, h: b.h, warn: bridgeWarn(game) } : null,
     vents: (game.vents || []).map((v) => ({ x: v.x, y: v.y, state: ventState(game, v.i) })),
     jets: (game.jets || []).map((j) => ({ x: j.x, y: j.y, dx: j.dir.x, dy: j.dir.y, len: j.len, state: jetState(game, j.group) }))
   };
 }
 
-module.exports = { reset, update, snapshot, ventState, jetState, respawnPoint, isLava, onBridge };
+module.exports = { reset, update, snapshot, ventState, jetState, respawnPoint, isLava, onBridge, ringOf, crumbleRing };

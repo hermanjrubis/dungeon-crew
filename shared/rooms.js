@@ -135,6 +135,29 @@
     [14, 6, 'K']
   ]);
 
+  // ---------- Floor 4: the Dragon's Roost ----------
+
+  const FLOOR4_NAME = "Dragon's Roost";
+  const FLOOR4_ROOM_NAMES = ['Ashen Stair', "Dragon's Roost"];
+
+  // A stone island in a sea of lava. The core (columns 8-15, rows 4-8) never
+  // falls; the rings of platforms (r) around it crumble in the dragon's last phase.
+  const ROOST_CORE = [8, 4, 15, 8];
+  const ROOST = (() => {
+    const rows = [];
+    for (let y = 0; y < 13; y++) {
+      let row = '';
+      for (let x = 0; x < 24; x++) {
+        if (y === 0 || y === 12 || x === 0 || x === 23) row += 'w';
+        else if (x <= 4 || x >= 19) row += 'l';
+        else if (x >= 8 && x <= 15 && y >= 4 && y <= 8) row += 'f';
+        else row += 'r';
+      }
+      rows.push(row);
+    }
+    return paint(rows, [[6, 6, 'e'], [12, 6, 'D']]);
+  })();
+
   // A floor = a name, room names, the shop after it, and its rooms.
   // A room is either { recipe } (traps placed at random every game) or
   // { layout } (hand-made, always the same; used for boss rooms).
@@ -202,8 +225,21 @@
           monsters: { golem: 2, archer: 2, bat: 2 } } },
         { layout: KINGS_HALL }
       ]
+    },
+    {
+      name: FLOOR4_NAME,
+      roomNames: FLOOR4_ROOM_NAMES,
+      shop: null, // the last floor: beating Ashmaw ends the run
+      stalactites: false,
+      rooms: [
+        { recipe: { shape: PLAIN, jets: 2,
+          fallback: paint(PLAIN, [[8, 0, 'j'], [15, 12, 'j'], [10, 4, 'v'], [14, 8, 'v'], [17, 3, 'G'], [17, 9, 'G'], [20, 4, 'a'], [20, 8, 'a'], [12, 2, 'b'], [12, 10, 'b']]),
+          scatter: [{ kind: 'vent', count: [2, 3], size: [1, 1] }, { kind: 'pillar', count: [2, 3], size: [1, 1] }],
+          monsters: { golem: 2, archer: 2, bat: 2 } } },
+        { layout: ROOST, core: ROOST_CORE }
+      ]
     }
   ];
 
-  return { FLOORS, FLOOR3_NAME, FLOOR3_ROOM_NAMES, RIVER_STOPS, FLOOR1, FLOOR1_NAME, FLOOR1_ROOM_NAMES, FLOOR2_NAME, FLOOR2_ROOM_NAMES, PLAIN };
+  return { FLOORS, ROOST, ROOST_CORE, FLOOR4_NAME, FLOOR4_ROOM_NAMES, FLOOR3_NAME, FLOOR3_ROOM_NAMES, RIVER_STOPS, FLOOR1, FLOOR1_NAME, FLOOR1_ROOM_NAMES, FLOOR2_NAME, FLOOR2_ROOM_NAMES, PLAIN };
 });

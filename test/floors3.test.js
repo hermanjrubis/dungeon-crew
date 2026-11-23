@@ -81,3 +81,32 @@ test("a second wearer doesn't stack it", () => {
   for (const p of game.players.values()) p.owned.push('helm3', 'plate3', 'boots3');
   assert.strictEqual(game.playerDamage(game.players.get('p1')), 20);
 });
+
+// ---------- Floor 4: the Dragon's Roost ----------
+
+test('Floor 4 is two rooms ending in the Roost, with no shop', () => {
+  const f4 = FLOORS[3];
+  assert.strictEqual(f4.name, "Dragon's Roost");
+  assert.deepStrictEqual(f4.roomNames, ['Ashen Stair', "Dragon's Roost"]);
+  assert.strictEqual(f4.shop, null);
+  const roost = f4.rooms[1];
+  assert.ok(roost.layout.some((r) => r.includes('D')));
+  assert.deepStrictEqual(roost.core, [8, 4, 15, 8]);
+  assert.ok(!roost.layout.some((r) => r.includes('d')), 'no exit door');
+});
+
+test('Ashen Stair builds valid rooms for 200 seeds', () => {
+  const { recipe } = FLOORS[3].rooms[0];
+  for (let seed = 1; seed <= 200; seed++) {
+    const built = buildRoom(recipe, makeRng(seed));
+    assert.strictEqual(built.fallback, false, 'seed ' + seed);
+  }
+});
+
+test('clearing the last floor ends the run without a shop', () => {
+  const floors = [{ name: 'End', roomNames: [], shop: null, rooms: [{ layout: TINY }] }];
+  const game = new Game([{ id: 'p0', name: 'Kai', heroClass: 'knight', color: 'orange' }], { floors, rng: () => 0 });
+  for (let i = 0; i < 120; i++) game.tick(0.05);
+  assert.strictEqual(game.phase, 'done');
+  assert.ok(game.drainEvents().some((e) => e.type === 'phase' && e.phase === 'done'));
+});

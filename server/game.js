@@ -60,7 +60,7 @@ class Game {
     this.floorIndex = index;
     this.floor = this.floors[index];
     this.layouts = this.floor.rooms.map((r, k) => {
-      if (r.layout) return { rows: r.layout, dark: r.dark ? [r.dark] : [], torches: (r.torches || []).map((t) => ({ ...t })), bridge: r.bridge || null };
+      if (r.layout) return { rows: r.layout, dark: r.dark ? [r.dark] : [], torches: (r.torches || []).map((t) => ({ ...t })), bridge: r.bridge || null, core: r.core || null };
       return buildRoom(r.recipe, makeRng(this.seed + index * 1000 + k));
     });
     this.roomIndex = 0;
@@ -417,8 +417,7 @@ class Game {
     }
     if (this.shopAt !== null) {
       this.shopAt = null;
-      this.phase = 'shop';
-      this.event({ type: 'phase', phase: 'shop' });
+      this.openShopOrFinish();
       return;
     }
 
@@ -445,11 +444,11 @@ class Game {
       this.event({ type: 'roomclear', roomIndex: this.roomIndex });
       if (this.roomIndex === this.layouts.length - 1) {
         if (this.transitionsOn) {
-          this.showCard('floorclear', `Floor ${this.floorIndex + 1} cleared!`, 'Heading to the camp shop…');
+          if (this.floor.shop) this.showCard('floorclear', `Floor ${this.floorIndex + 1} cleared!`, 'Heading to the camp shop…');
+          else this.showCard('floorclear', 'Victory!', 'The dungeon is cleared!');
           this.shopAt = this.transition.until;
         } else {
-          this.phase = 'shop';
-          this.event({ type: 'phase', phase: 'shop' });
+          this.openShopOrFinish();
         }
         return;
       }
@@ -460,6 +459,12 @@ class Game {
       const atDoor = this.alivePlayers().some((p) => tiles.tileAt(this.room, p.x, p.y) === 'd');
       if (atDoor) this.nextRoom();
     }
+  }
+
+  // After a floor: its camp shop, or the end of the run if it has none.
+  openShopOrFinish() {
+    this.phase = this.floor.shop ? 'shop' : 'done';
+    this.event({ type: 'phase', phase: this.phase });
   }
 
   snapshot() {

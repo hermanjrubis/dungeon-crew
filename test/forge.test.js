@@ -207,3 +207,49 @@ test('standing on lava under the bridge is safe', () => {
   assert.strictEqual(me(game).hp, 120);
   assert.ok(forge.onBridge(game, 220, 80));
 });
+
+// ---------- the Roost crumbles ----------
+const { FLOORS } = require('../shared/rooms');
+function roostGame() {
+  const floors = [{ name: 'Roost', roomNames: [], shop: null, rooms: [{ layout: FLOORS[3].rooms[1].layout.map((r) => r.replace('D', 'r')), core: [8, 4, 15, 8] }] }];
+  const game = new Game([{ id: 'p0', name: 'Kai', heroClass: 'knight', color: 'orange' }], { floors, transitions: false, rng: () => 0 });
+  // A monster that does nothing, so the room doesn't count as cleared.
+  game.enemies.push({ id: 999, type: 'dummy', x: 0, y: 0, r: 1, hp: 1, maxHp: 1, flying: true, invulnerable: true, timers: {}, hitAt: {}, slows: {}, stunUntil: 0 });
+  return game;
+}
+const T = 48;
+
+test('crumbling warns for 2 s, then the outer ring is lava', () => {
+  const game = roostGame();
+  Object.assign(me(game), center(12, 6));
+  assert.strictEqual(forge.ringOf(game, 5, 1), 3);
+  assert.strictEqual(forge.ringOf(game, 12, 6), 0);
+  assert.strictEqual(forge.crumbleRing(game), true);
+  const idx = 1 * game.room.w + 5;
+  assert.ok(game.snapshot().crumbling.includes(idx));
+  run(game, 1.9);
+  assert.ok(!forge.isLava(game, 5 * T + 24, 1 * T + 24));
+  run(game, 0.2);
+  assert.ok(forge.isLava(game, 5 * T + 24, 1 * T + 24));
+  assert.ok(game.snapshot().melted.includes(idx));
+  assert.ok(!forge.isLava(game, 6 * T + 24, 2 * T + 24), 'ring 2 still stands');
+});
+
+test('crumbling stops after 3 rings and never touches the core', () => {
+  const game = roostGame();
+  Object.assign(me(game), center(12, 6));
+  for (let i = 0; i < 3; i++) { assert.strictEqual(forge.crumbleRing(game), true); run(game, 2.1); }
+  assert.strictEqual(forge.crumbleRing(game), false);
+  assert.ok(forge.isLava(game, 7 * T + 24, 6 * T + 24));
+  assert.ok(!forge.isLava(game, 8 * T + 24, 4 * T + 24));
+  assert.strictEqual(me(game).hp, 120);
+});
+
+test('a player on a crumbled tile takes lava damage and lands on the core', () => {
+  const game = roostGame();
+  Object.assign(me(game), center(5, 6));
+  forge.crumbleRing(game);
+  run(game, 2.1);
+  assert.strictEqual(me(game).hp, 70);
+  assert.deepStrictEqual([me(game).x, me(game).y], [12 * T, 6.5 * T]);
+});
