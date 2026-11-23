@@ -37,13 +37,25 @@ Open <http://localhost:3000>, type a name and press **Create room**.
 If friends can't connect, allow Node.js through the laptop's firewall. Some school
 networks block devices from talking to each other; then use the online option below.
 
-### Put it online (Render)
+### Put it online (Vercel + Cloudflare, free)
 
-1. Push this folder to a GitHub repository.
-2. On [render.com](https://render.com), create a **Web Service** from that repository.
-3. Build command: `npm install` · Start command: `npm start`.
-4. Share the `https://….onrender.com` link. (Free servers sleep when nobody uses
-   them, so the first visit can take a minute.)
+The game page is hosted on **Vercel**; the multiplayer server runs on
+**Cloudflare** (a Worker with one Durable Object, `cloud/worker.js`). Neither sleeps.
+
+1. **Cloudflare (the game server):** make a free account at
+   [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** → **Create** →
+   **Import a repository** → pick this repo. Keep the deploy command `npx wrangler deploy`.
+   When it's done you get an address like `https://dungeon-crew.<you>.workers.dev`
+   (open it: it should say "Dungeon Crew server is running").
+   *(Or from your laptop: `npx wrangler login` then `npm run cloud:deploy`.)*
+2. **Vercel (the page):** [vercel.com](https://vercel.com) → **Add New → Project** → import
+   this repo. Under **Environment Variables** add `GAME_SERVER` = your Cloudflare address
+   from step 1. Deploy. Share the `https://….vercel.app` link.
+
+`vercel.json` tells Vercel to run `npm run build:web`, which copies the page into `dist/`
+and points it at `GAME_SERVER`. To try the online setup on your own computer:
+`npm run cloud:dev` (server on port 8787), then `GAME_SERVER=http://localhost:8787 npm run build:web`
+and open `dist/` with any static file server.
 
 ## Controls
 
@@ -64,7 +76,8 @@ If everyone goes down, the room starts over.
 
 ```
 server/          runs on the computer that hosts the game
-  index.js       web server + live connection (Socket.IO), 20 updates per second
+  index.js       local web server + WebSocket, 20 updates per second
+  hub.js         rooms, lobby and game messages (shared by the local and online servers)
   lobby.js       room codes, players, hero and color picks, host, start
   game.js        one game: rooms, doors, gold, XP, levels, reviving, room reset
   heroes.js      hero movement, attacks and skills
@@ -77,6 +90,8 @@ server/          runs on the computer that hosts the game
   archer.js, sporecap.js, queen.js     Floor 2 monsters
   golem.js, king.js, dragon.js         Floor 3-4 monsters
   shop.js        the camp shop
+cloud/worker.js  the online server on Cloudflare (uses server/hub.js)
+tools/           build-web.js (the Vercel page), make-sprites.js
 shared/          used by BOTH the server and the browser
   data.js        every number: HP, damage, speeds, cooldowns, prices
   rooms.js       the room layouts, drawn with letters
