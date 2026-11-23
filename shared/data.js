@@ -50,6 +50,7 @@
     bones: { name: 'Bones', hp: 1, dmg: 0, speed: 0, r: 14, xp: 0, gold: [0, 0], flying: true },
     sporecap: { name: 'Sporecap', hp: 40, dmg: 0, speed: 0, r: 18, xp: 12, gold: [4, 6] },
     seed: { name: 'Spore Seed', hp: 1, dmg: 0, speed: 0, r: 8, xp: 0, gold: [0, 0] },
+    queen: { name: 'Spore Queen', hp: 400, dmg: 12, speed: 0, r: 36, xp: 150, gold: [70, 70], hpPerExtraPlayer: 0.5, boss: true },
     halfmother: { name: 'Half Mother', hp: 60, dmg: 8, speed: 55, r: 26, xp: 0, gold: [0, 0], boss: true }
   };
 
