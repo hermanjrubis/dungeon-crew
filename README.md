@@ -2,16 +2,20 @@
 
 A co-op dungeon crawler for 2–4 players that runs in the browser. Friends join a
 room with a 4-letter code, pick a hero (Knight, Archer or Mage), and fight
-through two floors:
+through four floors:
 
 - **Floor 1 · Sunken Cellar** — Gloops, Skitterbats, spike traps, crumbling floors, puddles, and the **Gloop Mother**.
 - **Floor 2 · Fungal Caverns** — Bone Archers, Sporecaps, poison pools, falling stalactites, dark rooms lit with torches, and the **Spore Queen**.
+- **Floor 3 · Molten Forge** — Rubble Golems (hit them from behind), lava geysers, a lava river crossed on a moving bridge, flame jets, burning, and **the Hollow King**.
+- **Floor 4 · Dragon's Roost** — one last room of mixed monsters, then **Ashmaw, the Ember Dragon** on an island in a lava sea. Beat it to win.
 
 After each floor there's a camp shop. Your level, gold and gear carry over.
 **The traps move:** every new game places the spikes, pits, puddles, poison pools,
 pillars and monsters differently (the room walls and the boss rooms stay the same).
 
-Floors 3–4 and the dragon come in later slices.
+Lava costs 50 HP and sends you back to the start of the room. Every attack and
+hazard warns you first: watch for glowing vents, hissing nozzles, a flickering
+bridge, raised fists and swords, and red circles on the floor.
 
 ## Run it
 
@@ -67,7 +71,11 @@ server/          runs on the computer that hosts the game
   enemies.js     Gloop and Skitterbat behaviour
   boss.js        Gloop Mother
   ai.js          helpers every monster uses (targeting, moving, touch damage)
-  hazards.js     spikes, cracked floor, pits, puddles
+  hazards.js     spikes, cracked floor, pits, puddles, poison, stalactites, torches
+  forge.js       Floor 3-4 hazards: lava, the moving bridge, geysers, flame jets, crumbling platforms
+  layout.js      builds random rooms from recipes (and checks they can be finished)
+  archer.js, sporecap.js, queen.js     Floor 2 monsters
+  golem.js, king.js, dragon.js         Floor 3-4 monsters
   shop.js        the camp shop
 shared/          used by BOTH the server and the browser
   data.js        every number: HP, damage, speeds, cooldowns, prices
@@ -110,7 +118,7 @@ and start a real server with two fake players to check the multiplayer connectio
 Testing shortcuts (set before `npm start`):
 
 - `DEBUG_SKIP_TO_SHOP=1` — jump straight to the shop with 150 gold.
-- `DEBUG_FLOOR=2` — start on Floor 2 with 300 gold.
+- `DEBUG_FLOOR=2` — start on Floor 2 with 300 gold (`3` gives 500 gold, `4` gives 900).
 - `DEBUG_ROOM=3` — start in room 4 of that floor (counting from 0), e.g. the boss.
 
 On Windows PowerShell: `$env:DEBUG_FLOOR=2; npm start`.
