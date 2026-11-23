@@ -3,7 +3,7 @@
   const SCREENS = ['menu', 'lobby', 'game', 'shop', 'end'];
 
   const App = {
-    me: null,      // my socket id once the game starts
+    me: null,      // my connection id once the game starts
     screen: 'menu',
     show(id) {
       App.screen = id;

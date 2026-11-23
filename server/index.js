@@ -1,14 +1,23 @@
-// The server: serves the game page and runs every room's game.
+// The local server: serves the game page and runs every room's game.
 // Start it with `npm start`, then open http://localhost:3000
+// (For playing online, the same rooms run on Cloudflare: see cloud/worker.js.)
 const path = require('path');
 const http = require('http');
 const express = require('express');
-const { Server } = require('socket.io');
-const { Lobby } = require('./lobby');
-const { Game } = require('./game');
+const { WebSocketServer } = require('ws');
+const { createHub } = require('./hub');
 const { TICK_RATE } = require('../shared/data');
 
 const ROOT = path.join(__dirname, '..');
+
+// Testing switches from the environment: DEBUG_FLOOR=3, DEBUG_ROOM=1, DEBUG_SKIP_TO_SHOP=1.
+function debugFromEnv(env = process.env) {
+  return {
+    floor: env.DEBUG_FLOOR ? Number(env.DEBUG_FLOOR) : null,
+    room: env.DEBUG_ROOM !== undefined ? env.DEBUG_ROOM : null,
+    skipToShop: !!env.DEBUG_SKIP_TO_SHOP
+  };
+}
 
 function createServer({ port = 3000 } = {}) {
   const app = express();
@@ -19,139 +28,22 @@ function createServer({ port = 3000 } = {}) {
   });
 
   const httpServer = http.createServer(app);
-  const io = new Server(httpServer);
-  const lobby = new Lobby();
+  const hub = createHub({ debug: debugFromEnv() });
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  let nextId = 1;
 
-  const channel = (room) => 'room:' + room.code;
-  const sendLobby = (room) => io.to(channel(room)).emit('lobby:state', lobby.publicState(room));
-  const sendShop = (room) => io.to(channel(room)).emit('shop:state', room.game.shopState());
-
-  io.on('connection', (socket) => {
-    // Every handler accepts (payload, ack) but survives missing or bad values.
-    const on = (event, handler) => {
-      socket.on(event, (payload, ack) => {
-        if (typeof payload === 'function') { ack = payload; payload = {}; }
-        if (!payload || typeof payload !== 'object') payload = {};
-        const reply = typeof ack === 'function' ? ack : () => {};
-        try {
-          handler(payload, reply);
-        } catch (err) {
-          console.error('Error handling', event, err);
-          reply({ ok: false, error: 'Server error' });
-        }
-      });
-    };
-
-    const joinChannel = (res, reply) => {
-      if (res.ok) {
-        const room = lobby.roomOf(socket.id);
-        for (const ch of socket.rooms) if (ch !== socket.id) socket.leave(ch);
-        socket.join(channel(room));
-        reply(res);
-        sendLobby(room);
-      } else reply(res);
-    };
-
-    on('room:create', (p, reply) => joinChannel(lobby.createRoom(socket.id, p.name), reply));
-    on('room:join', (p, reply) => joinChannel(lobby.joinRoom(socket.id, p.name, p.code), reply));
-
-    on('lobby:pick', (p, reply) => {
-      const res = lobby.pick(socket.id, { heroClass: p.heroClass, color: p.color });
-      reply(res);
-      const room = lobby.roomOf(socket.id);
-      if (room) sendLobby(room);
-    });
-
-    on('lobby:lock', (p) => {
-      lobby.setLocked(socket.id, p.locked === true);
-      const room = lobby.roomOf(socket.id);
-      if (room) sendLobby(room);
-    });
-
-    on('lobby:start', (p, reply) => {
-      const res = lobby.start(socket.id);
-      reply(res);
-      if (!res.ok) return;
-      const room = lobby.roomOf(socket.id);
-      const players = [...room.players.values()].map(({ id, name, heroClass, color }) => ({ id, name, heroClass, color }));
-      room.game = new Game(players);
-      // Testing switches: DEBUG_FLOOR=2 starts on Floor 2 with 300 gold (Floor 3: 500, Floor 4: 900); DEBUG_ROOM=3 jumps to room 4 (counting from 0).
-      if (process.env.DEBUG_FLOOR) {
-        room.game.startFloor(Math.max(0, Math.min(room.game.floors.length - 1, Number(process.env.DEBUG_FLOOR) - 1)));
-        const gold = { 3: 500, 4: 900 }[Number(process.env.DEBUG_FLOOR)] || 300;
-        for (const pl of room.game.players.values()) pl.gold = gold;
-      }
-      if (process.env.DEBUG_ROOM) {
-        room.game.roomIndex = Math.max(0, Math.min(room.game.layouts.length - 1, Number(process.env.DEBUG_ROOM)));
-        room.game.loadRoom();
-      }
-      if (process.env.DEBUG_SKIP_TO_SHOP) {
-        room.game.phase = 'shop';
-        for (const pl of room.game.players.values()) pl.gold = 150;
-      }
-      room.lastTick = Date.now();
-      sendLobby(room);
-      for (const pl of players) io.to(pl.id).emit('game:start', { you: pl.id, code: room.code });
-      if (room.game.phase === 'shop') sendShop(room);
-    });
-
-    on('input', (p) => {
-      const room = lobby.roomOf(socket.id);
-      if (room && room.game) room.game.setInput(socket.id, p);
-    });
-
-    on('game:pause', (p) => {
-      const room = lobby.roomOf(socket.id);
-      if (room && room.game) room.game.setPaused(socket.id, p.paused === true);
-    });
-
-    on('shop:buy', (p, reply) => {
-      const room = lobby.roomOf(socket.id);
-      if (!room || !room.game) return reply({ ok: false, error: 'Not in a game' });
-      reply(room.game.buy(socket.id, p.itemId));
-      sendShop(room);
-    });
-
-    on('shop:ready', (p) => {
-      const room = lobby.roomOf(socket.id);
-      if (!room || !room.game) return;
-      room.game.setShopReady(socket.id, p.ready === true);
-      sendShop(room);
-    });
-
-    socket.on('disconnect', () => {
-      const room = lobby.leave(socket.id);
-      if (!room) return;
-      if (room.game) {
-        room.game.removePlayer(socket.id);
-        if (room.game.phase === 'shop') sendShop(room);
-      }
-      sendLobby(room);
-    });
+  wss.on('connection', (ws) => {
+    const id = 'c' + nextId++;
+    const sendFrame = (text) => { if (ws.readyState === ws.OPEN) ws.send(text); };
+    hub.connect(id, (e, d) => sendFrame(JSON.stringify({ e, d })));
+    sendFrame(JSON.stringify({ e: 'hello', d: { id } }));
+    ws.on('message', (data) => hub.handleFrame(id, String(data), sendFrame));
+    ws.on('close', () => hub.disconnect(id));
+    ws.on('error', () => {});
   });
 
   // The game loop: every room with a running game moves forward 20 times a second.
-  const loop = setInterval(() => {
-    const now = Date.now();
-    for (const room of lobby.rooms.values()) {
-      const game = room.game;
-      if (!game) continue;
-      const dt = (now - room.lastTick) / 1000;
-      room.lastTick = now;
-      const before = game.phase;
-      if (game.phase === 'playing') {
-        game.tick(dt);
-        io.to(channel(room)).emit('game:snapshot', game.snapshot());
-      }
-      const events = game.drainEvents();
-      if (events.length) io.to(channel(room)).emit('game:events', events);
-      if (game.phase !== before || game.phase !== room.phase) {
-        room.phase = game.phase;
-        if (game.phase === 'shop') sendShop(room);
-        if (game.phase === 'done') io.to(channel(room)).emit('game:done', game.shopState());
-      }
-    }
-  }, 1000 / TICK_RATE);
+  const loop = setInterval(() => hub.tick(Date.now()), 1000 / TICK_RATE);
 
   return new Promise((resolve) => {
     httpServer.listen(port, () => {
@@ -159,7 +51,8 @@ function createServer({ port = 3000 } = {}) {
         port: httpServer.address().port,
         close: () => new Promise((done) => {
           clearInterval(loop);
-          io.close(() => done());
+          for (const ws of wss.clients) ws.terminate();
+          wss.close(() => httpServer.close(() => done()));
         })
       });
     });
@@ -173,4 +66,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createServer };
+module.exports = { createServer, debugFromEnv };

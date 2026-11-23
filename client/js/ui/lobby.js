@@ -41,7 +41,7 @@
 
   let state = null;
 
-  const me = () => state && state.players.find((p) => p.id === Net.socket.id);
+  const me = () => state && state.players.find((p) => p.id === Net.id);
   const img = (cls, color) => `assets/${cls}-${color}.png`;
 
   function el(tag, attrs = {}, children = []) {

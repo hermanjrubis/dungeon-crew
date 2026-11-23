@@ -1,17 +1,8 @@
-// Starts a real server and connects two fake players to it.
+// Starts a real server and connects two fake players to it over WebSocket.
 const test = require('node:test');
 const assert = require('node:assert');
-const { io } = require('socket.io-client');
 const { createServer } = require('../server/index');
-
-function connect(port) {
-  return new Promise((resolve) => {
-    const s = io('http://localhost:' + port, { transports: ['websocket'], forceNew: true });
-    s.on('connect', () => resolve(s));
-  });
-}
-const emit = (s, ev, payload) => new Promise((resolve) => s.emit(ev, payload, resolve));
-const once = (s, ev) => new Promise((resolve) => s.once(ev, resolve));
+const { connect, emit, once } = require('./wsclient');
 
 test('two players create, join, pick, lock, start and get snapshots', async () => {
   const server = await createServer({ port: 0 });
@@ -87,6 +78,8 @@ test('bad payloads do not crash the server', async () => {
     a.emit('input', 42);
     a.emit('shop:buy', undefined, () => {});
     a.emit('lobby:start');
+    a.raw('this is not json');
+    a.raw('{"e": 12}');
     const res = await emit(a, 'room:create', { name: 'Kai' });
     assert.strictEqual(res.ok, true);
   } finally {
