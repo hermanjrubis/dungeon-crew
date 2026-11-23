@@ -27,7 +27,9 @@ function updatePlayer(game, p, dt) {
   if (input.q && ready(game, p, 'q')) skillQ(game, p, hero);
   if (input.space && ready(game, p, 'space')) skillSpace(game, p, hero);
 
-  if (p.roll) roll(game, p, dt);
+  const rooted = game.time < (p.rootUntil || 0);
+  if (rooted) p.roll = null; // vines hold you in place, but you can still fight
+  else if (p.roll) roll(game, p, dt);
   else move(game, p, dt);
 }
 
@@ -174,6 +176,17 @@ function updateProjectiles(game, dt) {
       if (tiles.isSolid(tiles.tileAt(game.room, pr.x, pr.y), { doorOpen: game.doorOpen })) {
         finishProjectile(game, pr);
         break;
+      }
+      if (pr.hostile) {
+        // A monster's shot: hits players, flies past monsters.
+        const victim = [...game.players.values()].find((p) => !p.downed && game.time >= p.invulnUntil &&
+          Math.hypot(p.x - pr.x, p.y - pr.y) <= p.r + pr.r);
+        if (victim) {
+          game.damagePlayer(victim, pr.dmg, 'arrow');
+          removeProjectile(game, pr);
+          break;
+        }
+        continue;
       }
       const target = game.enemies.find((e) => !e.invulnerable && Math.hypot(e.x - pr.x, e.y - pr.y) <= e.r + pr.r);
       if (target) {

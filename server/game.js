@@ -188,9 +188,9 @@ class Game {
     return hero.baseDmg + p.weaponBonus + data.LEVEL_DMG * (p.level - 1);
   }
 
-  damagePlayer(p, amount, source) {
+  damagePlayer(p, amount, source, { ignoreDefense = false } = {}) {
     if (!p || p.downed || this.time < p.invulnUntil) return 0;
-    const dealt = Math.max(1, Math.round(amount - p.defense));
+    const dealt = Math.max(1, Math.round(amount - (ignoreDefense ? 0 : p.defense)));
     p.hp = Math.max(0, p.hp - dealt);
     this.event({ type: 'damage', targetId: p.id, amount: dealt });
     if (p.hp <= 0) {
@@ -199,6 +199,23 @@ class Game {
       this.event({ type: 'downed', targetId: p.id });
     }
     return dealt;
+  }
+
+  // Poison builds up a little every tick and hurts in whole points.
+  // Armor doesn't stop it, but the full Cellar Guard set halves it.
+  poisonPlayer(p, perSecond, dt) {
+    if (!p || p.downed || this.time < p.invulnUntil) return;
+    p.poisonAcc = (p.poisonAcc || 0) + perSecond * dt * (1 - this.playerPoisonResist(p));
+    p.poisonedUntil = this.time + 0.5;
+    const whole = Math.floor(p.poisonAcc + 1e-9);
+    if (whole >= 1) {
+      p.poisonAcc -= whole;
+      this.damagePlayer(p, whole, 'poison', { ignoreDefense: true });
+    }
+  }
+
+  playerPoisonResist(p) {
+    return ['helm', 'mail', 'boots'].every((id) => p.owned.includes(id)) ? 0.5 : 0;
   }
 
   healPlayer(p, amount) {
@@ -431,6 +448,7 @@ class Game {
         level: p.level, xp: p.xp, gold: p.gold, potions: p.potions, feathers: p.feathers,
         downed: p.downed, revive: Math.round((p.reviveProgress / REVIVE_TIME) * 100) / 100,
         rolling: this.time < p.invulnUntil, stunned: this.time < p.stunUntil,
+        rooted: this.time < (p.rootUntil || 0), poisoned: this.time < (p.poisonedUntil || 0),
         cd: { attack: Math.max(0, r((p.cd.attack - this.time) * 10) / 10),
           q: Math.max(0, r((p.cd.q - this.time) * 10) / 10),
           space: Math.max(0, r((p.cd.space - this.time) * 10) / 10) },
