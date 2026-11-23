@@ -1,0 +1,12 @@
+# Cloudflare settings for the online game server (cloud/worker.js).
+name = "dungeon-crew"
+main = "cloud/worker.js"
+compatibility_date = "2025-09-01"
+
+[[durable_objects.bindings]]
+name = "GAME"
+class_name = "GameServer"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GameServer"]
