@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server/index.js",
-    "test": "node --test test/*.test.js",
+    "test": "node --test --test-timeout=20000 test/*.test.js",
     "sprites": "node tools/make-sprites.js"
   },
   "dependencies": {
