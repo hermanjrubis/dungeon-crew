@@ -45,6 +45,8 @@
         this.load.spritesheet(sh.key + '-sheet', 'assets/' + sh.file, { frameWidth: sh.size, frameHeight: sh.size });
       }
       for (const s of DC.sprites.spriteFiles()) if (!SHEETS.has(s.key)) this.load.image(s.key, 'assets/' + s.file);
+      // pixel floor, wall and pillar tiles for each floor
+      if (DC.terrain) for (const t of DC.terrain.terrainFiles()) this.load.spritesheet(t.key, 'assets/' + t.file, { frameWidth: t.size, frameHeight: t.size });
     }
 
     // One Phaser animation per sheet and action (walk, attack...).
@@ -110,6 +112,7 @@
       this.makeAnims();
       this.corpses = [];   // monsters playing their death animation
       this.gone = new Map(); // id -> last look of a sprite that just left (for death animations)
+      this.tileArt = null; // the floor's pixel tiles, stamped once per room (see drawTiles)
       this.tileLayer = this.add.graphics();
       this.hazardLayer = this.add.graphics(); // lava, geysers, jets and the bridge (animated)
       this.zoneLayer = this.add.graphics();
@@ -340,6 +343,11 @@
       const g = this.tileLayer;
       g.clear();
       const room = this.room;
+      // Pixel tiles go on a texture under the trap drawings; without them we fall back to plain shapes.
+      const tkey = 'terrain-' + (Math.min(snap.floorIndex, 5) + 1);
+      const art = DC.terrain && this.textures.exists(tkey) ? this.terrainCanvas(room) : null;
+      const F = DC.terrain && DC.terrain.FRAME;
+      const stamp = (frame, tx, ty) => art.drawFrame(tkey, frame, tx * TILE, ty * TILE);
       const broken = new Set(snap.broken);
       const cracking = new Set(snap.cracking);
       // What's on a tile; cracked floor that broke counts as a pit.
@@ -354,7 +362,12 @@
         for (let tx = 0; tx < room.w; tx++) {
           const ch = at(tx, ty);
           if (ch === 'p' || ch === 'l' || isBorder(tx, ty)) continue;
-          drawFloor(g, tx, ty);
+          if (!art) { drawFloor(g, tx, ty); continue; }
+          const r = hash(tx, ty);
+          stamp(F.floor[r < 0.55 ? 0 : r < 0.72 ? 1 : r < 0.86 ? 2 : 3], tx, ty);
+          // a few things lying around on plain floor (they never sit on traps)
+          const d = hash(tx + 101, ty + 37);
+          if (ch === 'f' && d < 0.09) stamp(F.deco[Math.floor(d / 0.0225)], tx, ty);
         }
       }
       // 2) walls, doors and things lying on the floor
@@ -363,8 +376,8 @@
           const ch = at(tx, ty);
           const x = tx * TILE;
           const y = ty * TILE;
-          if (ch === 'w' && isBorder(tx, ty)) drawWall(g, x, y, tx, ty);
-          else if (ch === 'j') { drawWall(g, x, y, tx, ty); drawNozzle(g, x, y, tx, ty, room); }
+          if (ch === 'w' && isBorder(tx, ty)) { if (art) stamp(F.wall, tx, ty); else drawWall(g, x, y, tx, ty); }
+          else if (ch === 'j') { if (art) stamp(F.wall, tx, ty); else drawWall(g, x, y, tx, ty); drawNozzle(g, x, y, tx, ty, room); }
           else if (ch === 'v') drawVent(g, x, y);
           else if (ch === 'r') drawPlatform(g, x, y, tx, ty);
           else if (ch === 'd') drawDoor(g, x, y, snap.doorOpen);
@@ -378,9 +391,24 @@
       // 3) pillars last, so their shadow falls on the floor below them
       for (let ty = 0; ty < room.h; ty++) {
         for (let tx = 0; tx < room.w; tx++) {
-          if (at(tx, ty) === 'w' && !isBorder(tx, ty)) drawPillar(g, tx * TILE, ty * TILE, at(tx, ty + 1) === 'w');
+          if (at(tx, ty) !== 'w' || isBorder(tx, ty)) continue;
+          if (!art) { drawPillar(g, tx * TILE, ty * TILE, at(tx, ty + 1) === 'w'); continue; }
+          stamp(F.pillar, tx, ty);
+          if (at(tx, ty + 1) !== 'w') g.fillStyle(0x000000, 0.35).fillRect(tx * TILE + 2, ty * TILE + TILE, TILE - 4, 8);
         }
       }
+    }
+
+    // One texture the size of the room for the pixel tiles, kept under the trap layer.
+    terrainCanvas(room) {
+      const w = room.w * TILE, h = room.h * TILE;
+      if (!this.tileArt || this.tileArt.width !== w || this.tileArt.height !== h) {
+        if (this.tileArt) this.tileArt.destroy();
+        this.tileArt = this.add.renderTexture(0, 0, w, h).setOrigin(0, 0);
+        this.children.moveBelow(this.tileArt, this.tileLayer);
+      }
+      this.tileArt.clear();
+      return this.tileArt;
     }
 
     // The last monster fell: banner, gold bursts on the door and the bars slide up.

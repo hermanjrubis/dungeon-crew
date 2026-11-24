@@ -122,6 +122,17 @@ if (require.main === module) {
     fs.writeFileSync(path.join(OUT, s.file), encodePng(s.rows, s.palette, s.size));
     old++;
   }
+  // floor tiles, walls, pillars and decorations per floor, doubled to game-tile size
+  const terrain = require('../shared/art/terrain');
+  for (const t of terrain.terrainFiles()) {
+    const frames = terrain.tileFrames(t.floorIndex).map((f) => f.grid);
+    const big = [];
+    for (let y = 0; y < terrain.S; y++) {
+      const row = frames.flatMap((g) => g[y].flatMap((c) => [c, c]));
+      big.push(row, row.slice());
+    }
+    fs.writeFileSync(path.join(OUT, t.file), encodeGrid(big));
+  }
   console.log(`Wrote ${made.size} sprite sheets and ${old} old sprites to client/assets/`);
 }
 
