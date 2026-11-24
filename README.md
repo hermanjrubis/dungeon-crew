@@ -9,7 +9,13 @@ through four floors:
 - **Floor 3 · Molten Forge** — Rubble Golems (hit them from behind), lava geysers, a lava river crossed on a moving bridge, flame jets, burning, and **the Hollow King**.
 - **Floor 4 · Dragon's Roost** — one last room of mixed monsters, then **Ashmaw, the Ember Dragon** on an island in a lava sea. Beat it to win.
 
-After each floor there's a camp shop. Your level, gold and gear carry over.
+After each floor a results screen shows your team's stars (clear it, nobody downed,
+under the target time), everyone's stats and badges (MVP, Lifesaver, Untouchable).
+Then the camp shop opens for **45 seconds**; when the time runs out (or everyone is
+ready) the next floor starts. Your level, gold and gear carry over.
+
+The game has sound effects (made in code with Web Audio, no sound files). Change the
+volume or mute it on the menu or the pause screen; it's saved on your device.
 **The traps move:** every new game places the spikes, pits, puddles, poison pools,
 pillars and monsters differently (the room walls and the boss rooms stay the same).
 
@@ -100,7 +106,7 @@ shared/          used by BOTH the server and the browser
 client/          what the players' browsers load
   index.html     all the screens
   css/style.css  the look
-  js/            menu, lobby, HUD, shop, and the Phaser dungeon scene
+  js/            menu, lobby, HUD, shop, results screen, sound (audio.js), and the Phaser dungeon scene
   assets/        sprite PNGs
 test/            automated tests (npm test)
 ```
