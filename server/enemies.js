@@ -154,7 +154,11 @@ function updateBat(game, e, dt) {
 // ---------- dispatch ----------
 
 function updateEnemy(game, e, dt) {
-  if (game.time < e.stunUntil) return;
+  if (game.time < e.stunUntil) {
+    // the roost keeps crumbling (and the bats keep coming) while Ashmaw is stunned
+    if (e.type === 'dragon') dragon.phases(game, e);
+    return;
+  }
   if (e.type === 'gloop' || e.type === 'minigloop') updateGloop(game, e, dt);
   else if (e.type === 'bat') updateBat(game, e, dt);
   else if (e.type === 'archer') archer.updateArcher(game, e, dt);

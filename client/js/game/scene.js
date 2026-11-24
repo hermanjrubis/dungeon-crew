@@ -620,6 +620,7 @@
         else if (e.state === 'ring') s.body.setTint(0xc77dff);
         else if (e.state === 'breathe') s.body.setTint(Math.floor(time / 80) % 2 ? 0xf2a541 : 0xffffff);
         else if (e.stunned) s.body.setTint(0xb8b0d0);
+        else if (e.rage) s.body.setTint(Math.floor(time / 300) % 2 ? 0xff9a8a : 0xffffff);
         else s.body.clearTint();
         if (e.state === 'swoop' && time - (this.ghostAt.get(id) || 0) > 40) {
           this.ghostAt.set(id, time);
@@ -781,6 +782,14 @@
           g.fillStyle(0xf2c14e).fillCircle(pos.x + Math.cos(a) * 14, top + Math.sin(a) * 4, 3);
         }
       }
+      if (e.angry) {
+        // angry (shot from far away): little red anger marks that pulse
+        const k = 1 + 0.25 * Math.sin(time / 70);
+        g.lineStyle(3, 0xe5534b, 1);
+        g.lineBetween(pos.x + 12, top + 2, pos.x + 12 + 7 * k, top - 5 * k);
+        g.lineBetween(pos.x + 16, top + 6, pos.x + 16 + 8 * k, top + 2);
+        g.lineBetween(pos.x + 10, top - 4, pos.x + 12, top - 11 * k);
+      }
       if (['squish', 'screech', 'draw', 'swell', 'storm', 'raise', 'ring', 'breathe', 'flap', 'tail'].includes(e.state)) {
         g.fillStyle(0xe5534b).fillRect(pos.x - 3, top - 18, 6, 12).fillRect(pos.x - 3, top - 3, 6, 5);
       }
@@ -926,6 +935,11 @@
       } else if (ev.type === 'screech') {
         for (let i = 0; i < 3; i++) fx.ring(ev.x, ev.y, { from: 10, to: ev.r, life: 0.45, color: 0xb9a6e8, width: 4, delay: i * 0.08 });
         fx.burst(ev.x, ev.y, 0xb9a6e8, 10, 'spark');
+      } else if (ev.type === 'rage') {
+        fx.ring(ev.x, ev.y, { from: 30, to: 260, life: 0.6, color: 0xe5534b, width: 10, fill: 0.15 });
+        fx.burst(ev.x, ev.y, 0xf2a541, 30, 'flame');
+        fx.shake(500, 0.012);
+        this.floatText(ev.x, ev.y - 110, 'ASHMAW IS ENRAGED!', '#FF8A80');
       } else if (ev.type === 'kill') {
         this.deathBody(ev);
         const color = Effects.MONSTER_COLORS[ev.enemyType] || 0xffffff;
@@ -1303,7 +1317,7 @@
     erupt: 'geyser', jetfire: 'jet', lavafall: 'lava', bridgemove: 'bridge',
     slam: 'slam', land: 'slam', flop: 'slam', landed: 'slam', sweep: 'sweep', tail: 'sweep',
     breath: 'breath', gust: 'gust', meteor: 'meteor', takeoff: 'roar', roostcrumble: 'roar',
-    crownflare: 'roar', court: 'shadow', shadowring: 'shadow', teleport: 'shadow', darkness: 'shadow',
+    crownflare: 'roar', rage: 'roar', court: 'shadow', shadowring: 'shadow', teleport: 'shadow', darkness: 'shadow',
     storm: 'puff', puff: 'puff', seed: 'puff', sprout: 'puff', explode: 'fireball', volley: 'arrow',
     rebuild: 'bones', bonesBroken: 'bones', outofreach: 'click', torchlit: 'fireball', shoptimeup: 'timeup',
     turretfire: 'turretShot', mineboom: 'mineBoom'

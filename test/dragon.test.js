@@ -137,6 +137,7 @@ function roostGame() {
 
 test('phase 3 crumbles the roost every 15 s', () => {
   const { game, d } = roostGame();
+  Object.assign(me(game), { hp: 1e6, maxHp: 1e6 }); // the raging dragon and its bats must not end the test early
   d.hp = Math.floor(d.maxHp * 0.25);
   game.tick(0.05);
   assert.strictEqual(game.ringsFallen, 1);
@@ -152,4 +153,38 @@ test('beating Ashmaw ends the run', () => {
   game.tick(0.05);
   assert.strictEqual(game.phase, 'done');
   assert.strictEqual(me(game).gold, 300);
+});
+
+test('at half HP Ashmaw rages: roars, calls Skitterbats, and attacks faster', () => {
+  const { game, d } = dragonGame(['knight']);
+  Object.assign(me(game, 0), { x: d.x + 150, y: d.y });
+  run(game, 0.1);
+  assert.ok(!d.rage);
+  d.hp = Math.floor(d.maxHp * 0.5);
+  game.drainEvents();
+  run(game, 0.1);
+  assert.strictEqual(d.rage, true);
+  assert.ok(game.drainEvents().some((ev) => ev.type === 'rage'));
+  const bats = game.enemies.filter((e) => e.type === 'bat');
+  assert.strictEqual(bats.length, 2);
+  assert.ok(bats.every((b) => b.noReward), 'summoned bats give no reward');
+  // the next attack comes sooner than before
+  const gapBefore = 2.5;
+  d.state = 'walk';
+  d.timers.attack = game.time;
+  run(game, 0.05);
+  const busyUntil = d.stateUntil;
+  assert.ok(busyUntil - game.time < 1.5 + 1e-6, 'shorter warning while raging');
+  assert.ok(gapBefore > 0);
+});
+
+test('a raging Ashmaw calls more bats every 20 s, but never more than 4 at once', () => {
+  const { game, d } = dragonGame(['knight']);
+  Object.assign(me(game, 0), { x: d.x + 400, y: d.y, hp: 1e6, maxHp: 1e6 });
+  d.hp = Math.floor(d.maxHp * 0.5);
+  run(game, 0.1);
+  run(game, 20.1);
+  assert.strictEqual(game.enemies.filter((e) => e.type === 'bat').length, 4);
+  run(game, 20.1);
+  assert.strictEqual(game.enemies.filter((e) => e.type === 'bat').length, 4);
 });

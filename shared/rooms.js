@@ -166,6 +166,7 @@
   const FLOORS = [
     {
       name: FLOOR1_NAME,
+      power: { hp: 1.5, dmg: 1.3 }, // monsters' HP and damage multipliers on this floor
       targetTime: 240, // seconds for the 'fast' star
       roomNames: FLOOR1_ROOM_NAMES,
       shop: 'cellar',
@@ -185,6 +186,7 @@
     },
     {
       name: FLOOR2_NAME,
+      power: { hp: 1.75, dmg: 1.45 }, // monsters' HP and damage multipliers on this floor
       targetTime: 300, // seconds for the 'fast' star
       roomNames: FLOOR2_ROOM_NAMES,
       shop: 'forge',
@@ -207,6 +209,7 @@
     },
     {
       name: FLOOR3_NAME,
+      power: { hp: 2, dmg: 1.6 }, // monsters' HP and damage multipliers on this floor
       targetTime: 360, // seconds for the 'fast' star
       roomNames: FLOOR3_ROOM_NAMES,
       shop: 'crown',
@@ -231,6 +234,7 @@
     },
     {
       name: FLOOR4_NAME,
+      power: { hp: 2.25, dmg: 1.75 }, // monsters' HP and damage multipliers on this floor
       targetTime: 300, // seconds for the 'fast' star
       roomNames: FLOOR4_ROOM_NAMES,
       shop: null, // the last floor: beating Ashmaw ends the run

@@ -10,6 +10,8 @@
 //   Phase 2 (60% HP): it stays in the sky, where only ranged attacks reach it.
 //                After each Meteor Rain it lands, stunned for 3 s.
 //   Phase 3 (25% HP): the outer rings of the island crumble, one every 15 s.
+//   Rage (50% HP): roars, calls 2 Skitterbats (and 2 more every 20 s, up to 4),
+//                attacks come faster and with shorter warnings, more meteors.
 // The full Hollow Crown set cuts its fire damage by 40%.
 const tiles = require('../shared/tiles');
 const forge = require('./forge');
@@ -46,6 +48,13 @@ const PHASE2 = 0.6;
 const PHASE3 = 0.25;
 const CRUMBLE_EVERY = 15;
 const CROWN_FIRE = 0.6;          // Hollow Crown set: dragon fire −40%
+const RAGE = 0.5;
+const RAGE_GAP = 1.5;            // rest between attacks while raging
+const RAGE_TELL = 0.7;           // warnings are 30% shorter while raging
+const RAGE_METEORS = 3;          // extra meteor marks while raging
+const RAGE_SUMMON_EVERY = 20;
+const RAGE_BATS = 2;
+const MAX_BATS = 4;
 
 const fireDamage = (game, p, amount) => Math.round(amount * (game.crownSet(p) ? CROWN_FIRE : 1));
 
@@ -70,7 +79,7 @@ function updateDragon(game, e, dt) {
     const behind = game.alivePlayers().some((p) => dist(p, e) <= TAIL_RANGE + p.r && isBehind(e, p));
     if (behind) {
       e.state = 'tail';
-      e.stateUntil = game.time + TAIL_TELL;
+      e.stateUntil = game.time + tell(e, TAIL_TELL);
       e.timers.tail = game.time + TAIL_EVERY;
       return;
     }
@@ -109,11 +118,31 @@ function phases(game, e) {
     e.timers.crumble = game.time + CRUMBLE_EVERY;
     game.event({ type: 'roostcrumble' });
   }
+  if (!e.rage && e.hp <= e.maxHp * RAGE) {
+    e.rage = true;
+    game.event({ type: 'rage', x: Math.round(e.x), y: Math.round(e.y) });
+    summonBats(game, e);
+  }
+  if (e.rage && game.time >= e.timers.summon - EPS) summonBats(game, e);
   if (e.p3 && game.time >= e.timers.crumble - EPS) {
     forge.crumbleRing(game);
     e.timers.crumble = game.time + CRUMBLE_EVERY;
   }
 }
+
+// Calls Skitterbats to help (no reward for them), never more than MAX_BATS at once.
+function summonBats(game, e) {
+  e.timers.summon = game.time + RAGE_SUMMON_EVERY;
+  const alive = game.enemies.filter((m) => m.type === 'bat').length;
+  const n = Math.min(RAGE_BATS, MAX_BATS - alive);
+  for (let i = 0; i < n; i++) {
+    const side = i % 2 ? 1 : -1;
+    game.spawnEnemy('bat', e.x + side * 70, e.y - 40, { noReward: true });
+  }
+  if (n > 0) game.event({ type: 'screech', x: Math.round(e.x), y: Math.round(e.y) });
+}
+
+const tell = (e, seconds) => seconds * (e.rage ? RAGE_TELL : 1);
 
 function takeOff(game, e) {
   e.sky = true;
@@ -122,14 +151,14 @@ function takeOff(game, e) {
 
 function done(game, e) {
   e.state = 'walk';
-  e.timers.attack = game.time + ATTACK_GAP;
+  e.timers.attack = game.time + (e.rage ? RAGE_GAP : ATTACK_GAP);
 }
 
 // ---------- Fire Breath ----------
 
 function startBreath(game, e) {
   e.state = 'breathe';
-  e.stateUntil = game.time + BREATH_TELL;
+  e.stateUntil = game.time + tell(e, BREATH_TELL);
   e.breathAim = e.facing;
   game.addZone({ kind: 'breathWarn', x: e.x, y: e.y, r: BREATH_RANGE, aim: e.breathAim, spread: BREATH_SPREAD, until: e.stateUntil });
 }
@@ -138,7 +167,7 @@ function breath(game, e) {
   for (const p of game.alivePlayers()) {
     if (dist(p, e) > BREATH_RANGE + p.r) continue;
     if (angleDiff(Math.atan2(p.y - e.y, p.x - e.x), e.breathAim) > BREATH_SPREAD / 2) continue;
-    if (game.damagePlayer(p, fireDamage(game, p, BREATH_DAMAGE), 'dragonfire') > 0) game.burnPlayer(p);
+    if (game.damagePlayer(p, fireDamage(game, p, game.monsterDamage(BREATH_DAMAGE)), 'dragonfire') > 0) game.burnPlayer(p);
   }
   game.event({ type: 'breath', x: Math.round(e.x), y: Math.round(e.y), aim: Math.round(e.breathAim * 100) / 100, r: BREATH_RANGE });
   done(game, e);
@@ -148,7 +177,7 @@ function breath(game, e) {
 
 function startGust(game, e) {
   e.state = 'flap';
-  e.stateUntil = game.time + GUST_TELL;
+  e.stateUntil = game.time + tell(e, GUST_TELL);
   game.event({ type: 'flapwarn', x: Math.round(e.x), y: Math.round(e.y) });
 }
 
@@ -170,7 +199,7 @@ function gust(game, e) {
 
 function tailSwipe(game, e) {
   for (const p of game.alivePlayers()) {
-    if (dist(p, e) <= TAIL_RANGE + p.r && isBehind(e, p)) game.damagePlayer(p, TAIL_DAMAGE, e);
+    if (dist(p, e) <= TAIL_RANGE + p.r && isBehind(e, p)) game.damagePlayer(p, game.monsterDamage(TAIL_DAMAGE), e);
   }
   game.event({ type: 'tail', x: Math.round(e.x), y: Math.round(e.y), aim: Math.round((e.facing + Math.PI) * 100) / 100 });
   e.state = 'walk';
@@ -191,18 +220,18 @@ function standingSpots(game) {
 function startMeteors(game, e) {
   e.state = 'fly';
   e.invulnerable = true;
-  e.stateUntil = game.time + METEOR_TELL;
+  e.stateUntil = game.time + tell(e, METEOR_TELL);
   e.takeoffFrom = { x: e.x, y: e.y };
   e.marks = game.alivePlayers().map((p) => ({ x: p.x, y: p.y }));
   const spots = standingSpots(game);
-  for (let i = 0; i < METEOR_EXTRA && spots.length; i++) e.marks.push(spots.splice(Math.floor(game.rng() * spots.length), 1)[0]);
+  for (let i = 0; i < METEOR_EXTRA + (e.rage ? RAGE_METEORS : 0) && spots.length; i++) e.marks.push(spots.splice(Math.floor(game.rng() * spots.length), 1)[0]);
   for (const m of e.marks) game.addZone({ kind: 'meteorMark', x: m.x, y: m.y, r: METEOR_RADIUS, until: e.stateUntil });
   game.event({ type: 'meteorwarn', x: Math.round(e.x), y: Math.round(e.y) });
 }
 
 function meteors(game, e) {
   for (const p of game.alivePlayers()) {
-    if (e.marks.some((m) => dist(p, m) <= METEOR_RADIUS)) game.damagePlayer(p, fireDamage(game, p, METEOR_DAMAGE), 'meteor');
+    if (e.marks.some((m) => dist(p, m) <= METEOR_RADIUS)) game.damagePlayer(p, fireDamage(game, p, game.monsterDamage(METEOR_DAMAGE)), 'meteor');
   }
   game.event({ type: 'meteor', marks: e.marks.map((m) => ({ x: Math.round(m.x), y: Math.round(m.y) })) });
   // Land in the middle of the island (or where it took off).
@@ -220,4 +249,4 @@ function meteors(game, e) {
   }
 }
 
-module.exports = { updateDragon };
+module.exports = { updateDragon, phases };

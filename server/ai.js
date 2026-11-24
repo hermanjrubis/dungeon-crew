@@ -4,6 +4,7 @@ const data = require('../shared/data');
 
 const EPS = 1e-6;
 const CONTACT_COOLDOWN = 0.8;
+const ANGRY_SPEED = 1.4; // an angry monster (shot from far away) moves 40% faster
 
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -14,6 +15,11 @@ function pickTarget(game, e) {
   if (t && t.until > game.time) {
     const knight = game.players.get(t.id);
     if (knight && !knight.downed && dist(knight, e) <= t.range) return knight;
+  }
+  // Shot from afar: it goes for whoever shot it, for a moment.
+  if (e.angryUntil > game.time) {
+    const shooter = game.players.get(e.angryAt);
+    if (shooter && !shooter.downed) return shooter;
   }
   let best = null;
   for (const p of game.alivePlayers()) {
@@ -33,7 +39,8 @@ function moveEnemy(game, e, dx, dy) {
 function walkToward(game, e, target, dt, speed = e.speed) {
   const d = dist(e, target);
   if (d < 1) return;
-  const step = Math.min(d, speed * game.slowFactor(e) * dt);
+  const angry = e.angryUntil > game.time ? ANGRY_SPEED : 1;
+  const step = Math.min(d, speed * angry * game.slowFactor(e) * dt);
   moveEnemy(game, e, ((target.x - e.x) / d) * step, ((target.y - e.y) / d) * step);
 }
 

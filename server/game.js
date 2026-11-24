@@ -32,6 +32,9 @@ function sanitizeInput(raw) {
   return input;
 }
 
+const ANGRY_RANGE = 200; // hit from farther than this, a monster goes for the shooter
+const ANGRY_TIME = 2;
+
 class Game {
   // `rooms` (a list of hand-made room rows) makes a one-floor game, used by tests.
   constructor(players, { floors = FLOORS, rooms = null, rng = Math.random, seed = null, transitions = true } = {}) {
@@ -41,7 +44,7 @@ class Game {
     this.transition = null; // the title card on screen: { kind, title, subtitle, until }
     this.shopAt = null;     // when the floor-cleared card ends and the shop opens
     this.floors = rooms
-      ? [{ ...FLOORS[0], rooms: rooms.map((layout) => ({ layout })) }]
+      ? [{ ...FLOORS[0], power: null, rooms: rooms.map((layout) => ({ layout })) }]
       : floors;
     this.roomIndex = 0;
     this.time = 0;
@@ -384,12 +387,23 @@ class Game {
 
   // ---------- enemies ----------
 
+  // How much tougher monsters are on this floor: { hp, dmg } multipliers.
+  power() {
+    return (this.floor && this.floor.power) || { hp: 1, dmg: 1 };
+  }
+
+  // A monster's damage number scaled for this floor (for bosses' special attacks).
+  monsterDamage(amount) {
+    return Math.round(amount * this.power().dmg);
+  }
+
   spawnEnemy(type, x, y, opts = {}) {
     const m = data.MONSTERS[type];
-    let hp = m.hp;
+    const power = this.power();
+    let hp = m.hp > 1 ? Math.round(m.hp * power.hp) : m.hp;
     if (m.hpPerExtraPlayer) hp = Math.round(hp * (1 + m.hpPerExtraPlayer * (this.startCount - 1)));
     const e = {
-      id: this.nextId++, type, x, y, r: m.r, hp, maxHp: hp, dmg: m.dmg, speed: m.speed,
+      id: this.nextId++, type, x, y, r: m.r, hp, maxHp: hp, dmg: Math.round(m.dmg * power.dmg), speed: m.speed,
       flying: !!m.flying, boss: !!m.boss, state: 'idle', stateUntil: 0, targetId: null,
       noReward: !!opts.noReward, invulnerable: false, stunUntil: 0, hitAt: {}, slows: {},
       timers: {}
@@ -404,6 +418,12 @@ class Game {
     if (e.sky && opts.melee) {
       this.event({ type: 'outofreach', enemyId: e.id, x: Math.round(e.x), y: Math.round(e.y) });
       return 0;
+    }
+    // Shot from far away: it gets angry and rushes the shooter.
+    const shooter = this.players.get(byId);
+    if (shooter && !e.boss && Math.hypot(shooter.x - e.x, shooter.y - e.y) > ANGRY_RANGE) {
+      e.angryAt = byId;
+      e.angryUntil = this.time + ANGRY_TIME;
     }
     const armor = e.type === 'golem' ? golem.frontFactor(this, e, byId) : 1;
     const dealt = Math.max(1, Math.round(amount * armor));
@@ -602,7 +622,7 @@ class Game {
         id: e.id, type: e.type, x: r(e.x), y: r(e.y), hp: e.hp, maxHp: e.maxHp, state: e.state,
         rebuildAt: e.rebuildAt || 0, growAt: e.growAt || 0,
         facing: e.facing === undefined ? 0 : Math.round(e.facing * 100) / 100,
-        stunned: this.time < e.stunUntil, sky: !!e.sky
+        stunned: this.time < e.stunUntil, sky: !!e.sky, angry: e.angryUntil > this.time, rage: !!e.rage
       })),
       projectiles: this.projectiles.map((pr) => ({ id: pr.id, kind: pr.kind, x: r(pr.x), y: r(pr.y) })),
       zones: this.zones.map((z) => {
