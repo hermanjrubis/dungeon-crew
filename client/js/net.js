@@ -67,6 +67,8 @@
     on: (event, fn) => {
       (listeners.get(event) || listeners.set(event, []).get(event)).push(fn);
     },
+    // Pretend the server sent this (for headless checks of screens and effects).
+    fireLocal: (event, data) => fire(event, data),
     // Resolves with the next message of this kind (handy for tests).
     once: (event) => new Promise((resolve) => {
       const fn = (d) => {

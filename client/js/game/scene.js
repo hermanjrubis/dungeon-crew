@@ -180,11 +180,37 @@
       }
     }
 
+    // The last monster fell: banner, gold bursts on the door and the bars slide up.
+    roomCleared(ev, snap) {
+      const doors = [];
+      this.room.grid.forEach((row, ty) => row.forEach((ch, tx) => { if (ch === 'd') doors.push({ x: tx * TILE + TILE / 2, y: ty * TILE + TILE / 2 }); }));
+      this.doorOpenedAt = this.time.now;
+      this.doorTiles = doors;
+      for (const d of doors) {
+        this.fx.burst(d.x, d.y, 0xf2c14e, 18, 'burst');
+        this.fx.ring(d.x, d.y, { from: 10, to: 70, life: 0.5, color: 0xf2a541, width: 5 });
+      }
+      if (ev.roomIndex < snap.roomCount - 1) Hud.banner('Room cleared! Door open →', 2000);
+      if (window.Sound) Sound.play('roomClear');
+    }
+
     // ---------- lava, geysers, flame jets and the bridge (moving every frame) ----------
 
     drawHazards(snap, time) {
       const g = this.hazardLayer;
       g.clear();
+      // door bars sliding up into the wall for 0.7 s after a room is cleared
+      const since = this.doorOpenedAt ? time - this.doorOpenedAt : 9999;
+      if (since < 700 && this.doorTiles) {
+        const k = since / 700;
+        for (const d of this.doorTiles) {
+          const x = d.x - TILE / 2;
+          const y = d.y - TILE / 2 - k * TILE;
+          g.fillStyle(0x8c84a3, 1 - k);
+          for (let i = 0; i < 4; i++) g.fillRect(x + 4 + i * 11, Math.max(d.y - TILE / 2 - TILE, y), 5, TILE * (1 - k));
+          g.fillStyle(0xf2a541, 0.5 * (1 - k)).fillRect(x, d.y - TILE / 2, TILE, TILE);
+        }
+      }
       const room = this.room;
       const melted = new Set(snap.melted || []);
       const isLava = (tx, ty) => tx >= 0 && ty >= 0 && tx < room.w && ty < room.h &&
@@ -823,7 +849,8 @@
       } else if (ev.type === 'fall') {
         const p = playerAt(ev.targetId);
         if (p) fx.burst(p.x, p.y, 0x5a5066, 10, 'smoke');
-      } else if (ev.type === 'roomclear' && ev.roomIndex < snap.roomCount - 1) Hud.banner('Room clear! Door open →');
+      } else if (ev.type === 'roomclear') this.roomCleared(ev, snap);
+      else if (ev.type === 'floorresults') Results.show(ev.results);
       else if (ev.type === 'levelup' && ev.targetId === App.me) Hud.banner(`Level up! Level ${ev.level}`);
       else if (ev.type === 'split') Hud.banner('She split in two!');
       else if (ev.type === 'resumed') Hud.banner(`Resumed by ${ev.by}`, 1200);

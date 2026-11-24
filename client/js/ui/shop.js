@@ -2,6 +2,25 @@
 (function () {
   const { HEROES, COLORS } = DC.data;
   let busy = false;
+  let lastKey = '';
+  let deadline = 0;     // when the shop closes, in this browser's clock
+  let timerLoop = null;
+  let lastTickSecond = null;
+
+  // The shop countdown bar, updated 10 times a second between server updates.
+  function updateTimer() {
+    const bar = document.getElementById('shop-timer');
+    if (!bar) return;
+    const left = Math.max(0, (deadline - performance.now()) / 1000);
+    const secs = Math.ceil(left);
+    bar.querySelector('.shop-timer-fill').style.width = (left / 45) * 100 + '%';
+    bar.querySelector('.shop-timer-text').textContent = `${secs}s left`;
+    bar.classList.toggle('urgent', left <= 10);
+    if (left <= 10 && left > 0 && secs !== lastTickSecond) {
+      lastTickSecond = secs;
+      if (window.Sound) Sound.play('tick');
+    }
+  }
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -10,6 +29,12 @@
   function render(state) {
     const me = state.players.find((p) => p.id === App.me);
     if (!me) return;
+    deadline = performance.now() + state.timeLeft * 1000;
+    if (!timerLoop) timerLoop = setInterval(() => { if (App.screen === 'shop') updateTimer(); }, 100);
+    // Only the clock changed: don't rebuild the page (keeps buttons steady).
+    const key = JSON.stringify({ ...state, timeLeft: 0 });
+    if (key === lastKey && document.getElementById('shop-timer')) { updateTimer(); return; }
+    lastKey = key;
     const root = document.getElementById('shop');
     const ARMOR = state.setPieces;
     const pieces = ARMOR.filter((id) => me.owned.includes(id)).length;
@@ -44,6 +69,11 @@
         <div>
           <p class="eyebrow">Floor ${floorNo} cleared · Camp</p>
           <h1 class="screen-title">Blacksmith's Shop</h1>
+        </div>
+        <div id="shop-timer" class="shop-timer" role="timer" aria-label="Time left in the shop">
+          <span class="shop-timer-text"></span>
+          <span class="shop-timer-track"><span class="shop-timer-fill"></span></span>
+          <span class="muted small">Next floor starts automatically</span>
         </div>
         <span class="shop-gold">${me.gold} gold</span>
       </div>
@@ -80,6 +110,7 @@
       });
     }
     root.querySelector('#shop-ready').addEventListener('click', () => Net.ready(!me.ready));
+    updateTimer();
   }
 
   const TROPHY_WEAPONS = { knight: 'Dragonfang Sword', archer: 'Emberstorm Bow', mage: 'Wyrmflame Staff' };
@@ -110,14 +141,20 @@
     const root = document.getElementById('end');
     const mins = Math.floor(state.time / 60);
     const secs = String(state.time % 60).padStart(2, '0');
-    const cards = state.players.map((p) => `
+    const run = state.run || { players: [] };
+    const cards = state.players.map((p) => {
+      const r = run.players.find((q) => q.id === p.id) || { kills: 0, damage: 0, gold: 0, downs: 0, revives: 0, badges: [] };
+      return `
       <div class="panel">
         <img src="assets/${p.heroClass}-${p.color}.png" width="96" height="96" alt="">
         <b>${esc(p.name)}</b>
         <span class="muted small">${esc(HEROES[p.heroClass].name)} · Level ${p.level}</span>
         <span class="hud-gold">${p.gold} gold</span>
+        <div class="res-stats">${Results.STATS.map(([k, label]) => `<span class="muted small">${label}</span><span class="res-num">${r[k] || 0}</span>`).join('')}</div>
+        <div class="res-badges">${(r.badges || []).map((b) => `<span class="badge badge-${b}">${Results.BADGES[b].label}</span>`).join('')}</div>
         <span class="trophy">${esc(TROPHY_WEAPONS[p.heroClass])}<span class="muted small"> · Legendary</span></span>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     root.innerHTML = `
       <div class="end-card victory">
         <p class="eyebrow">Victory</p>
@@ -130,8 +167,10 @@
           <span class="trophy">300 gold each</span>
         </div>
         <button type="button" id="end-menu" class="btn btn-primary btn-big">Back to menu</button>
-      </div>`;
+      </div>
+      ${Results.confetti(90)}`;
     root.querySelector('#end-menu').addEventListener('click', () => { location.href = location.pathname; });
+    if (window.Sound) Sound.play('victory');
   }
 
   window.Shop = {

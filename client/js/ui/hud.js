@@ -81,7 +81,7 @@
   let cardKey = '';
   function showCard(snap) {
     const t = snap.transition;
-    if (!t) {
+    if (!t || (t.kind === 'floorclear' && !document.getElementById('results').classList.contains('hidden'))) {
       refs.card.className = 'stage-card';
       cardKey = '';
       return;
