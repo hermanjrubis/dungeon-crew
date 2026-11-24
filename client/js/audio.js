@@ -38,6 +38,7 @@
         noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
         const data = noiseBuf.getChannelData(0);
         for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+        if (window.Music) { Music.setMuted(Sound.muted); Music.attach(ctx); }
       } catch (e) {
         ctx = null;
       }
@@ -73,10 +74,12 @@
       syncControls();
     },
 
+    // One Mute for both the effects and the music.
     setMuted(m) {
       Sound.muted = !!m;
       save(SAVE_MUTE, Sound.muted);
       applyVolume();
+      if (window.Music) Music.setMuted(Sound.muted);
       syncControls();
     },
 
@@ -84,10 +87,19 @@
     mountControls(host) {
       host.classList.add('sound-ctl');
       host.innerHTML = `
-        <span class="label">Sound</span>
-        <button type="button" class="btn btn-outline sound-mute" aria-pressed="false">Mute</button>
-        <input type="range" class="sound-vol" min="0" max="100" step="5" aria-label="Volume">
-        <span class="sound-pct muted small"></span>`;
+        <div class="sound-head"><span class="label">Sound</span>
+          <button type="button" class="btn btn-outline sound-mute" aria-pressed="false">Mute</button></div>
+        <label class="sound-row"><span>Music</span>
+          <input type="range" class="music-vol" min="0" max="100" step="5" aria-label="Music volume">
+          <span class="music-pct muted small"></span></label>
+        <label class="sound-row"><span>Effects</span>
+          <input type="range" class="sound-vol" min="0" max="100" step="5" aria-label="Effects volume">
+          <span class="sound-pct muted small"></span></label>`;
+      host.querySelector('.music-vol').addEventListener('input', (e) => {
+        if (window.Music) Music.setVolume(e.target.value / 100);
+        if (Sound.muted && e.target.value > 0) Sound.setMuted(false);
+        syncControls();
+      });
       host.querySelector('.sound-mute').addEventListener('click', () => {
         Sound.setMuted(!Sound.muted);
         if (!Sound.muted) Sound.play('click');
@@ -114,6 +126,11 @@
       btn.setAttribute('aria-pressed', String(Sound.muted));
       slider.value = Math.round(Sound.volume * 100);
       host.querySelector('.sound-pct').textContent = Sound.muted ? 'muted' : `${Math.round(Sound.volume * 100)}%`;
+      const mv = host.querySelector('.music-vol');
+      if (mv && window.Music) {
+        mv.value = Math.round(Music.volume * 100);
+        host.querySelector('.music-pct').textContent = Sound.muted ? 'muted' : `${Math.round(Music.volume * 100)}%`;
+      }
     }
   }
 

@@ -294,3 +294,8 @@ kbd {
 .hero-list .hero-card { padding: 8px 10px; }
 .hero-list .hero-card img { width: 52px; height: 52px; }
 .hero-list .hero-card-name { font-size: 20px; }
+
+.sound-ctl { display: grid; gap: 6px; }
+.sound-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sound-row { display: grid; grid-template-columns: 64px 1fr 48px; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2); }
+.sound-row input { width: 100%; accent-color: var(--orange); }

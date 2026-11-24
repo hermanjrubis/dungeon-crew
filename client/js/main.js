@@ -26,6 +26,31 @@
     Menu.showError('Lost connection to the server. Refresh the page to try again.');
   });
 
+  // ---------- background music: pick the song for what's on screen ----------
+  const FLOOR_SONGS = ['cellar', 'caverns', 'forge', 'roost'];
+  let lastSnap = null;
+  let lastWanted = null;
+  Net.on('game:snapshot', (s) => { lastSnap = s; });
+  function wantedSong() {
+    if (App.screen === 'menu' || App.screen === 'lobby') return 'menu';
+    if (App.screen === 'shop') return 'shop';
+    if (App.screen === 'end') return 'victory';
+    const results = document.getElementById('results');
+    if (results && !results.classList.contains('hidden')) return 'victory';
+    if (!lastSnap) return null;
+    const boss = lastSnap.enemies.some((e) => DC.data.MONSTERS[e.type] && DC.data.MONSTERS[e.type].boss);
+    if (boss || (lastSnap.transition && lastSnap.transition.kind === 'boss')) return 'boss';
+    return FLOOR_SONGS[lastSnap.floorIndex] || 'cellar';
+  }
+  // Only switch when the wanted song changes (so the one-time Victory tune isn't restarted).
+  setInterval(() => {
+    const want = wantedSong();
+    if (want === lastWanted) return;
+    lastWanted = want;
+    if (want) Music.play(want);
+    else Music.stop();
+  }, 400);
+
   if (window.GameView) GameView.init();
   if (window.Shop) Shop.init();
 })();

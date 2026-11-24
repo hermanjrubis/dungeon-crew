@@ -116,6 +116,8 @@
       const d = noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       applyVolume();
+      // Browsers may start the audio paused until a click: start the song once it runs.
+      ctx.addEventListener('statechange', () => { if (ctx.state === 'running' && Music.wanted && !current) Music.play(Music.wanted); });
       if (Music.wanted) Music.play(Music.wanted);
     },
 
