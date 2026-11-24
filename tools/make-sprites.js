@@ -91,6 +91,15 @@ function encodeGrid(grid) {
   ]);
 }
 
+// The menus' picture: the standing frame, trimmed to a square around the character.
+function portrait(grid) {
+  let x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
+  grid.forEach((row, y) => row.forEach((c, x) => { if (c) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } }));
+  const side = Math.max(x1 - x0, y1 - y0) + 3;
+  const ox = Math.round((x0 + x1) / 2 - side / 2), oy = Math.round((y0 + y1) / 2 - side / 2);
+  return Array.from({ length: side }, (_, y) => Array.from({ length: side }, (_, x) => (grid[oy + y] || [])[ox + x] || null));
+}
+
 // A sheet: every frame side by side in one row.
 function sheetGrid(sheet) {
   const frames = sheet.frames.map((_, i) => sheets.renderSheetFrame(sheet, i));
@@ -103,7 +112,7 @@ if (require.main === module) {
   const made = new Set();
   for (const sh of sheets.sheetFiles()) {
     fs.writeFileSync(path.join(OUT, sh.file), encodeGrid(sheetGrid(sh)));
-    fs.writeFileSync(path.join(OUT, sh.portrait), encodeGrid(sheets.renderSheetFrame(sh, sh.anims.idle.start)));
+    fs.writeFileSync(path.join(OUT, sh.portrait), encodeGrid(portrait(sheets.renderSheetFrame(sh, sh.anims.idle.start))));
     made.add(sh.portrait);
   }
   // characters not redrawn yet keep their old single picture
