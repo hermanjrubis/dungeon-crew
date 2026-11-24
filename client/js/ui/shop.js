@@ -125,6 +125,26 @@
 
   const TROPHY_WEAPONS = { knight: 'Dragonfang Sword', archer: 'Emberstorm Bow', mage: 'Wyrmflame Staff', warden: 'Mountainheart', engineer: 'Thunder Gauntlet' };
 
+  // Play again keeps the crew together in the same room; Back to menu leaves it.
+  const END_BUTTONS = `
+        <div class="end-buttons">
+          <button type="button" id="end-again" class="btn btn-primary btn-big">Play again</button>
+          <button type="button" id="end-menu" class="btn btn-big">Back to menu</button>
+        </div>
+        <p class="muted small" id="end-note"></p>`;
+  function wireEndButtons(root) {
+    root.querySelector('#end-menu').addEventListener('click', () => { location.href = location.pathname; });
+    const again = root.querySelector('#end-again');
+    again.addEventListener('click', async () => {
+      again.disabled = true;
+      const res = await Net.again();
+      if (!res.ok && App.screen === 'end') {
+        again.disabled = false;
+        root.querySelector('#end-note').textContent = res.error || 'Could not go back to the lobby.';
+      }
+    });
+  }
+
   function renderEnd(state) {
     if (state.final) { renderVictory(state); return; }
     const root = document.getElementById('end');
@@ -141,9 +161,9 @@
         <h1>Floor ${state.floorIndex + 1} cleared!</h1>
         <p class="lead">${esc(state.floorName)} is beaten. Floor ${state.floorIndex + 2} is coming soon.</p>
         <div class="end-team">${cards}</div>
-        <button type="button" id="end-menu" class="btn btn-primary btn-big">Back to menu</button>
+        ${END_BUTTONS}
       </div>`;
-    root.querySelector('#end-menu').addEventListener('click', () => { location.href = location.pathname; });
+    wireEndButtons(root);
   }
 
   // The whole dungeon is cleared: Ashmaw is beaten.
@@ -176,10 +196,10 @@
           <span class="trophy">Phoenix Feather</span>
           <span class="trophy">300 gold each</span>
         </div>
-        <button type="button" id="end-menu" class="btn btn-primary btn-big">Back to menu</button>
+        ${END_BUTTONS}
       </div>
       ${Results.confetti(90)}`;
-    root.querySelector('#end-menu').addEventListener('click', () => { location.href = location.pathname; });
+    wireEndButtons(root);
     if (window.Sound) Sound.play('victory');
   }
 

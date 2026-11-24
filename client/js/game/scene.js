@@ -56,6 +56,21 @@
       }
     }
 
+    // Clear what's on screen before a new run starts (Play again).
+    resetView() {
+      for (const s of this.sprites.values()) { s.body.destroy(); if (s.label) s.label.destroy(); s.bar.destroy(); }
+      this.sprites.clear();
+      for (const c of this.corpses) { this.tweens.killTweensOf(c); c.destroy(); }
+      this.corpses = [];
+      this.gone.clear();
+      this.roomKey = '';
+      this.room = null;
+      this.me = null;
+      this.history = [];
+      this.corr = { x: 0, y: 0 };
+      this.slashes = [];
+    }
+
     // Start a one-shot action (attack, skill, hit...) on a hero or monster.
     startAction(id, action, time) {
       const s = this.sprites.get(id);
@@ -1394,6 +1409,12 @@
     init() {
       Net.on('game:start', ({ you }) => {
         App.me = you;
+        // a new run (Play again): forget everything from the last one
+        latest = null;
+        buffer.length = 0;
+        pendingEvents.length = 0;
+        if (scene) scene.resetView();
+        if (window.Results) Results.hide();
         App.show('game');
         start();
       });

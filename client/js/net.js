@@ -60,6 +60,7 @@
     pick: (choice) => ask('lobby:pick', choice),
     lock: (locked) => emit('lobby:lock', { locked }),
     start: () => ask('lobby:start', {}),
+    again: () => ask('room:again', {}),
     sendInput: (input) => emit('input', input),
     buy: (itemId) => ask('shop:buy', { itemId }),
     ready: (ready) => emit('shop:ready', { ready }),

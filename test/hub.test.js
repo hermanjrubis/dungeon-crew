@@ -84,3 +84,29 @@ test('debug.floor starts on that floor with its gold', async () => {
   assert.strictEqual(snap.floorIndex, 2);
   assert.strictEqual(snap.players[0].gold, 500);
 });
+
+test('after the run ends, Play again brings the whole crew back to the same room lobby', async () => {
+  const hub = createHub();
+  const { a, b, code } = await startedGame(hub);
+  // not allowed while the game is still running
+  assert.strictEqual((await a.ask('room:again', {})).ok, false);
+  const { Game } = require('../server/game');
+  // finish the run
+  const room = hub._roomOf ? hub._roomOf('a') : null;
+  assert.ok(room, 'hub exposes the room for tests');
+  room.game.phase = 'done';
+  const res = await b.ask('room:again', {});
+  assert.strictEqual(res.ok, true);
+  const state = a.last('lobby:state').d;
+  assert.strictEqual(state.code, code);
+  assert.strictEqual(state.phase, 'lobby');
+  assert.strictEqual(state.players.length, 2);
+  assert.ok(state.players.every((p) => p.locked === false));
+  assert.strictEqual(room.game, null);
+  // and the crew can start again
+  a.send('lobby:lock', { locked: true });
+  b.send('lobby:lock', { locked: true });
+  assert.strictEqual((await a.ask('lobby:start', {})).ok, true);
+  assert.strictEqual(b.last('game:start').d.you, 'b');
+  assert.ok(Game);
+});

@@ -18,7 +18,8 @@
 
   Net.on('lobby:state', (state) => {
     Lobby.render(state);
-    if (state.phase === 'lobby' && App.screen === 'menu') App.show('lobby');
+    // also after Play again: the whole crew goes back to the room's lobby
+    if (state.phase === 'lobby' && (App.screen === 'menu' || App.screen === 'end')) App.show('lobby');
   });
 
   Net.on('disconnect', () => {

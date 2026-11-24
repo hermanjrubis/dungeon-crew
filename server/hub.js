@@ -78,6 +78,11 @@ function createHub({ debug = {} } = {}) {
       const room = lobby.roomOf(id);
       if (room && room.game) room.game.setPaused(id, p.paused === true);
     },
+    'room:again': (id, p, reply) => {
+      const res = lobby.again(id);
+      reply(res);
+      if (res.ok) sendLobby(lobby.roomOf(id));
+    },
     'shop:buy': (id, p, reply) => {
       const room = lobby.roomOf(id);
       if (!room || !room.game) return reply({ ok: false, error: 'Not in a game' });
@@ -166,6 +171,8 @@ function createHub({ debug = {} } = {}) {
         }
       }
     },
+
+    _roomOf: (id) => lobby.roomOf(id), // for tests
 
     hasGames() {
       for (const room of lobby.rooms.values()) if (room.game) return true;

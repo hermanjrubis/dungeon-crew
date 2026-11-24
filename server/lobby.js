@@ -93,6 +93,16 @@ class Lobby {
     return { ok: true };
   }
 
+  // After a finished run: back to this room's lobby, same code, everyone unlocked.
+  again(socketId) {
+    const room = this.roomOf(socketId);
+    if (!room || !room.game || room.game.phase !== 'done') return { ok: false, error: 'The run is not over' };
+    room.game = null;
+    room.phase = 'lobby';
+    for (const p of room.players.values()) p.locked = false;
+    return { ok: true };
+  }
+
   // Remove a player. Returns the room they were in, or null if it is now gone.
   leave(socketId) {
     const room = this.roomOf(socketId);
