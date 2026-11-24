@@ -155,8 +155,9 @@ function startGust(game, e) {
 function gust(game, e) {
   for (const p of game.alivePlayers()) {
     const d = dist(p, e) || 1;
+    const push = GUST_PUSH * (p.heroClass === 'warden' ? 0.5 : 1); // Thick Skin: half as far
     // Walls stop you; lava doesn't.
-    const pos = tiles.moveWithCollision(game.room, p.x, p.y, ((p.x - e.x) / d) * GUST_PUSH, ((p.y - e.y) / d) * GUST_PUSH, p.r, { doorOpen: game.doorOpen });
+    const pos = tiles.moveWithCollision(game.room, p.x, p.y, ((p.x - e.x) / d) * push, ((p.y - e.y) / d) * push, p.r, { doorOpen: game.doorOpen });
     p.x = pos.x;
     p.y = pos.y;
     p.roll = null;

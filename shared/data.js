@@ -6,7 +6,7 @@
 })(this, function () {
   const TICK_RATE = 20; // server updates per second
 
-  const CLASSES = ['knight', 'archer', 'mage'];
+  const CLASSES = ['knight', 'archer', 'mage', 'warden', 'engineer'];
 
   const COLORS = {
     orange: '#F2A541',
@@ -37,6 +37,22 @@
       attack: { kind: 'bolt', speed: 480, ttl: 0.9, cd: 0.6, mana: 5 },
       q: { name: 'Fireball', cd: 3, mana: 20, speed: 420, ttl: 1.2, radius: 64, dmg: 24 },
       space: { name: 'Heal Circle', cd: 12, mana: 30, radius: 96, perSecond: 10, duration: 3 }
+    },
+    // Tank. Passive Thick Skin: takes 30% less damage, Wing Gust pushes him half as far.
+    warden: {
+      name: 'Stonewarden', hp: 170, baseDmg: 11, speed: 125, mana: 0, thickSkin: 0.7,
+      starter: { name: 'Cracked Sling', bonus: 4 },
+      attack: { kind: 'rock', speed: 380, ttl: 0.75, cd: 0.7, r: 9 },
+      q: { name: 'Boulder Toss', cd: 8, speed: 300, ttl: 2, r: 20, dmg: 22, push: 48, stun: 0.3 },
+      space: { name: 'Quake Stomp', cd: 12, radius: 96, dmg: 14, stun: 1.2, bossSlow: 0.5, bossSlowTime: 2 }
+    },
+    // Builder. Passive Scrapper: +10% gold from every kill.
+    engineer: {
+      name: 'Engineer', hp: 95, baseDmg: 9, speed: 175, mana: 0, goldBonus: 0.1,
+      starter: { name: 'Rusty Wrench', bonus: 3 },
+      attack: { kind: 'swing', arc: 80, range: 56, cd: 0.45 },
+      q: { name: 'Turret', cd: 12, duration: 10, range: 300, every: 0.6, dmg: 7, speed: 520, ttl: 0.8 },
+      space: { name: 'Mine', cd: 6, armTime: 0.5, trigger: 28, radius: 72, dmg: 30, duration: 20, max: 2 }
     }
   };
 
@@ -78,7 +94,7 @@
     { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
     { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
   ];
-  const SHOP_WEAPONS = { knight: 'Iron Sword', archer: "Hunter's Bow", mage: 'Oak Staff' };
+  const SHOP_WEAPONS = { knight: 'Iron Sword', archer: "Hunter's Bow", mage: 'Oak Staff', warden: 'Iron Sling', engineer: 'Steel Wrench' };
   const SET_NAME = 'Cellar Guard Set';
   const SET_BONUS = 'Poison damage −50%. Useful in Floor 2.';
 
@@ -100,7 +116,7 @@
         { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
         { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
       ],
-      weapons: { knight: 'Steel Sword', archer: 'Longbow', mage: 'Crystal Staff' }
+      weapons: { knight: 'Steel Sword', archer: 'Longbow', mage: 'Crystal Staff', warden: 'Granite Sling', engineer: 'Arc Wrench' }
     },
     crown: {
       setName: 'Hollow Crown Set',
@@ -114,7 +130,7 @@
         { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
         { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
       ],
-      weapons: { knight: 'Ember Blade', archer: 'Shadow Bow', mage: "King's Scepter" }
+      weapons: { knight: 'Ember Blade', archer: 'Shadow Bow', mage: "King's Scepter", warden: 'Magma Sling', engineer: 'Forgemaster Wrench' }
     }
   };
 

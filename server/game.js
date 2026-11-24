@@ -203,7 +203,10 @@ class Game {
 
   damagePlayer(p, amount, source, { ignoreDefense = false, ignoreInvuln = false } = {}) {
     if (!p || p.downed || (!ignoreInvuln && this.time < p.invulnUntil)) return 0;
-    const dealt = Math.max(1, Math.round(amount - (ignoreDefense ? 0 : p.defense)));
+    let dealt = Math.max(1, Math.round(amount - (ignoreDefense ? 0 : p.defense)));
+    // Stonewarden's Thick Skin (poison and burning are cut where they build up).
+    const skin = data.HEROES[p.heroClass].thickSkin;
+    if (skin && source !== 'poison' && source !== 'burn') dealt = Math.max(1, Math.round(dealt * skin));
     p.hp = Math.max(0, p.hp - dealt);
     this.event({ type: 'damage', targetId: p.id, amount: dealt });
     if (p.hp <= 0) {
@@ -219,7 +222,7 @@ class Game {
   // Armor doesn't stop it, but the full Cellar Guard set halves it.
   poisonPlayer(p, perSecond, dt) {
     if (!p || p.downed || this.time < p.invulnUntil) return;
-    p.poisonAcc = (p.poisonAcc || 0) + perSecond * dt * (1 - this.playerPoisonResist(p));
+    p.poisonAcc = (p.poisonAcc || 0) + perSecond * dt * (1 - this.playerPoisonResist(p)) * (data.HEROES[p.heroClass].thickSkin || 1);
     p.poisonedUntil = this.time + 0.5;
     const whole = Math.floor(p.poisonAcc + 1e-9);
     if (whole >= 1) {
@@ -254,7 +257,7 @@ class Game {
   updateBurning(dt) {
     for (const p of this.players.values()) {
       if (p.downed || !(this.time < (p.burnUntil || 0) + 1e-9)) continue;
-      p.burnAcc = (p.burnAcc || 0) + data.BURN.perSecond * dt;
+      p.burnAcc = (p.burnAcc || 0) + data.BURN.perSecond * dt * (data.HEROES[p.heroClass].thickSkin || 1);
       const whole = Math.floor(p.burnAcc + 1e-9);
       if (whole >= 1) {
         p.burnAcc -= whole;
@@ -422,7 +425,8 @@ class Game {
       const m = data.MONSTERS[e.type];
       for (const p of this.players.values()) {
         const [lo, hi] = m.gold;
-        const gold = lo + Math.floor(this.rng() * (hi - lo + 1));
+        const roll = lo + Math.floor(this.rng() * (hi - lo + 1));
+        const gold = Math.round(roll * (1 + (data.HEROES[p.heroClass].goldBonus || 0))); // Engineer's Scrapper
         p.gold += gold;
         this.addStat(p, 'gold', gold);
         this.addXp(p, m.xp);

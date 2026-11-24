@@ -77,7 +77,7 @@ function basicAttack(game, p, hero) {
       if (inArc(p, e, a.range, a.arc)) game.damageEnemy(e, game.playerDamage(p), p.id, { melee: true });
     }
   } else {
-    shoot(game, p, a.kind, a.speed, a.ttl, game.playerDamage(p));
+    shoot(game, p, a.kind, a.speed, a.ttl, game.playerDamage(p), a.r ? { r: a.r } : {});
   }
 }
 
@@ -104,7 +104,9 @@ function announce(game, p, skill) {
 const SKILL_NAMES = {
   knight: { q: 'bash', space: 'taunt' },
   archer: { q: 'arrowRain', space: 'roll' },
-  mage: { q: 'fireball', space: 'heal' }
+  mage: { q: 'fireball', space: 'heal' },
+  warden: { q: 'boulder', space: 'quake' },
+  engineer: { q: 'turret', space: 'mine' }
 };
 
 function skillQ(game, p, hero) {
@@ -136,6 +138,16 @@ function skillQ(game, p, hero) {
     });
   } else if (p.heroClass === 'mage') {
     shoot(game, p, 'fireball', s.speed, s.ttl, s.dmg, { blast: s.radius });
+  } else if (p.heroClass === 'warden') {
+    // Boulder Toss: rolls straight on, hitting every monster once.
+    shoot(game, p, 'boulder', s.speed, s.ttl, s.dmg, { r: s.r, pierce: true, hitIds: [], push: s.push, stun: s.stun });
+  } else if (p.heroClass === 'engineer') {
+    // Turret: one per Engineer; a new one replaces the old.
+    game.zones = game.zones.filter((z) => !(z.kind === 'turret' && z.ownerId === p.id));
+    game.addZone({
+      kind: 'turret', ownerId: p.id, x: p.x, y: p.y, r: s.range, until: game.time + s.duration,
+      nextShot: game.time + s.every, every: s.every, dmg: s.dmg + Math.round(p.weaponBonus / 2), speed: s.speed, ttl: s.ttl
+    });
   }
 }
 
@@ -153,6 +165,24 @@ function skillSpace(game, p, hero) {
     const dir = moveDir(p.input) || { dx: Math.cos(p.aim), dy: Math.sin(p.aim) };
     p.roll = { dx: dir.dx, dy: dir.dy, left: s.distance, speed: s.distance / s.duration };
     p.invulnUntil = game.time + s.duration;
+  } else if (p.heroClass === 'warden') {
+    // Quake Stomp: rocks burst up around him. Bosses are only slowed.
+    for (const e of game.enemies.slice()) {
+      if (Math.hypot(e.x - p.x, e.y - p.y) > s.radius + e.r || e.sky) continue;
+      game.damageEnemy(e, s.dmg, p.id);
+      if (e.hp <= 0) continue;
+      if (e.boss) game.applySlow(e, 'quake', s.bossSlow, s.bossSlowTime);
+      else e.stunUntil = game.time + s.stun;
+    }
+    game.addZone({ kind: 'quake', ownerId: p.id, x: p.x, y: p.y, r: s.radius, until: game.time + 0.4 });
+  } else if (p.heroClass === 'engineer') {
+    // Mine: at most `max` per Engineer; the oldest goes when a new one is laid.
+    const mine = game.zones.filter((z) => z.kind === 'mine' && z.ownerId === p.id);
+    if (mine.length >= s.max) game.zones = game.zones.filter((z) => z !== mine[0]);
+    game.addZone({
+      kind: 'mine', ownerId: p.id, x: p.x, y: p.y, r: s.radius, until: game.time + s.duration,
+      armAt: game.time + s.armTime, trigger: s.trigger, dmg: s.dmg
+    });
   } else if (p.heroClass === 'mage') {
     const every = 0.5;
     game.addZone({
@@ -186,6 +216,21 @@ function updateProjectiles(game, dt) {
           game.damagePlayer(victim, pr.dmg, 'arrow');
           removeProjectile(game, pr);
           break;
+        }
+        continue;
+      }
+      if (pr.pierce) {
+        // A boulder: hits each monster once, pushes it along, keeps rolling.
+        for (const e of game.enemies.slice()) {
+          if (e.invulnerable || pr.hitIds.includes(e.id) || Math.hypot(e.x - pr.x, e.y - pr.y) > e.r + pr.r) continue;
+          pr.hitIds.push(e.id);
+          game.damageEnemy(e, pr.dmg, pr.ownerId);
+          if (e.hp <= 0 || e.sky || e.boss) continue;
+          const len = Math.hypot(pr.vx, pr.vy) || 1;
+          const pos = tiles.moveWithCollision(game.room, e.x, e.y, (pr.vx / len) * pr.push, (pr.vy / len) * pr.push, e.r, {});
+          e.x = pos.x;
+          e.y = pos.y;
+          e.stunUntil = Math.max(e.stunUntil || 0, game.time + pr.stun);
         }
         continue;
       }
@@ -237,6 +282,31 @@ function updateZones(game, dt) {
       for (const p of game.players.values()) {
         if (Math.hypot(p.x - z.x, p.y - z.y) <= z.r) game.applySlow(p, 'slime', 0.4, 0.1);
       }
+    } else if (z.kind === 'turret') {
+      while (z.nextShot <= game.time + EPS && z.nextShot <= z.until + EPS) {
+        z.nextShot += z.every;
+        let best = null;
+        for (const e of game.enemies) {
+          const d = Math.hypot(e.x - z.x, e.y - z.y);
+          if (!e.invulnerable && d <= z.r && (!best || d < best.d)) best = { e, d };
+        }
+        if (!best) continue;
+        const a = Math.atan2(best.e.y - z.y, best.e.x - z.x);
+        game.addProjectile({
+          kind: 'turretShot', ownerId: z.ownerId, x: z.x, y: z.y, r: 5,
+          vx: Math.cos(a) * z.speed, vy: Math.sin(a) * z.speed, until: game.time + z.ttl, dmg: z.dmg
+        });
+        game.event({ type: 'turretfire', x: Math.round(z.x), y: Math.round(z.y), aim: Math.round(a * 100) / 100 });
+      }
+    } else if (z.kind === 'mine') {
+      if (game.time < z.armAt - EPS) continue;
+      const tripped = game.enemies.some((e) => !e.flying && !e.invulnerable && Math.hypot(e.x - z.x, e.y - z.y) <= z.trigger + e.r);
+      if (!tripped) continue;
+      for (const e of game.enemies.slice()) {
+        if (!e.invulnerable && Math.hypot(e.x - z.x, e.y - z.y) <= z.r + e.r) game.damageEnemy(e, z.dmg, z.ownerId);
+      }
+      z.until = game.time;
+      game.event({ type: 'mineboom', x: Math.round(z.x), y: Math.round(z.y), r: z.r });
     } else if (z.kind === 'healCircle') {
       while (z.nextTick <= game.time + EPS && z.nextTick <= z.until + EPS) {
         for (const p of game.players.values()) {
