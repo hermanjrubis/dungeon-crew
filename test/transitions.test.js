@@ -56,14 +56,14 @@ test('the last room gets a boss card', () => {
   assert.ok(game.drainEvents().some((e) => e.type === 'transition' && e.kind === 'boss'));
 });
 
-test('clearing the last room shows a floor-cleared card, then opens the shop', () => {
+test('clearing the last room shows the results screen for 7 s, then opens the shop', () => {
   const game = withCards(['knight'], [ONE_GLOOP_ROOMS[2]]);
   run(game, 2.1);
   killAll(game);
   game.tick(0.05);
   assert.strictEqual(game.phase, 'playing');
   assert.strictEqual(game.snapshot().transition.kind, 'floorclear');
-  run(game, 2.4);
+  run(game, 6.9);
   assert.strictEqual(game.phase, 'playing');
   run(game, 0.2);
   assert.strictEqual(game.phase, 'shop');

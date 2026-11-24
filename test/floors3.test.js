@@ -106,7 +106,7 @@ test('Ashen Stair builds valid rooms for 200 seeds', () => {
 test('clearing the last floor ends the run without a shop', () => {
   const floors = [{ name: 'End', roomNames: [], shop: null, rooms: [{ layout: TINY }] }];
   const game = new Game([{ id: 'p0', name: 'Kai', heroClass: 'knight', color: 'orange' }], { floors, rng: () => 0 });
-  for (let i = 0; i < 120; i++) game.tick(0.05);
+  for (let i = 0; i < 220; i++) game.tick(0.05); // start card + 7 s results
   assert.strictEqual(game.phase, 'done');
   assert.ok(game.drainEvents().some((e) => e.type === 'phase' && e.phase === 'done'));
 });
