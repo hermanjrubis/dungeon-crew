@@ -71,9 +71,19 @@
       };
     }
 
+    // Every input gets a number. We remember where we predicted we were when
+    // we sent it, so the server's (delayed) position can be compared with
+    // where we were back then, not where we are now.
     sendInput() {
       if (App.screen !== 'game') return;
-      Net.sendInput(this.currentInput());
+      const input = this.currentInput();
+      this.seq = (this.seq || 0) + 1;
+      input.seq = this.seq;
+      if (this.me) {
+        this.history.push({ seq: this.seq, x: this.me.x, y: this.me.y });
+        if (this.history.length > 80) this.history.shift();
+      }
+      Net.sendInput(input);
     }
 
     update(time, deltaMs) {
@@ -105,31 +115,62 @@
 
     // ---------- my own hero ----------
 
+    // My own hero moves the moment I press a key (prediction). The server's
+    // position arrives a little late, so we check it against where we predicted
+    // we were when we sent that input (by its number), and fix only the real
+    // difference, smoothly. (Comparing with where we are *now* made the hero
+    // step back and forth whenever the internet was slow.)
     predictMe(snap, dt) {
       const server = snap.players.find((p) => p.id === App.me);
       if (!server) return;
+      this.history = this.history || [];
+      this.corr = this.corr || { x: 0, y: 0 };
+      // Real elapsed time (Phaser smooths its frame time, which would make us
+      // walk a little more or less than the server does).
+      const now = performance.now();
+      dt = this.lastPredict ? Math.min(0.1, (now - this.lastPredict) / 1000) : dt;
+      this.lastPredict = now;
       if (!this.me || snap.paused || snap.transition || server.downed || server.rolling || server.stunned) {
-        this.me = { x: server.x, y: server.y };
+        this.resetPrediction(server);
         return;
       }
       const input = this.currentInput();
-      let dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-      let dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
-      const moving = dx !== 0 || dy !== 0;
-      if (moving) {
+      const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+      const dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+      if (dx !== 0 || dy !== 0) {
         const len = Math.hypot(dx, dy);
         const step = server.speed * dt;
         const pos = moveWithCollision(this.room, this.me.x, this.me.y, (dx / len) * step, (dy / len) * step, 16, { doorOpen: snap.doorOpen });
         this.me.x = pos.x;
         this.me.y = pos.y;
       }
-      const err = Math.hypot(server.x - this.me.x, server.y - this.me.y);
-      if (err > 96) { this.me.x = server.x; this.me.y = server.y; }
-      else if (!moving || err > 32) {
-        const pull = moving ? 0.08 : 0.2;
-        this.me.x += (server.x - this.me.x) * pull;
-        this.me.y += (server.y - this.me.y) * pull;
+
+      // A new server answer: compare it with our guess from that moment.
+      if (server.seq !== this.lastAck) {
+        this.lastAck = server.seq;
+        // The server moved one tick with input `seq`; we were at the next entry by then.
+        const then = this.history.find((h) => h.seq === server.seq + 1) || this.me;
+        const ox = server.x - then.x;
+        const oy = server.y - then.y;
+        if (Math.hypot(ox, oy) > 96) { this.resetPrediction(server); return; } // teleported (pit, lava, new room)
+        this.corr.x += ox;
+        this.corr.y += oy;
+        for (const h of this.history) if (h.seq > server.seq) { h.x += ox; h.y += oy; }
+        this.history = this.history.filter((h) => h.seq > server.seq);
       }
+      // Ease the difference in over a few frames.
+      const k = Math.min(1, dt * 12);
+      this.me.x += this.corr.x * k;
+      this.me.y += this.corr.y * k;
+      this.corr.x *= 1 - k;
+      this.corr.y *= 1 - k;
+    }
+
+    resetPrediction(server) {
+      this.me = { x: server.x, y: server.y };
+      this.history = [];
+      this.corr = { x: 0, y: 0 };
+      this.lastAck = server.seq;
     }
 
     // ---------- the room ----------
@@ -1220,6 +1261,7 @@
   }
 
   window.GameView = {
+    scene: () => scene, // for headless checks
     init() {
       Net.on('game:start', ({ you }) => {
         App.me = you;

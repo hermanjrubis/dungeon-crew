@@ -215,3 +215,14 @@ test('snapshot tells each browser its current walking speed for smooth movement'
   game.applySlow(me, 'test', 0.5, 10);
   assert.strictEqual(game.snapshot().players[0].speed, 83);
 });
+
+test('the server remembers the last input number it used and reports it', () => {
+  const { Game } = require('../server/game');
+  const game = new Game([{ id: 'p0', name: 'Kai', heroClass: 'knight', color: 'orange' }], {
+    rooms: [['wwwww', 'wefdw', 'wwwww'], ['wwwww', 'wefdw', 'wwwww']], transitions: false, rng: () => 0
+  });
+  game.setInput('p0', { right: true, seq: 41 });
+  game.setInput('p0', { right: true, seq: 'x' }); // junk is ignored
+  game.tick(0.05);
+  assert.strictEqual(game.snapshot().players[0].seq, 41);
+});

@@ -159,6 +159,9 @@ class Game {
     if (!p) return;
     p.input = sanitizeInput(raw);
     p.aim = p.input.aim;
+    // The browser numbers its inputs so it can line up its own prediction
+    // with where the server has actually moved it.
+    if (raw && Number.isInteger(raw.seq) && raw.seq >= 0) p.lastSeq = raw.seq;
   }
 
   // Pause or resume for the whole team. Anyone in the game can do either.
@@ -583,7 +586,7 @@ class Game {
       players: [...this.players.values()].map((p) => ({
         id: p.id, name: p.name, heroClass: p.heroClass, color: p.color,
         x: r(p.x), y: r(p.y), aim: Math.round(p.aim * 100) / 100,
-        hp: p.hp, maxHp: p.maxHp, mana: r(p.mana), maxMana: p.maxMana,
+        hp: p.hp, maxHp: p.maxHp, mana: r(p.mana), maxMana: p.maxMana, seq: p.lastSeq || 0,
         level: p.level, xp: p.xp, gold: p.gold, potions: p.potions, feathers: p.feathers,
         downed: p.downed, revive: Math.round((p.reviveProgress / REVIVE_TIME) * 100) / 100,
         rolling: this.time < p.invulnUntil, stunned: this.time < p.stunUntil,
