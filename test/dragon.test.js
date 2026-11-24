@@ -146,12 +146,12 @@ test('phase 3 crumbles the roost every 15 s', () => {
   assert.strictEqual(game.ringsFallen, 2);
 });
 
-test('beating Ashmaw ends the run', () => {
+test('beating Ashmaw opens the Roost camp shop (Floor 5 is next)', () => {
   const { game, d } = roostGame();
   d.hp = 1;
   game.damageEnemy(d, 5, 'p0');
   game.tick(0.05);
-  assert.strictEqual(game.phase, 'done');
+  assert.strictEqual(game.phase, 'shop');
   assert.strictEqual(me(game).gold, 300);
 });
 

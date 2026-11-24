@@ -10,7 +10,8 @@
   const ROOM_H = 13; // tiles down
 
   // Letters that mark where things start. They become plain floor after parsing.
-  const SPAWN_LETTERS = { g: 'gloop', b: 'bat', M: 'mother', a: 'archer', c: 'sporecap', Q: 'queen', G: 'golem', K: 'king', D: 'dragon' };
+  const SPAWN_LETTERS = { g: 'gloop', b: 'bat', M: 'mother', a: 'archer', c: 'sporecap', Q: 'queen', G: 'golem', K: 'king', D: 'dragon',
+    R: 'rotgrub', S: 'slug', H: 'rothand', W: 'wyrm', C: 'crawler', I: 'wisp', Z: 'prism' };
 
   // Turn a list of text rows into a room object.
   //   w wall, f floor, s spikes, x cracked floor, p pit, u puddle, d door, e entry

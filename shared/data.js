@@ -71,7 +71,12 @@
     // Floor 3 and 4.
     golem: { name: 'Rubble Golem', hp: 120, dmg: 20, speed: 35, r: 22, xp: 25, gold: [10, 15] },
     king: { name: 'The Hollow King', hp: 600, dmg: 25, speed: 70, r: 36, xp: 200, gold: [100, 100], hpPerExtraPlayer: 0.25, boss: true },
-    dragon: { name: 'Ashmaw', hp: 1200, dmg: 35, speed: 60, r: 44, xp: 0, gold: [300, 300], hpPerExtraPlayer: 0.25, boss: true, flying: true }
+    dragon: { name: 'Ashmaw', hp: 1200, dmg: 35, speed: 60, r: 44, xp: 0, gold: [300, 300], hpPerExtraPlayer: 0.25, boss: true, flying: true },
+    // Floor 5: the Rot Warrens.
+    rotgrub: { name: 'Rotgrub', hp: 40, dmg: 8, speed: 55, r: 15, xp: 28, gold: [9, 13] },
+    slug: { name: 'Acid Slug', hp: 60, dmg: 7, speed: 45, r: 17, xp: 28, gold: [9, 13] },
+    rothand: { name: 'Rot Hand', hp: 20, dmg: 9, speed: 0, r: 13, xp: 8, gold: [2, 4] },
+    wyrm: { name: 'The Rothand Wyrm', hp: 1100, dmg: 22, speed: 150, r: 44, xp: 250, gold: [200, 200], hpPerExtraPlayer: 0.25, boss: true }
   };
 
   // XP needed to reach level 1..10. Each level after 1 gives +10 max HP and +2 damage.
@@ -131,6 +136,20 @@
         { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
       ],
       weapons: { knight: 'Ember Blade', archer: 'Shadow Bow', mage: "King's Scepter", warden: 'Magma Sling', engineer: 'Forgemaster Wrench' }
+    },
+    roost: {
+      setName: 'Rotward Set',
+      setBonus: "Poison damage −60%, and Rot Hands can't hold you in place. Built for Floor 5.",
+      setPieces: ['helm4', 'plate4', 'boots4'],
+      items: [
+        { id: 'helm4', name: 'Bonemask Helm', slot: 'Head', price: 240, once: true, effect: { maxHp: 40 }, text: '+40 max HP' },
+        { id: 'plate4', name: 'Dragonscale Plate', slot: 'Chest', price: 300, once: true, effect: { defense: 12 }, text: '+12 defense' },
+        { id: 'boots4', name: 'Bog Striders', slot: 'Feet', price: 250, once: true, effect: { speedMul: 0.25 }, text: '+25% move speed' },
+        { id: 'weapon4', name: 'Class weapon', slot: 'Weapon', price: 300, once: true, effect: { weaponBonus: 32 }, text: '+32 damage' },
+        { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
+        { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
+      ],
+      weapons: { knight: 'Dragonbone Sword', archer: 'Wyvern Bow', mage: 'Ashmaw Staff', warden: 'Obsidian Sling', engineer: 'Dragonforge Wrench' }
     }
   };
 

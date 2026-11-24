@@ -137,7 +137,7 @@ function summonBats(game, e) {
   const n = Math.min(RAGE_BATS, MAX_BATS - alive);
   for (let i = 0; i < n; i++) {
     const side = i % 2 ? 1 : -1;
-    game.spawnEnemy('bat', e.x + side * 70, e.y - 40, { noReward: true });
+    game.spawnEnemy('bat', e.x + side * 70, e.y - 40, { noReward: true }).summonedBy = e.id;
   }
   if (n > 0) game.event({ type: 'screech', x: Math.round(e.x), y: Math.round(e.y) });
 }

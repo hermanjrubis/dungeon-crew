@@ -13,7 +13,7 @@
 // If 50 tries all break a rule, the recipe's hand-made `fallback` is used.
 
 const LETTERS = { spikes: 's', puddle: 'u', poison: 'o', pillar: 'w', vent: 'v' };
-const MONSTER_LETTERS = { gloop: 'g', bat: 'b', archer: 'a', sporecap: 'c', golem: 'G' };
+const MONSTER_LETTERS = { gloop: 'g', bat: 'b', archer: 'a', sporecap: 'c', golem: 'G', rotgrub: 'R', slug: 'S', rothand: 'H', crawler: 'C', wisp: 'I' };
 const TRIES = 50;
 const SPOT_TRIES = 200;
 const KEEP_CLEAR = 2;

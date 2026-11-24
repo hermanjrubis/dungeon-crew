@@ -213,8 +213,9 @@ function updateProjectiles(game, dt) {
         const victim = [...game.players.values()].find((p) => !p.downed && game.time >= p.invulnUntil &&
           Math.hypot(p.x - pr.x, p.y - pr.y) <= p.r + pr.r);
         if (victim) {
-          game.damagePlayer(victim, pr.dmg, 'arrow');
-          removeProjectile(game, pr);
+          game.damagePlayer(victim, pr.dmg, pr.kind === 'poisonGlob' ? 'poison' : 'arrow');
+          if (pr.splash) finishProjectile(game, pr);
+          else removeProjectile(game, pr);
           break;
         }
         continue;
@@ -255,6 +256,12 @@ function removeProjectile(game, pr) {
 // Fireballs explode when they hit something or run out; arrows just vanish.
 function finishProjectile(game, pr) {
   removeProjectile(game, pr);
+  if (pr.splash) {
+    // a poison glob leaves a puddle where it lands
+    game.addZone({ kind: 'poisonCloud', x: pr.x, y: pr.y, r: pr.splash.r, perSecond: pr.splash.perSecond, until: game.time + pr.splash.duration });
+    game.event({ type: 'splat', x: Math.round(pr.x), y: Math.round(pr.y) });
+    return;
+  }
   if (!pr.blast) return;
   for (const e of game.enemies.slice()) {
     if (Math.hypot(e.x - pr.x, e.y - pr.y) <= pr.blast + e.r) game.damageEnemy(e, pr.dmg, pr.ownerId);
@@ -277,6 +284,12 @@ function updateZones(game, dt) {
     } else if (z.kind === 'poisonCloud') {
       for (const p of game.players.values()) {
         if (Math.hypot(p.x - z.x, p.y - z.y) <= z.r) game.poisonPlayer(p, z.perSecond, dt);
+      }
+    } else if (z.kind === 'acid') {
+      for (const p of game.players.values()) {
+        if (Math.hypot(p.x - z.x, p.y - z.y) > z.r + p.r * 0.5) continue;
+        game.poisonPlayer(p, z.perSecond, dt);
+        game.applySlow(p, 'acid', z.slow, 0.15);
       }
     } else if (z.kind === 'slime') {
       for (const p of game.players.values()) {

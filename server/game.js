@@ -12,6 +12,7 @@ const CARD_TIME = { start: 2, room: 1.6, boss: 2.2, reset: 1.6, floorclear: 7 };
 const blankStats = () => ({ kills: 0, damage: 0, gold: 0, downs: 0, revives: 0 });
 const heroes = require('./heroes');
 const enemies = require('./enemies');
+const warrens = require('./warrens');
 const hazards = require('./hazards');
 const shop = require('./shop');
 const forge = require('./forge');
@@ -238,7 +239,13 @@ class Game {
   }
 
   playerPoisonResist(p) {
+    if (this.rotwardSet(p)) return 0.6;
     return this.hasSet(p, ['helm', 'mail', 'boots']) ? 0.5 : 0;
+  }
+
+  // Rotward set (Floor 5): poison −60%, and Rot Hands can't hold you.
+  rotwardSet(p) {
+    return this.hasSet(p, ['helm4', 'plate4', 'boots4']);
   }
 
   hasSet(p, ids) {
@@ -409,6 +416,7 @@ class Game {
       timers: {}
     };
     this.enemies.push(e);
+    if (type === 'rothand') warrens.initHand(this, e);
     return e;
   }
 
@@ -457,6 +465,8 @@ class Game {
     }
     this.event({ type: 'kill', enemyId: e.id, enemyType: e.type, x: Math.round(e.x), y: Math.round(e.y), noReward: !reward || !!e.noReward });
     enemies.onEnemyDeath(this, e, { reward });
+    // a boss's helpers (Ashmaw's bats, the Wyrm's hands) go when it does
+    for (const m of this.enemies.slice()) if (m.summonedBy === e.id) this.killEnemy(m, { reward: false });
   }
 
   // ---------- projectiles and zones (used by heroes and monsters) ----------

@@ -4,6 +4,8 @@
 //   l lava   v geyser vent   j flame-jet nozzle (in a wall)   r crumbling platform
 //   g Gloop   b Skitterbat   a Bone Archer   c Sporecap   M Gloop Mother   Q Spore Queen
 //   G Rubble Golem   K Hollow King   D Ashmaw
+//   R Rotgrub   S Acid Slug   H Rot Hand   W Rothand Wyrm
+//   C Crystal Crawler   I Shard Wisp   Z Prismaurus
 // Every row must be exactly 24 letters and every room 13 rows.
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
@@ -158,6 +160,20 @@
     return paint(rows, [[6, 6, 'e'], [12, 6, 'D']]);
   })();
 
+  // ---------- Floor 5: the Rot Warrens ----------
+
+  const FLOOR5_NAME = 'Rot Warrens';
+  const FLOOR5_ROOM_NAMES = ['Sludge Gate', 'Grub Nest', 'Drowned Tunnels', "Wyrm's Pit"];
+
+  // The Wyrm's Pit: an open arena with poison pools in the corners.
+  const WYRM_PIT = paint(PLAIN, [
+    [2, 1, 'o'], [3, 1, 'o'], [2, 2, 'o'], [3, 2, 'o'],
+    [20, 10, 'o'], [21, 10, 'o'], [20, 11, 'o'], [21, 11, 'o'],
+    [20, 1, 'o'], [21, 1, 'o'], [2, 11, 'o'], [3, 11, 'o'],
+    [8, 3, 'w'], [8, 9, 'w'], [17, 3, 'w'], [17, 9, 'w'],
+    [15, 6, 'W']
+  ]);
+
   // A floor = a name, room names, the shop after it, and its rooms.
   // A room is either { recipe } (traps placed at random every game) or
   // { layout } (hand-made, always the same; used for boss rooms).
@@ -237,7 +253,7 @@
       power: { hp: 2.25, dmg: 1.75 }, // monsters' HP and damage multipliers on this floor
       targetTime: 300, // seconds for the 'fast' star
       roomNames: FLOOR4_ROOM_NAMES,
-      shop: null, // the last floor: beating Ashmaw ends the run
+      shop: 'roost',
       stalactites: false,
       rooms: [
         { recipe: { shape: PLAIN, jets: 2,
@@ -246,8 +262,31 @@
           monsters: { golem: 2, archer: 2, bat: 2 } } },
         { layout: ROOST, core: ROOST_CORE }
       ]
+    },
+    {
+      name: FLOOR5_NAME,
+      power: { hp: 2.5, dmg: 1.9 },
+      targetTime: 330, // seconds for the 'fast' star
+      roomNames: FLOOR5_ROOM_NAMES,
+      shop: null, // the last floor for now
+      stalactites: false,
+      rooms: [
+        { recipe: { shape: PLAIN,
+          fallback: paint(PLAIN, [[16, 3, 'R'], [16, 9, 'R'], [19, 6, 'R'], [12, 4, 'S'], [12, 8, 'S'], [6, 2, 'o'], [7, 2, 'o'], [6, 10, 'o'], [7, 10, 'o']]),
+          scatter: [{ kind: 'poison', count: 2, size: [2, 2] }, { kind: 'pillar', count: [2, 4], size: [1, 1] }],
+          monsters: { rotgrub: 3, slug: 2 } } },
+        { recipe: { shape: PLAIN,
+          fallback: paint(PLAIN, [[17, 3, 'R'], [17, 9, 'R'], [14, 6, 'S'], [19, 6, 'S'], [10, 3, 'H'], [10, 9, 'H'], [13, 2, 'H']]),
+          scatter: [{ kind: 'poison', count: 2, size: [2, 2] }, { kind: 'puddle', count: 1, size: [2, 2] }, { kind: 'pillar', count: [2, 3], size: [1, 1] }],
+          monsters: { rotgrub: 2, slug: 2, rothand: 3 } } },
+        { recipe: { shape: PLAIN, dark: [12, 1, 22, 11], torches: 3, fallbackTorches: [{ tx: 13, ty: 2 }, { tx: 18, ty: 6 }, { tx: 13, ty: 10 }],
+          fallback: paint(PLAIN, [[16, 3, 'S'], [16, 9, 'S'], [20, 6, 'S'], [11, 4, 'H'], [11, 8, 'H'], [18, 2, 'H'], [14, 6, 'b'], [19, 10, 'b']]),
+          scatter: [{ kind: 'poison', count: 2, size: [2, 2] }, { kind: 'pillar', count: [2, 3], size: [1, 1] }],
+          monsters: { slug: 3, rothand: 3, bat: 2 } } },
+        { layout: WYRM_PIT }
+      ]
     }
   ];
 
-  return { FLOORS, ROOST, ROOST_CORE, FLOOR4_NAME, FLOOR4_ROOM_NAMES, FLOOR3_NAME, FLOOR3_ROOM_NAMES, RIVER_STOPS, FLOOR1, FLOOR1_NAME, FLOOR1_ROOM_NAMES, FLOOR2_NAME, FLOOR2_ROOM_NAMES, PLAIN };
+  return { FLOORS, WYRM_PIT, FLOOR5_NAME, FLOOR5_ROOM_NAMES, ROOST, ROOST_CORE, FLOOR4_NAME, FLOOR4_ROOM_NAMES, FLOOR3_NAME, FLOOR3_ROOM_NAMES, RIVER_STOPS, FLOOR1, FLOOR1_NAME, FLOOR1_ROOM_NAMES, FLOOR2_NAME, FLOOR2_ROOM_NAMES, PLAIN };
 });

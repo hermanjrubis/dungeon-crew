@@ -84,11 +84,11 @@ test("a second wearer doesn't stack it", () => {
 
 // ---------- Floor 4: the Dragon's Roost ----------
 
-test('Floor 4 is two rooms ending in the Roost, with no shop', () => {
+test('Floor 4 is two rooms ending in the Roost, then the Roost camp shop', () => {
   const f4 = FLOORS[3];
   assert.strictEqual(f4.name, "Dragon's Roost");
   assert.deepStrictEqual(f4.roomNames, ['Ashen Stair', "Dragon's Roost"]);
-  assert.strictEqual(f4.shop, null);
+  assert.strictEqual(f4.shop, 'roost');
   const roost = f4.rooms[1];
   assert.ok(roost.layout.some((r) => r.includes('D')));
   assert.deepStrictEqual(roost.core, [8, 4, 15, 8]);
@@ -119,4 +119,9 @@ test('the end state says whether the whole run is won, and how long it took', ()
   assert.strictEqual(state.final, true);
   assert.strictEqual(typeof state.time, 'number');
   assert.strictEqual(shop.shopState(crownGame(['knight'])).final, false);
+});
+
+test('only the last floor has no shop: beating its boss ends the run', () => {
+  FLOORS.slice(0, -1).forEach((f) => assert.ok(f.shop, f.name));
+  assert.strictEqual(FLOORS[FLOORS.length - 1].shop, null);
 });
