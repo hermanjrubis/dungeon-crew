@@ -215,6 +215,7 @@
     lava: (t) => { noise(t, { f: 900, dur: 0.35, vol: 0.3 }); tone(t, { type: 'sine', f: 220, f2: 70, dur: 0.35, vol: 0.2 }); },
     bridge: (t) => { tone(t, { type: 'triangle', f: 150, f2: 120, dur: 0.25, vol: 0.1 }); noise(t, { f: 400, dur: 0.25, vol: 0.08 }); },
     coin: (t) => { tone(t, { f: N.B5, dur: 0.06, vol: 0.09 }); tone(t, { f: N.E6, dur: 0.14, vol: 0.09, delay: 0.06 }); },
+    pickup: (t) => notes(t, [N.G5, N.D6], { type: 'triangle', len: 0.07, gap: 0.05, vol: 0.12 }),
     buy: (t) => { notes(t, [N.E5, N.G5, N.C6], { len: 0.08, gap: 0.06, vol: 0.11 }); },
     ready: (t) => notes(t, [N.C5, N.G5], { type: 'triangle', len: 0.12, gap: 0.09, vol: 0.14 }),
     levelup: (t) => notes(t, [N.C5, N.E5, N.G5, N.C6, N.E6], { len: 0.1, gap: 0.07, vol: 0.12 }),

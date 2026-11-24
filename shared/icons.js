@@ -144,6 +144,16 @@
       '.w........',
       'w.........'
     ],
+    heart: [
+      '.rr...rr.',
+      'rRRr.rRrr',
+      'rRrrrrrrr',
+      'rrrrrrrrr',
+      '.rrrrrrr.',
+      '..rrrrr..',
+      '...rrr...',
+      '....r....'
+    ],
     coin: [
       '..yyyy..',
       '.yYYYyy.',
@@ -179,7 +189,7 @@
     const id = String(itemId);
     const tier = /\d$/.test(id) ? Number(id.slice(-1)) - 1 : 0;
     const base = id.replace(/\d$/, '');
-    let shape = { helm: 'helm', mail: 'chest', plate: 'chest', boots: 'boots', potion: 'potion', feather: 'feather', coin: 'coin' }[base];
+    let shape = { helm: 'helm', mail: 'chest', plate: 'chest', boots: 'boots', potion: 'potion', feather: 'feather', coin: 'coin', coins: 'coin', heart: 'heart' }[base];
     if (base === 'weapon') shape = WEAPON_SHAPE[heroClass] || 'sword';
     if (!shape) shape = 'coin';
     return { rows: SHAPES[shape], palette: palette(tier) };
@@ -208,5 +218,15 @@
     return url;
   }
 
-  return { SHAPES, TIERS, iconFor, iconGrid, iconUrl };
+  // Browser only: the icon drawn `scale` times bigger on a canvas (for game textures).
+  function iconCanvas(itemId, scale = 2) {
+    const grid = iconGrid(itemId);
+    const c = document.createElement('canvas');
+    c.width = 16 * scale; c.height = 16 * scale;
+    const g = c.getContext('2d');
+    grid.forEach((row, y) => row.forEach((col, x) => { if (col) { g.fillStyle = col; g.fillRect(x * scale, y * scale, scale, scale); } }));
+    return c;
+  }
+
+  return { SHAPES, TIERS, iconFor, iconGrid, iconUrl, iconCanvas };
 });

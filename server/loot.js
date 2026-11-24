@@ -68,7 +68,7 @@ function update(game) {
     if (!best) continue;
     game.loot.splice(game.loot.indexOf(l), 1);
     give(game, best, l);
-    game.event({ type: 'pickup', kind: l.kind, playerId: best.id, amount: l.amount, x: Math.round(l.x), y: Math.round(l.y) });
+    game.event({ type: 'pickup', id: l.id, kind: l.kind, playerId: best.id, amount: l.amount, x: Math.round(l.x), y: Math.round(l.y) });
   }
 }
 

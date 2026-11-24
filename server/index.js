@@ -49,6 +49,7 @@ function createServer({ port = 3000 } = {}) {
     httpServer.listen(port, () => {
       resolve({
         port: httpServer.address().port,
+        hub, // for smoke scripts
         close: () => new Promise((done) => {
           clearInterval(loop);
           for (const ws of wss.clients) ws.terminate();

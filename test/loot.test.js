@@ -73,7 +73,7 @@ test('first hero to touch it keeps it; only one hero gets it', () => {
   assert.strictEqual(p.potions - before[0], 1, 'the closer hero wins');
   assert.strictEqual(game.loot.length, 0);
   const ev = game.drainEvents().find((e) => e.type === 'pickup');
-  assert.deepStrictEqual([ev.kind, ev.playerId, ev.amount], ['potion', p.id, 1]);
+  assert.deepStrictEqual([ev.kind, ev.playerId, ev.amount, typeof ev.id], ['potion', p.id, 1, 'number']);
 });
 
 test('coins go only to the picker and count in their stats', () => {

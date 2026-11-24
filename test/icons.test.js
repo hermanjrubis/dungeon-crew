@@ -25,3 +25,9 @@ test('the weapon icon matches the hero', () => {
   assert.strictEqual(icons.iconFor('weapon2', 'archer').rows, icons.SHAPES.bow);
   assert.strictEqual(icons.iconFor('weapon', 'cleric').rows, icons.SHAPES.rod);
 });
+
+test('loot on the floor has icons, including a heart', () => {
+  assert.strictEqual(icons.iconFor('heart').rows, icons.SHAPES.heart);
+  assert.strictEqual(icons.iconFor('coins').rows, icons.SHAPES.coin);
+  for (const k of ['heart', 'coins', 'potion', 'feather']) assert.ok(icons.iconGrid(k).flat().filter(Boolean).length > 20, k);
+});

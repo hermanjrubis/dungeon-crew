@@ -68,6 +68,7 @@
       this.corpses = [];
       this.gone.clear();
       this.roomKey = '';
+      this.clearLoot();
       this.room = null;
       this.me = null;
       this.history = [];
@@ -113,6 +114,11 @@
       this.corpses = [];   // monsters playing their death animation
       this.gone = new Map(); // id -> last look of a sprite that just left (for death animations)
       this.tileArt = null; // the floor's pixel tiles, stamped once per room (see drawTiles)
+      this.lootSprites = new Map(); // drop id -> image (see drawLoot)
+      this.lootGone = new Map();    // drops that just left the floor, fading out
+      if (DC.icons) for (const k of ['coins', 'heart', 'potion', 'feather']) {
+        if (!this.textures.exists('loot-' + k)) this.textures.addCanvas('loot-' + k, DC.icons.iconCanvas(k, 3));
+      }
       this.tileLayer = this.add.graphics();
       this.hazardLayer = this.add.graphics(); // lava, geysers, jets and the bridge (animated)
       this.zoneLayer = this.add.graphics();
@@ -241,12 +247,14 @@
         this.corpses = [];
         this.gone.clear();
         this.me = null;
+        this.clearLoot();
       }
       if (App.screen === 'game') localSounds(this.currentInput(), snap);
       this.drawTiles(snap);
       this.drawHazards(snap, time);
       this.predictMe(snap, dt);
       this.drawZones(snap, time);
+      this.drawLoot(snap, time);
       this.drawEntities(snap, time);
       this.drawShots(snap);
       this.drawAim(snap, time);
@@ -397,6 +405,63 @@
           if (at(tx, ty + 1) !== 'w') g.fillStyle(0x000000, 0.35).fillRect(tx * TILE + 2, ty * TILE + TILE, TILE - 4, 8);
         }
       }
+    }
+
+    // ---------- loot on the floor ----------
+    // Drops pop out of the body, bob gently, blink in their last seconds, and fly up when taken.
+    drawLoot(snap, time) {
+      const list = snap.loot || [];
+      const seen = new Set();
+      const g = this.zoneLayer; // shadows under the drops (cleared every frame by drawZones)
+      for (const l of list) {
+        seen.add(l.id);
+        let img = this.lootSprites.get(l.id);
+        if (!img) {
+          if (!this.textures.exists('loot-' + l.kind)) continue;
+          img = this.add.image(l.x, l.y - 6, 'loot-' + l.kind).setDepth(2.5).setScale(0.2);
+          img.born = time;
+          this.tweens.add({ targets: img, scale: 1, duration: 220, ease: 'Back.Out' });
+          this.lootSprites.set(l.id, img);
+        }
+        const hop = Math.max(0, 1 - (time - img.born) / 300);
+        const bob = Math.sin(time / 260 + l.id) * 2.5;
+        img.setPosition(l.x, l.y - 8 + bob - Math.sin(hop * Math.PI) * 18);
+        const left = l.until - snap.t;
+        img.setAlpha(left < DC.data.LOOT.blink ? (Math.floor(time / 110) % 2 ? 0.25 : 1) : 1);
+        g.fillStyle(0x000000, 0.3).fillEllipse(l.x, l.y + 8, 18 - bob, 6);
+      }
+      // Gone from the floor: fade out, unless a pickup event (handled right after) takes it over.
+      for (const [id, img] of this.lootSprites) {
+        if (seen.has(id)) continue;
+        this.lootSprites.delete(id);
+        this.lootGone.set(id, img);
+        this.tweens.add({ targets: img, alpha: 0, duration: 160, onComplete: () => { img.destroy(); this.lootGone.delete(id); } });
+      }
+    }
+
+    clearLoot() {
+      for (const m of [this.lootSprites, this.lootGone]) {
+        for (const img of m.values()) { this.tweens.killTweensOf(img); img.destroy(); }
+        m.clear();
+      }
+    }
+
+    // Someone grabbed a drop: it flies up and fades; the picker sees what they got.
+    pickedUp(ev, snap) {
+      const img = this.lootGone.get(ev.id) || this.lootSprites.get(ev.id);
+      if (img) {
+        this.lootGone.delete(ev.id);
+        this.lootSprites.delete(ev.id);
+        this.tweens.killTweensOf(img);
+        img.setAlpha(1);
+        this.tweens.add({ targets: img, y: img.y - 34, alpha: 0, scale: 1.4, duration: 300, onComplete: () => img.destroy() });
+      }
+      const p = snap.players.find((q) => q.id === ev.playerId);
+      if (!p) return;
+      const text = { coins: '+' + ev.amount + ' gold', potion: '+1 potion', feather: '+1 feather' }[ev.kind];
+      const color = { coins: '#F2C14E', potion: '#FF8A80', feather: '#C77DFF' }[ev.kind];
+      if (text) this.floatText(p.x, p.y - 56, text, color);
+      this.fx.burst(ev.x, ev.y, ev.kind === 'coins' ? 0xf2c14e : ev.kind === 'heart' ? 0xe5534b : 0xffffff, 6, 'burst');
     }
 
     // One texture the size of the room for the pixel tiles, kept under the trap layer.
@@ -1140,6 +1205,8 @@
         fx.burst(ev.x, ev.y, 0xe5622b, 14, 'flame');
         fx.burst(ev.x, ev.y, 0x5a5066, 10, 'smoke');
         fx.shake(160, 0.007);
+      } else if (ev.type === 'pickup') {
+        this.pickedUp(ev, snap);
       } else if (ev.type === 'heal') {
         const p = playerAt(ev.targetId);
         if (p) {
@@ -1597,6 +1664,7 @@
       if (!ev.noReward) Sound.play('coin');
     } else if (ev.type === 'levelup') name = ev.targetId === me ? 'levelup' : null;
     else if (ev.type === 'downed') name = 'downed';
+    else if (ev.type === 'pickup') { Sound.play(ev.kind === 'coins' ? 'coin' : 'pickup', { vol: ev.playerId === me ? 1 : 0.5 }); return; }
     else if (ev.type === 'revived') name = 'revive';
     else if (ev.type === 'transition' && ev.kind === 'boss') name = 'roar';
     if (name) Sound.play(name);
