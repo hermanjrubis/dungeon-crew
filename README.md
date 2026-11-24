@@ -1,7 +1,7 @@
 # Dungeon Crew
 
 A co-op dungeon crawler for 2–4 players that runs in the browser. Friends join a
-room with a 4-letter code, pick a hero (Knight, Archer or Mage), and fight
+room with a 4-letter code, pick a hero (Knight, Archer, Mage, Stonewarden or Engineer), and fight
 through four floors:
 
 - **Floor 1 · Sunken Cellar** — Gloops, Skitterbats, spike traps, crumbling floors, puddles, and the **Gloop Mother**.
@@ -14,8 +14,14 @@ under the target time), everyone's stats and badges (MVP, Lifesaver, Untouchable
 Then the camp shop opens for **45 seconds**; when the time runs out (or everyone is
 ready) the next floor starts. Your level, gold and gear carry over.
 
-The game has sound effects (made in code with Web Audio, no sound files). Change the
-volume or mute it on the menu or the pause screen; it's saved on your device.
+Heroes: **Knight** (Shield Bash, Taunt), **Archer** (Arrow Rain, Dodge Roll), **Mage**
+(Fireball, Heal Circle), **Stonewarden** (tank: Rock Throw, Boulder Toss, Quake Stomp;
+passive Thick Skin, 30% less damage) and **Engineer** (Wrench, Turret, Mine; passive
+Scrapper, +10% gold).
+
+The game has sound effects and background music (both made in code with Web Audio,
+no sound files: `client/js/audio.js`, `client/js/music.js`). Change the
+music and effects volume, or mute, on the menu or the pause screen; it's saved on your device.
 **The traps move:** every new game places the spikes, pits, puddles, poison pools,
 pillars and monsters differently (the room walls and the boss rooms stay the same).
 
