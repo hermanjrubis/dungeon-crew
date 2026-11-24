@@ -166,6 +166,7 @@
   const FLOORS = [
     {
       name: FLOOR1_NAME,
+      targetTime: 240, // seconds for the 'fast' star
       roomNames: FLOOR1_ROOM_NAMES,
       shop: 'cellar',
       stalactites: false,
@@ -184,6 +185,7 @@
     },
     {
       name: FLOOR2_NAME,
+      targetTime: 300, // seconds for the 'fast' star
       roomNames: FLOOR2_ROOM_NAMES,
       shop: 'forge',
       stalactites: true,
@@ -205,6 +207,7 @@
     },
     {
       name: FLOOR3_NAME,
+      targetTime: 360, // seconds for the 'fast' star
       roomNames: FLOOR3_ROOM_NAMES,
       shop: 'crown',
       stalactites: false,
@@ -228,6 +231,7 @@
     },
     {
       name: FLOOR4_NAME,
+      targetTime: 300, // seconds for the 'fast' star
       roomNames: FLOOR4_ROOM_NAMES,
       shop: null, // the last floor: beating Ashmaw ends the run
       stalactites: false,

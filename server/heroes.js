@@ -70,6 +70,7 @@ function basicAttack(game, p, hero) {
     p.mana -= a.mana;
   }
   p.cd.attack = game.time + a.cd;
+  game.event({ type: 'attack', by: p.id, kind: p.heroClass });
   if (a.kind === 'swing') {
     p.swingAt = game.time;
     for (const e of game.enemies.slice()) {

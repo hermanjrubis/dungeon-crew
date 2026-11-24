@@ -8,7 +8,8 @@ const { buildRoom } = require('./layout');
 const { makeRng } = require('./rng');
 
 // How long each title card stays up, in seconds. The game is frozen meanwhile.
-const CARD_TIME = { start: 2, room: 1.6, boss: 2.2, reset: 1.6, floorclear: 2.5 };
+const CARD_TIME = { start: 2, room: 1.6, boss: 2.2, reset: 1.6, floorclear: 7 }; // floorclear = the results screen
+const blankStats = () => ({ kills: 0, damage: 0, gold: 0, downs: 0, revives: 0 });
 const heroes = require('./heroes');
 const enemies = require('./enemies');
 const hazards = require('./hazards');
@@ -65,6 +66,8 @@ class Game {
     });
     this.roomIndex = 0;
     this.phase = 'playing';
+    this.floorStart = this.time;
+    for (const p of this.players.values()) p.stats = blankStats();
     this.loadRoom();
     this.showCard('start', `Floor ${index + 1} · ${this.floor.name}`, `Room 1 of ${this.layouts.length} · ${this.roomName(0)}`);
   }
@@ -91,6 +94,7 @@ class Game {
       weaponName: hero.starter.name, weaponBonus: hero.starter.bonus,
       potions: 1, feathers: 0, owned: [], ready: false,
       downed: false, reviveProgress: 0,
+      stats: blankStats(), runStats: blankStats(), // this floor / the whole run
       cd: { attack: 0, q: 0, space: 0 },
       slows: {}, stunUntil: 0, invulnUntil: 0,
       aim: 0, input: sanitizeInput(null), prevInput: sanitizeInput(null)
@@ -205,6 +209,7 @@ class Game {
     if (p.hp <= 0) {
       p.downed = true;
       p.reviveProgress = 0;
+      this.addStat(p, 'downs', 1);
       this.event({ type: 'downed', targetId: p.id });
     }
     return dealt;
@@ -265,11 +270,61 @@ class Game {
     if (p.hp > before) this.event({ type: 'heal', targetId: p.id, amount: p.hp - before });
   }
 
-  revive(p, fraction) {
+  // byId: who brought them back (for the results screen).
+  revive(p, fraction, byId = null) {
+    if (byId) this.addStat(this.players.get(byId), 'revives', 1);
     p.downed = false;
     p.reviveProgress = 0;
     p.hp = Math.max(1, Math.round(p.maxHp * fraction));
     this.event({ type: 'revived', targetId: p.id });
+  }
+
+  // ---------- results screen ----------
+
+  addStat(p, key, n) {
+    if (!p || !p.stats) return;
+    p.stats[key] += n;
+    p.runStats[key] += n;
+  }
+
+  // Badges, given out by the same rules on every screen.
+  badges(rows) {
+    const out = rows.map(() => []);
+    let mvp = -1;
+    rows.forEach((r, i) => { if (r.damage > 0 && (mvp === -1 || r.damage > rows[mvp].damage)) mvp = i; });
+    if (mvp >= 0) out[mvp].push('mvp');
+    let saver = -1;
+    rows.forEach((r, i) => { if (r.revives > 0 && (saver === -1 || r.revives > rows[saver].revives)) saver = i; });
+    if (saver >= 0) out[saver].push('lifesaver');
+    rows.forEach((r, i) => { if (r.downs === 0) out[i].push('untouchable'); });
+    return out;
+  }
+
+  resultRows(key) {
+    const rows = [...this.players.values()].map((p) => ({
+      id: p.id, name: p.name, heroClass: p.heroClass, color: p.color, level: p.level, ...p[key]
+    }));
+    const badges = this.badges(rows);
+    return rows.map((r, i) => ({ ...r, badges: badges[i] }));
+  }
+
+  // Stars: 1 for clearing, +1 if nobody went down, +1 if under the target time.
+  floorResults() {
+    const players = this.resultRows('stats');
+    const time = Math.round(this.time - (this.floorStart || 0));
+    const targetTime = this.floor.targetTime || 300;
+    const noDowns = players.every((p) => p.downs === 0);
+    const fast = time <= targetTime;
+    return {
+      floorIndex: this.floorIndex, floorName: this.floor.name, time, targetTime,
+      stars: 1 + (noDowns ? 1 : 0) + (fast ? 1 : 0),
+      starReasons: { cleared: true, noDowns, fast },
+      players
+    };
+  }
+
+  runResults() {
+    return { time: Math.round(this.time), players: this.resultRows('runStats') };
   }
 
   addXp(p, amount) {
@@ -295,7 +350,7 @@ class Game {
           const target = this.closestDowned(p, FEATHER_RANGE);
           if (target) {
             p.feathers--;
-            this.revive(target, 0.5);
+            this.revive(target, 0.5, p.id);
           }
         }
       }
@@ -303,10 +358,10 @@ class Game {
     }
     for (const d of this.players.values()) {
       if (!d.downed) continue;
-      const helping = this.alivePlayers().some((h) => h.input.interact &&
+      const helper = this.alivePlayers().find((h) => h.input.interact &&
         Math.hypot(h.x - d.x, h.y - d.y) <= REVIVE_RANGE);
-      d.reviveProgress = helping ? d.reviveProgress + dt : 0;
-      if (d.reviveProgress >= REVIVE_TIME - 1e-9) this.revive(d, 0.3);
+      d.reviveProgress = helper ? d.reviveProgress + dt : 0;
+      if (helper && d.reviveProgress >= REVIVE_TIME - 1e-9) this.revive(d, 0.3, helper.id);
     }
   }
 
@@ -347,10 +402,14 @@ class Game {
     const armor = e.type === 'golem' ? golem.frontFactor(this, e, byId) : 1;
     const dealt = Math.max(1, Math.round(amount * armor));
     e.hp -= dealt;
+    this.addStat(this.players.get(byId), 'damage', dealt);
     const ev = { type: 'damage', enemyId: e.id, amount: dealt, x: Math.round(e.x), y: Math.round(e.y) };
     if (armor < 1) ev.armored = true;
     this.event(ev);
-    if (e.hp <= 0) this.killEnemy(e, { reward: true, byId });
+    if (e.hp <= 0) {
+      this.addStat(this.players.get(byId), 'kills', 1);
+      this.killEnemy(e, { reward: true, byId });
+    }
     return dealt;
   }
 
@@ -363,7 +422,9 @@ class Game {
       const m = data.MONSTERS[e.type];
       for (const p of this.players.values()) {
         const [lo, hi] = m.gold;
-        p.gold += lo + Math.floor(this.rng() * (hi - lo + 1));
+        const gold = lo + Math.floor(this.rng() * (hi - lo + 1));
+        p.gold += gold;
+        this.addStat(p, 'gold', gold);
         this.addXp(p, m.xp);
       }
     }
@@ -448,6 +509,8 @@ class Game {
       this.doorOpen = true;
       this.event({ type: 'roomclear', roomIndex: this.roomIndex });
       if (this.roomIndex === this.layouts.length - 1) {
+        this.lastResults = this.floorResults();
+        this.event({ type: 'floorresults', results: this.lastResults });
         if (this.transitionsOn) {
           if (this.floor.shop) this.showCard('floorclear', `Floor ${this.floorIndex + 1} cleared!`, 'Heading to the camp shop…');
           else this.showCard('floorclear', 'Victory!', 'The dungeon is cleared!');
