@@ -82,7 +82,7 @@ test('shop state lists items with the class weapon name and each player', () => 
   assert.strictEqual(s.items.length, 6);
   assert.strictEqual(s.players.length, 2);
   assert.strictEqual(s.players[0].gold, 70);
-  assert.deepStrictEqual(s.weapons, { knight: 'Iron Sword', archer: "Hunter's Bow", mage: 'Oak Staff', warden: 'Iron Sling', engineer: 'Steel Wrench' });
+  assert.deepStrictEqual(s.weapons, { knight: 'Iron Sword', archer: "Hunter's Bow", mage: 'Oak Staff', warden: 'Iron Sling', engineer: 'Steel Wrench', cleric: 'Silver Rod' });
 });
 
 test('a player leaving the shop lets the others finish', () => {

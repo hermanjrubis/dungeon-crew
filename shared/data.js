@@ -6,7 +6,7 @@
 })(this, function () {
   const TICK_RATE = 20; // server updates per second
 
-  const CLASSES = ['knight', 'archer', 'mage', 'warden', 'engineer'];
+  const CLASSES = ['knight', 'archer', 'mage', 'warden', 'engineer', 'cleric'];
 
   const COLORS = {
     orange: '#F2A541',
@@ -36,7 +36,8 @@
       starter: { name: 'Apprentice Staff', bonus: 5 },
       attack: { kind: 'bolt', speed: 480, ttl: 0.9, cd: 0.6, mana: 5 },
       q: { name: 'Fireball', cd: 3, mana: 20, speed: 420, ttl: 1.2, radius: 64, dmg: 24 },
-      space: { name: 'Heal Circle', cd: 12, mana: 30, radius: 96, perSecond: 10, duration: 3 }
+      // Meteor Shower: fireballs rain down where you aim (each warns 0.5 s before it lands)
+      space: { name: 'Meteor Shower', cd: 12, mana: 35, reach: 280, radius: 80, meteors: 6, every: 0.22, warn: 0.5, blast: 46, dmg: 26 }
     },
     // Tank. Passive Thick Skin: takes 30% less damage, Wing Gust pushes him half as far.
     warden: {
@@ -53,6 +54,15 @@
       attack: { kind: 'swing', arc: 80, range: 56, cd: 0.45 },
       q: { name: 'Turret', cd: 12, duration: 15, range: 390, every: 0.42, dmg: 14, speed: 560, ttl: 0.9 },
       space: { name: 'Mine', cd: 6, armTime: 0.5, trigger: 28, radius: 72, dmg: 30, duration: 20, max: 2 }
+    },
+    // Support. Passive Kind Hands: revives teammates twice as fast.
+    cleric: {
+      name: 'Cleric', hp: 105, baseDmg: 8, speed: 175, mana: 110, manaRegen: 9, reviveMul: 2,
+      starter: { name: 'Acolyte Rod', bonus: 3 },
+      attack: { kind: 'orb', speed: 440, ttl: 0.5, cd: 0.5 },
+      q: { name: 'Mending Light', cd: 6, mana: 25, radius: 170, heal: 32 },
+      // Ultimate: light links to every ally nearby and keeps healing them
+      space: { name: 'Moonlight Blessing', cd: 30, mana: 50, range: 340, duration: 6, every: 0.25, healPct: 0.025, healFlat: 2 }
     }
   };
 
@@ -111,7 +121,7 @@
     { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
     { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
   ];
-  const SHOP_WEAPONS = { knight: 'Iron Sword', archer: "Hunter's Bow", mage: 'Oak Staff', warden: 'Iron Sling', engineer: 'Steel Wrench' };
+  const SHOP_WEAPONS = { knight: 'Iron Sword', archer: "Hunter's Bow", mage: 'Oak Staff', warden: 'Iron Sling', engineer: 'Steel Wrench', cleric: 'Silver Rod' };
   const SET_NAME = 'Cellar Guard Set';
   const SET_BONUS = 'Poison damage −50%. Useful in Floor 2.';
 
@@ -133,7 +143,7 @@
         { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
         { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
       ],
-      weapons: { knight: 'Steel Sword', archer: 'Longbow', mage: 'Crystal Staff', warden: 'Granite Sling', engineer: 'Arc Wrench' }
+      weapons: { knight: 'Steel Sword', archer: 'Longbow', mage: 'Crystal Staff', warden: 'Granite Sling', engineer: 'Arc Wrench', cleric: 'Moonpetal Staff' }
     },
     crown: {
       setName: 'Hollow Crown Set',
@@ -147,7 +157,7 @@
         { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
         { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
       ],
-      weapons: { knight: 'Ember Blade', archer: 'Shadow Bow', mage: "King's Scepter", warden: 'Magma Sling', engineer: 'Forgemaster Wrench' }
+      weapons: { knight: 'Ember Blade', archer: 'Shadow Bow', mage: "King's Scepter", warden: 'Magma Sling', engineer: 'Forgemaster Wrench', cleric: 'Gilded Sceptre' }
     },
     roost: {
       setName: 'Rotward Set',
@@ -161,7 +171,7 @@
         { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
         { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
       ],
-      weapons: { knight: 'Dragonbone Sword', archer: 'Wyvern Bow', mage: 'Ashmaw Staff', warden: 'Obsidian Sling', engineer: 'Dragonforge Wrench' }
+      weapons: { knight: 'Dragonbone Sword', archer: 'Wyvern Bow', mage: 'Ashmaw Staff', warden: 'Obsidian Sling', engineer: 'Dragonforge Wrench', cleric: 'Dawnfire Rod' }
     },
     warrens: {
       setName: 'Prismguard Set',
@@ -175,7 +185,7 @@
         { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
         { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
       ],
-      weapons: { knight: 'Rotfang Blade', archer: 'Thousand-Hand Bow', mage: 'Wyrmroot Staff', warden: 'Bog Sling', engineer: 'Acidforge Wrench' }
+      weapons: { knight: 'Rotfang Blade', archer: 'Thousand-Hand Bow', mage: 'Wyrmroot Staff', warden: 'Bog Sling', engineer: 'Acidforge Wrench', cleric: 'Purewater Staff' }
     }
   };
 

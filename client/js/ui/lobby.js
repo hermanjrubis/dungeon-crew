@@ -24,12 +24,12 @@
       ]
     },
     mage: {
-      role: 'Support · medium range',
-      desc: 'Hits hardest and keeps the team alive, but has the least health. Uses mana.',
+      role: 'Damage · medium range',
+      desc: 'Hits the hardest of anyone, but goes down fast. Spells cost mana.',
       stats: [['Health', 1], ['Damage', 5], ['Speed', 3], ['Range', 3]],
       skills: [
-        ['Q', 'Fireball', 'every 3s · 20 mana', 'Explodes in a small area on impact.'],
-        ['Space', 'Heal Circle', 'every 12s · 30 mana', 'Teammates inside heal 30 HP over 3s.']
+        ['Q', 'Fireball', 'every 3s · 20 mana', 'Blows up on whatever it hits.'],
+        ['Space', 'Meteor Shower', 'every 12s · 35 mana', 'Six fireballs fall where you aim.']
       ]
     }
   };
@@ -42,12 +42,21 @@
       ['Space', 'Quake Stomp', 'every 12s', 'Rocks burst up around you: stuns nearby monsters 1.2s (bosses are slowed).']
     ]
   };
+  INFO.cleric = {
+    role: 'Healer · short range',
+    desc: 'Keeps the crew standing. Passive Kind Hands: revives teammates twice as fast.',
+    stats: [['Health', 2], ['Damage', 1], ['Speed', 3], ['Range', 2]],
+    skills: [
+      ['Q', 'Mending Light', 'every 6s · 25 mana', 'Heals you and every teammate nearby for 32.'],
+      ['Space', 'Moonlight Blessing', 'every 30s · 50 mana', 'For 6s, light links you to every teammate in range and keeps healing them.']
+    ]
+  };
   INFO.engineer = {
     role: 'Builder · close range',
     desc: 'Fights with a wrench and lets gadgets do the work. Passive Scrapper: earns 10% more gold.',
     stats: [['Health', 2], ['Damage', 2], ['Speed', 4], ['Range', 4]],
     skills: [
-      ['Q', 'Turret', 'every 12s', 'Builds a turret that shoots the nearest monster for 10s.'],
+      ['Q', 'Turret', 'every 12s', 'Builds a turret that shoots the nearest monster for 15s.'],
       ['Space', 'Mine', 'every 6s', 'Lays a mine that explodes when a monster steps close. Up to 2.']
     ]
   };
@@ -56,7 +65,8 @@
     archer: ['80', '10', 'Fast', 'Far'],
     mage: ['70', '18', 'Normal', 'Medium'],
     warden: ['170', '15', 'Slowest', 'Short'],
-    engineer: ['95', '12', 'Fast', 'Gadgets']
+    engineer: ['95', '12', 'Fast', 'Gadgets'],
+    cleric: ['105', '11', 'Normal', 'Short']
   };
 
   let state = null;

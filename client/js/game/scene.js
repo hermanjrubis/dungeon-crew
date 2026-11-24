@@ -146,13 +146,69 @@
         left: k.A.isDown || k.LEFT.isDown,
         right: k.D.isDown || k.RIGHT.isDown,
         attack: p.isDown,
-        q: k.Q.isDown,
-        space: k.SPACE.isDown,
+        q: this.skillKey('q', k.Q.isDown),
+        space: this.skillKey('space', k.SPACE.isDown),
+        dist: Math.round(Math.hypot(p.worldX - from.x, p.worldY - from.y)),
         interact: k.E.isDown,
         use1: k.ONE.isDown,
         use2: k.TWO.isDown,
         aim: Math.atan2(p.worldY - from.y, p.worldX - from.x)
       };
+    }
+
+    // Area skills (Arrow Rain, Meteor Shower) are aimed while the key is held and
+    // cast when it's let go; every other skill casts the moment you press.
+    skillKey(key, down) {
+      const me = latest && latest.players.find((q) => q.id === App.me);
+      const s = me && DC.data.HEROES[me.heroClass][key];
+      const aimed = s && s.reach !== undefined;
+      this.aiming = this.aiming || {};
+      this.releaseUntil = this.releaseUntil || {};
+      if (!aimed) { this.aiming[key] = false; return down; }
+      const now = performance.now();
+      if (this.aiming[key] && !down) this.releaseUntil[key] = now + 150;
+      this.aiming[key] = down;
+      return now < this.releaseUntil[key];
+    }
+
+    // The aim guide: where my attack goes (dotted line for shots, an arc for
+    // swings), bright when it's ready. Held area skills show where they'll land.
+    drawAim(snap, time) {
+      const me = snap.players.find((q) => q.id === App.me);
+      if (!me || me.downed || !this.me || snap.transition) return;
+      const hero = DC.data.HEROES[me.heroClass];
+      const g = this.statusLayer;
+      const p = this.input.activePointer;
+      const aim = Math.atan2(p.worldY - this.me.y, p.worldX - this.me.x);
+      const ready = performance.now() >= localNext.attack;
+      const alpha = ready ? 0.55 : 0.18;
+      const color = parseInt((DC.data.COLORS[me.color] || '#FFFFFF').slice(1), 16);
+      const a = hero.attack;
+      const cx = Math.cos(aim), cy = Math.sin(aim);
+      if (a.kind === 'swing') {
+        const half = (a.arc * Math.PI / 180) / 2;
+        g.lineStyle(2, color, alpha);
+        g.beginPath();
+        g.arc(this.me.x, this.me.y, a.range + 16, aim - half, aim + half);
+        g.strokePath();
+      } else {
+        const range = a.speed * a.ttl;
+        for (let d = 30; d < range; d += 18) {
+          g.fillStyle(color, alpha * (1 - d / range * 0.6)).fillCircle(this.me.x + cx * d, this.me.y + cy * d, 2.2);
+        }
+        g.lineStyle(2, color, alpha).strokeCircle(this.me.x + cx * range, this.me.y + cy * range, 5);
+      }
+      for (const key of ['q', 'space']) {
+        const s = hero[key];
+        if (!this.aiming || !this.aiming[key] || s.reach === undefined) continue;
+        const d = Math.min(s.reach, Math.hypot(p.worldX - this.me.x, p.worldY - this.me.y));
+        const x = this.me.x + cx * d, y = this.me.y + cy * d;
+        const ok = performance.now() >= localNext[key];
+        const c = ok ? 0xffe48a : 0x8c84a3;
+        g.fillStyle(c, 0.12 + 0.06 * Math.sin(time / 120)).fillCircle(x, y, s.radius);
+        g.lineStyle(3, c, 0.9).strokeCircle(x, y, s.radius);
+        g.lineStyle(1, c, 0.5).lineBetween(this.me.x, this.me.y, x, y);
+      }
     }
 
     // Every input gets a number. We remember where we predicted we were when
@@ -190,6 +246,7 @@
       this.drawZones(snap, time);
       this.drawEntities(snap, time);
       this.drawShots(snap);
+      this.drawAim(snap, time);
       this.drawEffects(dt);
       this.drawTorches(snap, time);
       this.drawDarkness(snap, time);
@@ -552,6 +609,31 @@
             this.fx.burst(mx + (ex - mx) * along, my + (ey - my) * along, colors[Math.floor(Math.random() * 4)], 1, 'rise');
             if (Math.random() < 0.6) this.fx.burst(ex, ey, colors[Math.floor(Math.random() * 4)], 2, 'rise');
           }
+        } else if (z.kind === 'meteorShower') {
+          g.lineStyle(2, 0xf2a541, 0.35 + 0.25 * pulse).strokeCircle(z.x, z.y, z.r);
+        } else if (z.kind === 'meteorFall') {
+          // a shadow that grows, then a fireball dropping onto it
+          const left = Math.max(0, Math.min(1, (z.until - snap.t) / 0.5));
+          g.fillStyle(0xe5534b, 0.12 + 0.25 * (1 - left)).fillCircle(z.x, z.y, z.r);
+          g.lineStyle(2, 0xf2a541, 0.9).strokeCircle(z.x, z.y, z.r);
+          const fy = z.y - 220 * left;
+          g.fillStyle(0xe5622b, 0.5).fillCircle(z.x + 60 * left, fy - 6, 13);
+          g.fillStyle(0xf2a541).fillCircle(z.x + 60 * left, fy, 10);
+          g.fillStyle(0xfff1b8).fillCircle(z.x + 60 * left - 2, fy - 2, 4);
+          if (Math.random() < 0.6) this.fx.burst(z.x + 60 * left, fy, 0xf2a541, 1, 'trail');
+        } else if (z.kind === 'mendRing') {
+          const k = 1 - Math.max(0, Math.min(1, (z.until - snap.t) / 0.5));
+          g.lineStyle(4, 0xffe48a, 0.8 * (1 - k)).strokeCircle(z.x, z.y, z.r * (0.3 + 0.7 * k));
+        } else if (z.kind === 'blessing') {
+          // light links from the Cleric to every teammate in range
+          g.fillStyle(0xc8e8ff, 0.05 + 0.04 * pulse).fillCircle(z.x, z.y, z.r);
+          g.lineStyle(2, 0xc8e8ff, 0.25).strokeCircle(z.x, z.y, z.r);
+          for (const q of snap.players) {
+            if (q.downed || q.id === z.ownerId || Math.hypot(q.x - z.x, q.y - z.y) > z.r) continue;
+            g.lineStyle(7, 0xffe48a, 0.25 + 0.15 * pulse).lineBetween(z.x, z.y - 10, q.x, q.y - 10);
+            g.lineStyle(3, 0xffffff, 0.9).lineBetween(z.x, z.y - 10, q.x, q.y - 10);
+            if (Math.random() < 0.2) this.fx.burst(q.x, q.y - 10, 0xffe48a, 1, 'rise', 'fx-plus');
+          }
         } else if (z.kind === 'taunt') {
           g.lineStyle(4, 0xf2a541, 0.8).strokeCircle(z.x, z.y, z.r * 0.5);
         }
@@ -849,6 +931,12 @@
         } else if (pr.kind === 'turretShot') {
           g.fillStyle(0xf2c14e, 0.4).fillCircle(pr.x, pr.y, 8);
           g.fillStyle(0xfff1b8).fillCircle(pr.x, pr.y, 3.5);
+        } else if (pr.kind === 'orb') {
+          // the Cleric's little orb of light
+          g.fillStyle(0xffe48a, 0.35).fillCircle(pr.x, pr.y, 12);
+          g.fillStyle(0xfff6c8).fillCircle(pr.x, pr.y, 6);
+          g.fillStyle(0xffffff).fillCircle(pr.x - 1, pr.y - 1, 2.5);
+          this.fx.burst(pr.x, pr.y, 0xffe48a, 1, 'trail');
         } else if (pr.kind === 'bolt') {
           g.fillStyle(0x6c9bf2, 0.35).fillCircle(pr.x, pr.y, 11);
           g.fillStyle(0xb8d0ff).fillCircle(pr.x, pr.y, 5);
@@ -959,11 +1047,16 @@
       } else if (ev.skill === 'turret' || ev.skill === 'mine') {
         fx.burst(ev.x, ev.y, 0xf2c14e, 12, 'spark');
         fx.ring(ev.x, ev.y, { from: 6, to: 40, life: 0.3, color: 0xcfc8de, width: 3 });
-      } else if (ev.skill === 'heal') {
-        fx.ring(ev.x, ev.y, { from: 10, to: 96, life: 0.5, color: 0x7ee8c8, width: 6, fill: 0.2 });
-        fx.burst(ev.x, ev.y, 0x7ee8c8, 20, 'rise', 'fx-plus');
+      } else if (ev.skill === 'mend') {
+        fx.ring(ev.x, ev.y, { from: 10, to: 170, life: 0.5, color: 0xffe48a, width: 6, fill: 0.18 });
+        fx.burst(ev.x, ev.y, 0xffe48a, 22, 'rise', 'fx-plus');
+      } else if (ev.skill === 'blessing') {
+        fx.ring(ev.x, ev.y, { from: 20, to: 340, life: 0.8, color: 0xc8e8ff, width: 8, fill: 0.08 });
+        fx.burst(ev.x, ev.y, 0xffffff, 30, 'rise', 'fx-plus');
+      } else if (ev.skill === 'meteors') {
+        fx.burst(ev.x, ev.y, 0xf2a541, 10, 'rise');
       }
-      if (color && ev.skill !== 'heal' && ev.skill !== 'taunt') fx.burst(ev.x, ev.y, color, 4, 'spark');
+      if (color && !['mend', 'blessing', 'taunt'].includes(ev.skill)) fx.burst(ev.x, ev.y, color, 4, 'spark');
     }
 
     // A monster that just died plays its death animation where it fell, then fades.
@@ -1036,6 +1129,9 @@
       } else if (ev.type === 'roombonus' || ev.type === 'stargold') {
         const meP = snap.players.find((q) => q.id === App.me);
         if (meP) this.floatText(meP.x, meP.y - 70, `+${ev.gold} gold`, '#FFD873');
+      } else if (ev.type === 'meteorhit') {
+        fx.ring(ev.x, ev.y, { from: 6, to: ev.r || 46, life: 0.3, color: 0xf2a541, width: 6, fill: 0.3 });
+        fx.burst(ev.x, ev.y, 0xf2a541, 12, 'spark');
       } else if (ev.type === 'roar') {
         fx.ring(ev.x, ev.y, { from: 40, to: ev.r || 260, life: 0.7, color: 0x9ad7f0, width: 12, fill: 0.12 });
         fx.shake(600, 0.014);
@@ -1442,8 +1538,8 @@
   }
 
   // ---------- sound for each thing that happens ----------
-  const ATTACK_SOUND = { knight: 'swing', archer: 'arrow', mage: 'bolt', warden: 'rock', engineer: 'wrench' };
-  const SKILL_SOUND = { knight: ['bash', 'taunt'], archer: ['arrowRain', 'roll'], mage: ['fireball', 'heal'], warden: ['boulder', 'quake'], engineer: ['turret', 'mine'] };
+  const ATTACK_SOUND = { knight: 'swing', archer: 'arrow', mage: 'bolt', warden: 'rock', engineer: 'wrench', cleric: 'bolt' };
+  const SKILL_SOUND = { knight: ['bash', 'taunt'], archer: ['arrowRain', 'roll'], mage: ['fireball', 'meteor'], warden: ['boulder', 'quake'], engineer: ['turret', 'mine'], cleric: ['heal', 'heal'] };
   const EVENT_SOUND = {
     split: 'slimeSplit', brood: 'slimeSplit', screech: 'batScreech', bite: 'hit',
     spike: 'spike', fall: 'fall', rockfall: 'crumble', crumble: 'crumble', ringfall: 'crumble',
@@ -1454,7 +1550,7 @@
     storm: 'puff', puff: 'puff', seed: 'puff', sprout: 'puff', explode: 'fireball', volley: 'arrow',
     rebuild: 'bones', bonesBroken: 'bones', outofreach: 'click', torchlit: 'fireball', shoptimeup: 'timeup',
     turretfire: 'turretShot', mineboom: 'mineBoom',
-    roombonus: 'coin', stargold: 'coin',
+    roombonus: 'coin', stargold: 'coin', meteorhit: 'fireball',
     roar: 'roar', stomp: 'quake', charge: 'shadow', beam: 'breath', shards: 'arrow',
     spit: 'puff', splat: 'slimeSplit', grab: 'bash', hands: 'crumble', wyrmrage: 'roar', wyrmburrow: 'quake', wyrmerupt: 'slam'
   };

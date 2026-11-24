@@ -21,7 +21,7 @@ test('every map is 16 rows of 16 chars and every letter has a palette color', ()
 
 test('every sprite file has a map, a palette and a size', () => {
   const files = sprites.spriteFiles();
-  assert.strictEqual(files.length, CLASSES.length * 4 + 5 + 5 + 2 + 1); // heroes x 4 colors, Floor 1, 2, 3 monsters and Ashmaw
+  assert.strictEqual(files.length, 5 * 4 + 5 + 5 + 2 + 1); // the 5 first heroes x 4 colors, Floor 1, 2, 3 monsters and Ashmaw (old pictures)
   assert.ok(files.some((f) => f.file === 'knight-orange.png' && f.size === 48));
   assert.ok(files.some((f) => f.file === 'mother.png' && f.size === 96));
   for (const f of files) assert.ok(f.rows && f.palette && f.size > 0, f.file);

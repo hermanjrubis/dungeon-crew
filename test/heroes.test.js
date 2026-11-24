@@ -101,19 +101,17 @@ test('fireball explodes for 24 damage in radius 64', () => {
   assert.ok(game.zones.some((z) => z.kind === 'fireBlast') || game.drainEvents().length > 0);
 });
 
-test('heal circle heals a teammate inside 10 HP per second, not one outside', () => {
-  const game = makeGame(['mage', 'knight', 'knight'], ARENA);
+test('the Mage no longer heals: Space is Meteor Shower (the Cleric heals now)', () => {
+  const game = makeGame(['mage', 'knight'], ARENA);
   place(game, 0, 300, 312);
-  const inside = place(game, 1, 320, 312);
-  const outside = place(game, 2, 700, 312);
-  inside.hp = 50;
-  outside.hp = 50;
+  const mate = place(game, 1, 320, 312);
+  mate.hp = 50;
   press(game, 0, { space: true });
   game.tick(0.05);
   press(game, 0, {});
   run(game, 3.1);
-  assert.strictEqual(inside.hp, 80);
-  assert.strictEqual(outside.hp, 50);
+  assert.strictEqual(mate.hp, 50);
+  assert.ok(game.drainEvents().some((e) => e.type === 'meteorhit'));
 });
 
 test('arrow rain deals 5 every 0.25 s for 2 s', () => {

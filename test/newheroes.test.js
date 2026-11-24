@@ -14,8 +14,8 @@ function dummy(game, type, tx, ty) {
   return e;
 }
 
-test('the lobby offers five heroes', () => {
-  assert.deepStrictEqual(data.CLASSES, ['knight', 'archer', 'mage', 'warden', 'engineer']);
+test('the lobby offers six heroes', () => {
+  assert.deepStrictEqual(data.CLASSES, ['knight', 'archer', 'mage', 'warden', 'engineer', 'cleric']);
   assert.strictEqual(data.HEROES.warden.name, 'Stonewarden');
   assert.strictEqual(data.HEROES.warden.hp, 170);
   assert.strictEqual(data.HEROES.engineer.name, 'Engineer');

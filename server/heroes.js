@@ -104,10 +104,17 @@ function announce(game, p, skill) {
 const SKILL_NAMES = {
   knight: { q: 'bash', space: 'taunt' },
   archer: { q: 'arrowRain', space: 'roll' },
-  mage: { q: 'fireball', space: 'heal' },
+  mage: { q: 'fireball', space: 'meteors' },
   warden: { q: 'boulder', space: 'quake' },
-  engineer: { q: 'turret', space: 'mine' }
+  engineer: { q: 'turret', space: 'mine' },
+  cleric: { q: 'mend', space: 'blessing' }
 };
+
+// Where a skill lands: under the cursor, but no farther than its reach.
+function landingSpot(p, reach) {
+  const d = p.input && p.input.dist !== undefined ? Math.min(reach, p.input.dist) : reach;
+  return { x: p.x + Math.cos(p.aim) * d, y: p.y + Math.sin(p.aim) * d };
+}
 
 function skillQ(game, p, hero) {
   const s = hero.q;
@@ -131,13 +138,20 @@ function skillQ(game, p, hero) {
     }
   } else if (p.heroClass === 'archer') {
     // Arrow Rain: a circle of falling arrows where you aim.
+    const at = landingSpot(p, s.reach);
     game.addZone({
       kind: 'arrowRain', ownerId: p.id,
-      x: p.x + Math.cos(p.aim) * s.reach, y: p.y + Math.sin(p.aim) * s.reach,
+      x: at.x, y: at.y,
       r: s.radius, until: game.time + s.duration, nextTick: game.time + s.every, every: s.every, dmg: s.dmg
     });
   } else if (p.heroClass === 'mage') {
     shoot(game, p, 'fireball', s.speed, s.ttl, s.dmg, { blast: s.radius });
+  } else if (p.heroClass === 'cleric') {
+    // Mending Light: heals every ally nearby, the Cleric too.
+    for (const q of game.alivePlayers()) {
+      if (Math.hypot(q.x - p.x, q.y - p.y) <= s.radius) game.healPlayer(q, s.heal);
+    }
+    game.addZone({ kind: 'mendRing', ownerId: p.id, x: p.x, y: p.y, r: s.radius, until: game.time + 0.5 });
   } else if (p.heroClass === 'warden') {
     // Boulder Toss: rolls straight on, hitting every monster once.
     shoot(game, p, 'boulder', s.speed, s.ttl, s.dmg, { r: s.r, pierce: true, hitIds: [], push: s.push, stun: s.stun });
@@ -184,10 +198,19 @@ function skillSpace(game, p, hero) {
       armAt: game.time + s.armTime, trigger: s.trigger, dmg: s.dmg
     });
   } else if (p.heroClass === 'mage') {
-    const every = 0.5;
+    // Meteor Shower: fireballs fall one after another around the spot you aim at.
+    const at = landingSpot(p, s.reach);
     game.addZone({
-      kind: 'healCircle', ownerId: p.id, x: p.x, y: p.y, r: s.radius,
-      until: game.time + s.duration, nextTick: game.time + every, every, heal: s.perSecond * every
+      kind: 'meteorShower', ownerId: p.id, x: at.x, y: at.y, r: s.radius,
+      until: game.time + s.meteors * s.every + s.warn + 0.1, nextDrop: game.time, every: s.every, left: s.meteors,
+      warn: s.warn, blast: s.blast, dmg: s.dmg + Math.round(p.weaponBonus / 2)
+    });
+  } else if (p.heroClass === 'cleric') {
+    // Moonlight Blessing: light links to every ally in range and heals them.
+    game.zones = game.zones.filter((z) => !(z.kind === 'blessing' && z.ownerId === p.id));
+    game.addZone({
+      kind: 'blessing', ownerId: p.id, x: p.x, y: p.y, r: s.range, until: game.time + s.duration,
+      nextTick: game.time + s.every, every: s.every, healPct: s.healPct, healFlat: s.healFlat
     });
   }
 }
@@ -321,6 +344,33 @@ function updateZones(game, dt) {
       }
       z.until = game.time;
       game.event({ type: 'mineboom', x: Math.round(z.x), y: Math.round(z.y), r: z.r });
+    } else if (z.kind === 'meteorShower') {
+      while (z.left > 0 && z.nextDrop <= game.time + EPS) {
+        z.left--;
+        z.nextDrop += z.every;
+        const a = game.rng() * Math.PI * 2;
+        const d = Math.sqrt(game.rng()) * z.r;
+        game.addZone({ kind: 'meteorFall', ownerId: z.ownerId, x: z.x + Math.cos(a) * d, y: z.y + Math.sin(a) * d, r: z.blast, until: game.time + z.warn, dmg: z.dmg });
+      }
+    } else if (z.kind === 'meteorFall') {
+      if (!z.done && game.time >= z.until - EPS) {
+        z.done = true;
+        for (const e of game.enemies.slice()) {
+          if (!e.invulnerable && Math.hypot(e.x - z.x, e.y - z.y) <= z.r + e.r) game.damageEnemy(e, z.dmg, z.ownerId);
+        }
+        game.event({ type: 'meteorhit', x: Math.round(z.x), y: Math.round(z.y), r: z.r });
+      }
+    } else if (z.kind === 'blessing') {
+      const owner = game.players.get(z.ownerId);
+      if (!owner || owner.downed) { z.until = game.time; continue; }
+      z.x = owner.x;
+      z.y = owner.y;
+      while (z.nextTick <= game.time + EPS && z.nextTick <= z.until + EPS) {
+        z.nextTick += z.every;
+        for (const q of game.alivePlayers()) {
+          if (Math.hypot(q.x - z.x, q.y - z.y) <= z.r) game.healPlayer(q, Math.round(q.maxHp * z.healPct + z.healFlat));
+        }
+      }
     } else if (z.kind === 'healCircle') {
       while (z.nextTick <= game.time + EPS && z.nextTick <= z.until + EPS) {
         for (const p of game.players.values()) {

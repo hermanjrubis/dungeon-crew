@@ -5,14 +5,14 @@
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
     const art = {};
-    for (const name of ['knight', 'archer', 'mage', 'warden', 'engineer', 'gloop', 'bat', 'bonearcher', 'bones', 'sporecap', 'seed', 'mother', 'queen', 'golem', 'king', 'dragon', 'rotgrub', 'slug', 'wyrm', 'rothand', 'crawler', 'wisp', 'prism']) art[name] = require('./' + name);
+    for (const name of ['knight', 'archer', 'mage', 'warden', 'engineer', 'cleric', 'gloop', 'bat', 'bonearcher', 'bones', 'sporecap', 'seed', 'mother', 'queen', 'golem', 'king', 'dragon', 'rotgrub', 'slug', 'wyrm', 'rothand', 'crawler', 'wisp', 'prism']) art[name] = require('./' + name);
     module.exports = factory(require('../rig'), art);
   } else {
     root.DC = root.DC || {};
     root.DC.sheets = factory(root.DC.rig, root.DC.art || {});
   }
 })(this, function (rig, ART) {
-  const HERO_CLASSES = ['knight', 'archer', 'mage', 'warden', 'engineer'];
+  const HERO_CLASSES = ['knight', 'archer', 'mage', 'warden', 'engineer', 'cleric'];
   const COLORS = { orange: '#F2A541', blue: '#6C9BF2', teal: '#5EC8B8', pink: '#E58FB8' };
   const HERO_ACTIONS = ['idle', 'walk', 'attack', 'q', 'space', 'hurt', 'roll', 'down'];
   const MONSTER_ACTIONS = ['idle', 'walk', 'hurt', 'death'];

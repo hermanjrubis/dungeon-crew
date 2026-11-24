@@ -123,7 +123,7 @@
     updateTimer();
   }
 
-  const TROPHY_WEAPONS = { knight: 'Dragonfang Sword', archer: 'Emberstorm Bow', mage: 'Wyrmflame Staff', warden: 'Mountainheart', engineer: 'Thunder Gauntlet' };
+  const TROPHY_WEAPONS = { knight: 'Dragonfang Sword', archer: 'Emberstorm Bow', mage: 'Wyrmflame Staff', warden: 'Mountainheart', engineer: 'Thunder Gauntlet', cleric: 'Halo of Dawn' };
 
   // Play again keeps the crew together in the same room; Back to menu leaves it.
   const END_BUTTONS = `

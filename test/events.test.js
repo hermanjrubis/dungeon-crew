@@ -23,9 +23,11 @@ test('every skill announces a cast with where and which way', () => {
   assert.strictEqual(castOf(['archer'], { q: true })[0].skill, 'arrowRain');
   assert.strictEqual(castOf(['archer'], { space: true })[0].skill, 'roll');
   assert.strictEqual(castOf(['mage'], { q: true })[0].skill, 'fireball');
-  const heal = castOf(['mage'], { space: true })[0];
-  assert.strictEqual(heal.skill, 'heal');
-  assert.deepStrictEqual([heal.by, heal.x, heal.y, heal.aim], ['p0', 400, 312, 0]);
+  const meteors = castOf(['mage'], { space: true })[0];
+  assert.strictEqual(meteors.skill, 'meteors');
+  assert.deepStrictEqual([meteors.by, meteors.x, meteors.y, meteors.aim], ['p0', 400, 312, 0]);
+  assert.strictEqual(castOf(['cleric'], { q: true })[0].skill, 'mend');
+  assert.strictEqual(castOf(['cleric'], { space: true })[0].skill, 'blessing');
 });
 
 test('fireballs announce their explosion', () => {
@@ -42,16 +44,16 @@ test('fireballs announce their explosion', () => {
 });
 
 test('healing announces how much each player got', () => {
-  const game = makeGame(['mage'], ARENA);
+  const game = makeGame(['cleric'], ARENA);
   const me = place(game, 0, 400, 312);
   me.hp = 40;
-  game.setInput('p0', { space: true });
+  game.setInput('p0', { q: true });
   game.tick(0.05);
   game.setInput('p0', {});
   run(game, 0.5);
   const heals = events(game, 'heal');
   assert.ok(heals.length >= 1);
-  assert.deepStrictEqual([heals[0].targetId, heals[0].amount], ['p0', 5]);
+  assert.deepStrictEqual([heals[0].targetId, heals[0].amount], ['p0', 32]);
 });
 
 test('drinking a potion announces a heal', () => {

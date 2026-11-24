@@ -31,6 +31,8 @@ function sanitizeInput(raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
   for (const k of BOOL_KEYS) input[k] = src[k] === true;
   if (typeof src.aim === 'number' && Number.isFinite(src.aim)) input.aim = src.aim;
+  // how far away the cursor is (skills that land somewhere land there)
+  if (typeof src.dist === 'number' && Number.isFinite(src.dist)) input.dist = Math.max(0, Math.min(2000, src.dist));
   return input;
 }
 
@@ -397,7 +399,7 @@ class Game {
       if (!d.downed) continue;
       const helper = this.alivePlayers().find((h) => h.input.interact &&
         Math.hypot(h.x - d.x, h.y - d.y) <= REVIVE_RANGE);
-      d.reviveProgress = helper ? d.reviveProgress + dt : 0;
+      d.reviveProgress = helper ? d.reviveProgress + dt * (data.HEROES[helper.heroClass].reviveMul || 1) : 0;
       if (helper && d.reviveProgress >= REVIVE_TIME - 1e-9) this.revive(d, 0.3, helper.id);
     }
   }
