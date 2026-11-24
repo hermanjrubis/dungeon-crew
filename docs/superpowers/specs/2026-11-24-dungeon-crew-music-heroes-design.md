@@ -51,7 +51,7 @@ Drei asked for:
 - **Shop weapons:** Iron Sling, then Granite Hammer-Sling, then Magma Sling.
 - **Dragon trophy:** Mountainheart.
 
-## D. Fifth hero (Drei picks one)
+## D. Fifth hero: Engineer (Drei picked it)
 
 Claude recommends the **Rogue**, the only missing play style (fast melee).
 
