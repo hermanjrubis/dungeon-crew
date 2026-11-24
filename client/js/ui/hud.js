@@ -148,7 +148,7 @@
       }).join('');
       refs.gold.textContent = `${me.gold} gold`;
 
-      refs.atkName.textContent = me.heroClass === 'knight' ? 'Sword' : me.heroClass === 'archer' ? 'Arrow' : 'Bolt';
+      refs.atkName.textContent = { knight: 'Sword', archer: 'Arrow', mage: 'Bolt', warden: 'Rock', engineer: 'Wrench' }[me.heroClass] || 'Attack';
       refs.qName.textContent = hero.q.name;
       refs.spName.textContent = hero.space.name;
       cooldown(refs.atkCd, me.cd.attack);

@@ -25,6 +25,18 @@
       '...ohhwwwwhho.g.', '..ohhhhwwhhhhoe.', '..ohshhhhhhshoe.', '...ohhhhhhhho.e.',
       '...ohhhhhhhho.e.', '..ohhhhhhhhhho.e', '..oooooooooooo.e', '....of....fo....'
     ],
+    warden: [
+      '................', '.....oooooo.....', '....ohhhhhho....', '....ohkkkkho....',
+      '....ohhhhhho....', '..oooaaaaaaooo..', '.oddoaaaaaaoddo.', '.oddoaabbaaoddo.',
+      '.oddoaaaaaaoddo.', '..oooaaaaaaooorr', '....oaaaaaao.rrr', '....oaaooaao.rr.',
+      '....oaa..aao....', '....oll..llo....', '....oll..llo....', '...offo..offo...'
+    ],
+    engineer: [
+      '................', '.....oooooo.....', '....occcccco....', '...occcccccco...',
+      '....oggoggo.....', '....osssssso....', '.....oooooo.....', '....oaaaaaao..w.',
+      '...oaabbbbaao.ww', '...osaaaaaaso.w.', '....oaaaaaao.w..', '....oaayyaao....',
+      '....oaaooaao....', '....oaa..aao....', '....oll..llo....', '...offo..offo...'
+    ],
     gloop: [
       '................', '................', '................', '................',
       '......oooo......', '....oobbbboo....', '...obblbbbbbo...', '..obllbbbbbbbo..',
@@ -97,6 +109,8 @@
   function heroPalette(heroClass, hex) {
     if (heroClass === 'knight') return { o: '#14101C', h: '#A7A1B8', v: '#120A16', a: hex, b: '#5C3B1E', l: '#3D3452', f: '#2A2438', p: hex };
     if (heroClass === 'archer') return { o: '#14101C', h: hex, s: '#E8B48A', k: '#120A16', a: '#5A4A3A', l: '#3D3452', f: '#5C3B1E', b: '#8A5A2E', t: '#CFC8DE' };
+    if (heroClass === 'warden') return { o: '#14101C', h: '#8C84A3', k: hex, a: '#6E6378', d: '#A79FBC', b: hex, l: '#3D3452', f: '#2A2438', r: '#7A6248' };
+    if (heroClass === 'engineer') return { o: '#14101C', c: hex, g: '#9AD7F0', s: '#E8B48A', a: '#4A5A7A', b: hex, w: '#CFC8DE', y: '#F2C14E', l: '#3D3452', f: '#2A2438' };
     return { o: '#14101C', h: hex, s: '#E8B48A', k: '#120A16', w: '#E9E4D4', g: '#5EC8B8', e: '#8A5A2E', f: '#2A2438' };
   }
 
@@ -119,7 +133,7 @@
   // Every PNG the game loads: its file name, map, palette and size in pixels.
   function spriteFiles() {
     const out = [];
-    for (const cls of ['knight', 'archer', 'mage']) {
+    for (const cls of ['knight', 'archer', 'mage', 'warden', 'engineer']) {
       for (const [color, hex] of Object.entries(COLORS)) {
         out.push({ file: `${cls}-${color}.png`, key: `${cls}-${color}`, rows: MAPS[cls], palette: heroPalette(cls, hex), size: 48 });
       }

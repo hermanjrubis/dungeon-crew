@@ -605,6 +605,8 @@ class Game {
       zones: this.zones.map((z) => {
         const out = { id: z.id, kind: z.kind, x: r(z.x), y: r(z.y), r: z.r, until: z.until };
         if (z.aim !== undefined) { out.aim = Math.round(z.aim * 100) / 100; out.spread = Math.round(z.spread * 100) / 100; }
+        if (z.armAt !== undefined) out.armed = this.time >= z.armAt;
+        if (z.ownerId) out.ownerId = z.ownerId;
         return out;
       })
     };

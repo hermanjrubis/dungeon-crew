@@ -288,3 +288,9 @@ kbd {
 .sound-ctl .btn { padding: 6px 12px; font-size: 14px; }
 .sound-vol { flex: 1; min-width: 120px; accent-color: var(--orange); }
 .pause-card .sound-ctl { margin-top: 0; }
+
+/* five heroes: a tighter list */
+.hero-list { gap: 8px; }
+.hero-list .hero-card { padding: 8px 10px; }
+.hero-list .hero-card img { width: 52px; height: 52px; }
+.hero-list .hero-card-name { font-size: 20px; }

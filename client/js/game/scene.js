@@ -306,6 +306,25 @@
             const d = Math.random() * z.r;
             this.fx.burst(z.x + Math.cos(a) * d, z.y + Math.sin(a) * d, 0xcfc8de, 3, 'spark', 'fx-square');
           }
+        } else if (z.kind === 'turret') {
+          // a little tower with a spinning dish; faint ring = its range
+          g.lineStyle(1, 0xf2c14e, 0.15).strokeCircle(z.x, z.y, z.r);
+          g.fillStyle(0x000000, 0.3).fillEllipse(z.x, z.y + 14, 34, 10);
+          g.fillStyle(0x4a5a7a).fillRect(z.x - 12, z.y - 4, 24, 16);
+          g.fillStyle(0x6e7f9e).fillRect(z.x - 12, z.y - 4, 24, 4);
+          g.fillStyle(0xcfc8de).fillCircle(z.x, z.y - 10, 8);
+          const a = time / 300;
+          g.lineStyle(4, 0x2a2438).lineBetween(z.x, z.y - 10, z.x + Math.cos(a) * 14, z.y - 10 + Math.sin(a) * 6);
+          const left = Math.max(0, z.until - snap.t);
+          g.fillStyle(left < 2 && Math.floor(time / 150) % 2 ? 0xe5534b : 0xf2c14e).fillCircle(z.x, z.y - 10, 3);
+        } else if (z.kind === 'mine') {
+          g.fillStyle(0x000000, 0.3).fillEllipse(z.x, z.y + 4, 26, 10);
+          g.fillStyle(0x2a2438).fillCircle(z.x, z.y, 11);
+          g.lineStyle(2, 0x6e7f9e).strokeCircle(z.x, z.y, 11);
+          const blink = z.armed ? Math.floor(time / 250) % 2 === 0 : true;
+          g.fillStyle(z.armed ? 0xe5534b : 0xf2c14e, blink ? 1 : 0.3).fillCircle(z.x, z.y - 2, 3.5);
+        } else if (z.kind === 'quake') {
+          g.lineStyle(4, 0x7a6248, 0.7).strokeCircle(z.x, z.y, z.r);
         } else if (z.kind === 'healCircle') {
           g.fillStyle(0x5ec8b8, 0.18 + 0.08 * pulse).fillCircle(z.x, z.y, z.r);
           g.lineStyle(2, 0x5ec8b8, 0.9).strokeCircle(z.x, z.y, z.r);
@@ -556,6 +575,22 @@
           g.lineStyle(2, 0xcfc8de, 0.35).lineBetween(pr.x - cx * 34, pr.y - cy * 34, pr.x, pr.y);
           g.lineStyle(3, 0xe9e4d4, 1).lineBetween(pr.x - cx * 14, pr.y - cy * 14, pr.x + cx * 6, pr.y + cy * 6);
           g.fillStyle(0xffffff).fillTriangle(pr.x + cx * 10, pr.y + cy * 10, pr.x - cy * 4, pr.y + cx * 4, pr.x + cy * 4, pr.y - cx * 4);
+        } else if (pr.kind === 'rock') {
+          g.fillStyle(0x000000, 0.25).fillEllipse(pr.x, pr.y + 8, 14, 6);
+          g.fillStyle(0x7a6248).fillCircle(pr.x, pr.y, 8);
+          g.fillStyle(0xa58a6a).fillCircle(pr.x - 2, pr.y - 2, 4);
+          g.lineStyle(1, 0x3e2a19).strokeCircle(pr.x, pr.y, 8);
+        } else if (pr.kind === 'boulder') {
+          const spin = (this.time.now / 80) % (Math.PI * 2);
+          g.fillStyle(0x000000, 0.3).fillEllipse(pr.x, pr.y + 18, 40, 12);
+          g.fillStyle(0x6e5a44).fillCircle(pr.x, pr.y, 20);
+          g.fillStyle(0x8c7356).fillCircle(pr.x - 5, pr.y - 6, 9);
+          g.lineStyle(3, 0x3e2a19).strokeCircle(pr.x, pr.y, 20);
+          g.lineStyle(2, 0x3e2a19, 0.8).lineBetween(pr.x, pr.y, pr.x + Math.cos(spin) * 18, pr.y + Math.sin(spin) * 18);
+          if (Math.random() < 0.6) this.fx.burst(pr.x, pr.y + 14, 0x7a6248, 1, 'rubble', 'fx-square');
+        } else if (pr.kind === 'turretShot') {
+          g.fillStyle(0xf2c14e, 0.4).fillCircle(pr.x, pr.y, 8);
+          g.fillStyle(0xfff1b8).fillCircle(pr.x, pr.y, 3.5);
         } else if (pr.kind === 'bolt') {
           g.fillStyle(0x6c9bf2, 0.35).fillCircle(pr.x, pr.y, 11);
           g.fillStyle(0xb8d0ff).fillCircle(pr.x, pr.y, 5);
@@ -644,6 +679,20 @@
         fx.burst(ev.x, ev.y, 0xcfc8de, 10, 'smoke');
       } else if (ev.skill === 'fireball') {
         fx.burst(ev.x + Math.cos(ev.aim) * 24, ev.y + Math.sin(ev.aim) * 24, 0xf2a541, 14, 'flame');
+      } else if (ev.skill === 'boulder') {
+        fx.burst(ev.x, ev.y, 0x7a6248, 10, 'rubble', 'fx-square');
+        fx.shake(80, 0.004);
+      } else if (ev.skill === 'quake') {
+        fx.ring(ev.x, ev.y, { from: 10, to: 104, life: 0.4, color: 0xa58a6a, width: 10, fill: 0.18 });
+        for (let i = 0; i < 10; i++) {
+          const a = (i / 10) * Math.PI * 2;
+          fx.burst(ev.x + Math.cos(a) * 70, ev.y + Math.sin(a) * 70, 0x7a6248, 4, 'rubble', 'fx-square');
+        }
+        fx.burst(ev.x, ev.y, 0x5a5066, 14, 'smoke');
+        fx.shake(220, 0.01);
+      } else if (ev.skill === 'turret' || ev.skill === 'mine') {
+        fx.burst(ev.x, ev.y, 0xf2c14e, 12, 'spark');
+        fx.ring(ev.x, ev.y, { from: 6, to: 40, life: 0.3, color: 0xcfc8de, width: 3 });
       } else if (ev.skill === 'heal') {
         fx.ring(ev.x, ev.y, { from: 10, to: 96, life: 0.5, color: 0x7ee8c8, width: 6, fill: 0.2 });
         fx.burst(ev.x, ev.y, 0x7ee8c8, 20, 'rise', 'fx-plus');
@@ -787,6 +836,13 @@
       } else if (ev.type === 'shadowring') {
         fx.ring(ev.x, ev.y, { from: 20, to: 150, life: 0.4, color: 0xc77dff, width: 6 });
         fx.burst(ev.x, ev.y, 0xc77dff, 24, 'burst');
+      } else if (ev.type === 'turretfire') {
+        fx.burst(ev.x + Math.cos(ev.aim) * 14, ev.y - 10 + Math.sin(ev.aim) * 14, 0xf2c14e, 3, 'spark');
+      } else if (ev.type === 'mineboom') {
+        fx.ring(ev.x, ev.y, { from: 10, to: ev.r + 10, life: 0.35, color: 0xf2a541, width: 8, fill: 0.35 });
+        fx.burst(ev.x, ev.y, 0xf2a541, 22, 'flame');
+        fx.burst(ev.x, ev.y, 0x5a5066, 10, 'smoke');
+        fx.shake(200, 0.01);
       } else if (ev.type === 'breath') {
         for (let i = 0; i < 10; i++) {
           const a = ev.aim + (Math.random() - 0.5) * 1.1;

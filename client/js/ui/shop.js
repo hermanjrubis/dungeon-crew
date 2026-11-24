@@ -123,7 +123,7 @@
     updateTimer();
   }
 
-  const TROPHY_WEAPONS = { knight: 'Dragonfang Sword', archer: 'Emberstorm Bow', mage: 'Wyrmflame Staff' };
+  const TROPHY_WEAPONS = { knight: 'Dragonfang Sword', archer: 'Emberstorm Bow', mage: 'Wyrmflame Staff', warden: 'Mountainheart', engineer: 'Thunder Gauntlet' };
 
   function renderEnd(state) {
     if (state.final) { renderVictory(state); return; }

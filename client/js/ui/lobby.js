@@ -33,10 +33,30 @@
       ]
     }
   };
+  INFO.warden = {
+    role: 'Tank · close-medium range',
+    desc: 'A walking wall of stone. Throws rocks, rolls boulders and shakes the ground. Passive Thick Skin: takes 30% less damage from everything.',
+    stats: [['Health', 5], ['Damage', 3], ['Speed', 1], ['Range', 2]],
+    skills: [
+      ['Q', 'Boulder Toss', 'every 8s', 'Rolls a boulder that hits every monster in its path and knocks them along.'],
+      ['Space', 'Quake Stomp', 'every 12s', 'Rocks burst up around you: stuns nearby monsters 1.2s (bosses are slowed).']
+    ]
+  };
+  INFO.engineer = {
+    role: 'Builder · close range',
+    desc: 'Fights with a wrench and lets gadgets do the work. Passive Scrapper: earns 10% more gold.',
+    stats: [['Health', 2], ['Damage', 2], ['Speed', 4], ['Range', 4]],
+    skills: [
+      ['Q', 'Turret', 'every 12s', 'Builds a turret that shoots the nearest monster for 10s.'],
+      ['Space', 'Mine', 'every 6s', 'Lays a mine that explodes when a monster steps close. Up to 2.']
+    ]
+  };
   const STAT_VALUES = {
     knight: ['120', '14', 'Slow', 'Melee'],
     archer: ['80', '10', 'Fast', 'Far'],
-    mage: ['70', '18', 'Normal', 'Medium']
+    mage: ['70', '18', 'Normal', 'Medium'],
+    warden: ['170', '15', 'Slowest', 'Short'],
+    engineer: ['95', '12', 'Fast', 'Gadgets']
   };
 
   let state = null;
