@@ -7,6 +7,22 @@
   const H = DC.tiles.ROOM_H * TILE;
   const INTERP_DELAY = 100;
   // Big monsters get a wide health bar higher up: [bar offset, bar width].
+  const SHEETS = new Map(); // sheet key -> sheet (from DC.sheets)
+  // How far below an entity's position its feet were in the old pictures, so
+  // the new art stands in the same spot.
+  const footCache = new Map();
+  function oldFoot(key) {
+    if (footCache.has(key)) return footCache.get(key);
+    const old = DC.sprites.spriteFiles().find((s) => s.key === key);
+    let v = 18;
+    if (old) {
+      let last = 0;
+      old.rows.forEach((r, i) => { if (/[^.]/.test(r)) last = i; });
+      v = Math.round(((last + 1) / 16) * old.size - old.size / 2);
+    }
+    footCache.set(key, v);
+    return v;
+  }
   const BIG = { mother: [52, 80], halfmother: [52, 80], queen: [52, 80], king: [56, 90], dragon: [74, 120] }; // ms: draw others slightly in the past so movement is smooth
 
   let game = null;
@@ -21,11 +37,62 @@
     constructor() { super('dungeon'); }
 
     preload() {
-      for (const s of DC.sprites.spriteFiles()) this.load.image(s.key, 'assets/' + s.file);
+      // New part-based art comes as sprite sheets; anything not redrawn yet keeps its old picture.
+      for (const sh of DC.sheets.sheetFiles()) {
+        SHEETS.set(sh.key, sh);
+        this.load.spritesheet(sh.key + '-sheet', 'assets/' + sh.file, { frameWidth: sh.size, frameHeight: sh.size });
+      }
+      for (const s of DC.sprites.spriteFiles()) if (!SHEETS.has(s.key)) this.load.image(s.key, 'assets/' + s.file);
+    }
+
+    // One Phaser animation per sheet and action (walk, attack...).
+    makeAnims() {
+      for (const sh of SHEETS.values()) {
+        for (const [name, a] of Object.entries(sh.anims)) {
+          const key = DC.sheets.animKey(sh.key, name);
+          if (this.anims.exists(key)) continue;
+          this.anims.create({ key, frames: this.anims.generateFrameNumbers(sh.key + '-sheet', { start: a.start, end: a.start + a.count - 1 }), frameRate: a.fps, repeat: a.loop ? -1 : 0 });
+        }
+      }
+    }
+
+    // Start a one-shot action (attack, skill, hit...) on a hero or monster.
+    startAction(id, action, time) {
+      const s = this.sprites.get(id);
+      if (!s || !s.sheet) return;
+      const a = s.sheet.anims[action];
+      if (!a) return;
+      const now = time === undefined ? this.time.now : time;
+      if (s.oneShot && s.oneShot.action === action && now - s.oneShot.at < 250) return; // already showing it
+      s.oneShot = { action, at: now, until: now + (a.count / a.fps) * 1000 };
+      s.body.play(DC.sheets.animKey(s.sheet.key, action));
+    }
+
+    // Keep the sprite on the right action; restarts only when the action changes.
+    setAction(s, action, time) {
+      if (!s.sheet) return;
+      if (s.oneShot && time < s.oneShot.until && action !== 'down' && action !== 'death' && action !== 'roll') return;
+      s.oneShot = null;
+      if (!s.sheet.anims[action]) action = s.sheet.anims.idle ? 'idle' : Object.keys(s.sheet.anims)[0];
+      const key = DC.sheets.animKey(s.sheet.key, action);
+      if (s.body.anims.currentAnim?.key !== key || !s.body.anims.isPlaying && s.sheet.anims[action].loop) s.body.play(key);
+    }
+
+    // Has this sprite moved in the last moment? (walk vs stand)
+    moving(s, x, y, time) {
+      if (s.lastX !== undefined && Math.hypot(x - s.lastX, y - s.lastY) > 0.35) {
+        s.moveUntil = time + 130;
+        if (Math.abs(x - s.lastX) > 0.35) s.faceLeft = x < s.lastX;
+      }
+      s.lastX = x; s.lastY = y;
+      return time < (s.moveUntil || 0);
     }
 
     create() {
       scene = this;
+      this.makeAnims();
+      this.corpses = [];   // monsters playing their death animation
+      this.gone = new Map(); // id -> last look of a sprite that just left (for death animations)
       this.tileLayer = this.add.graphics();
       this.hazardLayer = this.add.graphics(); // lava, geysers, jets and the bridge (animated)
       this.zoneLayer = this.add.graphics();
@@ -94,6 +161,8 @@
         // The server picked this room's layout; build it from the rows it sent.
         this.roomKey = snap.room.key;
         this.room = parseRoom(snap.room.rows);
+        for (const c of this.corpses) c.destroy();
+        this.corpses = [];
         this.me = null;
       }
       if (App.screen === 'game') localSounds(this.currentInput(), snap);
@@ -415,14 +484,26 @@
 
     spriteFor(id, key, labelText, labelColor) {
       let s = this.sprites.get(id);
+      if (s && s.key !== key && SHEETS.has(key) !== !!s.sheet) {
+        // switching between a sheet and an old picture: start over
+        s.body.destroy(); if (s.label) s.label.destroy(); s.bar.destroy();
+        this.sprites.delete(id); s = null;
+      }
       if (!s) {
-        const body = this.add.image(0, 0, key).setDepth(3);
+        const sheet = SHEETS.get(key);
+        const body = sheet
+          ? this.add.sprite(0, 0, key + '-sheet', 0).setOrigin(sheet.foot[0] / sheet.size, sheet.foot[1] / sheet.size).setDepth(3)
+          : this.add.image(0, 0, key).setDepth(3);
         const label = labelText ? this.add.text(0, 0, labelText, { fontFamily: 'Inter, sans-serif', fontSize: '12px', fontStyle: 'bold', color: labelColor || '#EDE8F5', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5, 1).setDepth(4) : null;
         const bar = this.add.graphics().setDepth(4);
-        s = { body, label, bar, key, seen: 0 };
+        s = { body, label, bar, key, seen: 0, sheet };
         this.sprites.set(id, s);
       }
-      if (s.key !== key) { s.body.setTexture(key); s.key = key; }
+      if (s.key !== key) {
+        s.key = key;
+        if (s.sheet) { s.sheet = SHEETS.get(key); s.body.setTexture(key + '-sheet', 0); s.body.anims.stop(); }
+        else s.body.setTexture(key);
+      }
       return s;
     }
 
@@ -437,8 +518,16 @@
         const isMe = p.id === App.me;
         const pos = isMe && this.me ? this.me : past.get(id) || p;
         const s = this.spriteFor(id, `${p.heroClass}-${p.color}`, isMe ? p.name + ' (you)' : p.name, DC.data.COLORS[p.color]);
-        s.body.setPosition(pos.x, pos.y - 6).setFlipX(Math.abs(p.aim) > Math.PI / 2).setScale(1, 1);
-        s.body.setAlpha(p.downed ? 0.35 : p.rolling ? 0.6 : 1).setAngle(p.downed ? 90 : 0);
+        const walking = this.moving(s, pos.x, pos.y, time);
+        if (s.sheet) {
+          s.body.setPosition(pos.x, pos.y + oldFoot(s.key)).setFlipX(Math.abs(p.aim) > Math.PI / 2).setScale(2);
+          s.body.setAlpha(p.downed ? 0.6 : p.rolling ? 0.85 : 1).setAngle(0);
+          const hurt = (this.flashUntil.get(id) || 0) > time;
+          this.setAction(s, p.downed ? 'down' : p.rolling ? 'roll' : hurt ? 'hurt' : walking ? 'walk' : 'idle', time);
+        } else {
+          s.body.setPosition(pos.x, pos.y - 6).setFlipX(Math.abs(p.aim) > Math.PI / 2).setScale(1, 1);
+          s.body.setAlpha(p.downed ? 0.35 : p.rolling ? 0.6 : 1).setAngle(p.downed ? 90 : 0);
+        }
         if ((this.flashUntil.get(id) || 0) > time) s.body.setTintFill(0xff5a50);
         else if (p.burning) s.body.setTint(Math.floor(time / 120) % 2 ? 0xf2a541 : 0xffffff);
         else if (p.poisoned) s.body.setTint(Math.floor(time / 150) % 2 ? 0x9bd17a : 0xffffff);
@@ -486,16 +575,27 @@
         let sx = 1;
         let sy = 1;
         let lift = 0;
-        if (e.state === 'squish') { sx = 1.25; sy = 0.7; }
-        if (e.state === 'swell') { sx = 1.3; sy = 1.3; }
-        if (e.type === 'seed') { const k = 1 + 0.12 * Math.sin(time / 150); sx = k; sy = k; }
+        const walking = this.moving(s, pos.x, pos.y, time);
+        const posed = s.sheet && s.sheet.anims[e.state] && e.state !== 'idle' && e.state !== 'walk';
+        if (!posed) {
+          if (e.state === 'squish') { sx = 1.25; sy = 0.7; }
+          if (e.state === 'swell') { sx = 1.3; sy = 1.3; }
+          if (e.type === 'seed' && !s.sheet) { const k = 1 + 0.12 * Math.sin(time / 150); sx = k; sy = k; }
+          if (e.state === 'flap') { sx = 1.2 + 0.1 * Math.sin(time / 60); }
+        }
         s.body.setAlpha(e.state === 'shimmer' ? 0.25 + 0.5 * Math.abs(Math.sin(time / 60)) : 1);
         if (e.state === 'leap') lift = 18;
-        if (e.sky) { lift = 28 + 4 * Math.sin(time / 200); sx = 1.1; sy = 1.1; }
-        if (e.state === 'flap') { sx = 1.2 + 0.1 * Math.sin(time / 60); }
-        s.body.setPosition(pos.x, pos.y - lift).setScale(sx, sy);
-        if (e.type === 'golem' || e.type === 'king' || e.type === 'dragon') s.body.setFlipX(Math.abs(e.facing) > Math.PI / 2);
-        if (e.state === 'raise') { sx = 1.1; sy = 1.15; s.body.setScale(sx, sy); }
+        if (e.sky) { lift = 28 + 4 * Math.sin(time / 200); sx *= 1.1; sy *= 1.1; }
+        const faceLeft = e.facing !== undefined ? Math.abs(e.facing) > Math.PI / 2 : !!s.faceLeft;
+        if (s.sheet) {
+          s.body.setPosition(pos.x, pos.y + oldFoot(s.key) - lift).setScale(2 * sx, 2 * sy).setFlipX(faceLeft);
+          const hurt = (this.flashUntil.get(id) || 0) > time;
+          this.setAction(s, posed ? e.state : hurt && s.sheet.anims.hurt ? 'hurt' : walking ? 'walk' : 'idle', time);
+        } else {
+          s.body.setPosition(pos.x, pos.y - lift).setScale(sx, sy);
+          if (e.type === 'golem' || e.type === 'king' || e.type === 'dragon') s.body.setFlipX(Math.abs(e.facing) > Math.PI / 2);
+          if (e.state === 'raise') { sx = 1.1; sy = 1.15; s.body.setScale(sx, sy); }
+        }
         const tell = ['screech', 'squish', 'draw', 'swell', 'raise', 'ring', 'flap', 'tail'].includes(e.state) && Math.floor(time / 100) % 2 === 0;
         const hit = (this.flashUntil.get(id) || 0) > time;
         if (hit || tell) s.body.setTintFill(0xffffff);
@@ -530,6 +630,7 @@
 
       for (const [id, s] of this.sprites) {
         if (seen.has(id)) continue;
+        if (s.sheet) this.gone.set(id, { x: s.body.x, y: s.body.y, flip: s.body.flipX, key: s.key, at: time });
         s.body.destroy();
         if (s.label) s.label.destroy();
         s.bar.destroy();
@@ -742,6 +843,24 @@
       if (color && ev.skill !== 'heal' && ev.skill !== 'taunt') fx.burst(ev.x, ev.y, color, 4, 'spark');
     }
 
+    // A monster that just died plays its death animation where it fell, then fades.
+    deathBody(ev) {
+      const id = 'e:' + ev.enemyId;
+      const last = this.gone.get(id) || this.sprites.get(id) && { x: this.sprites.get(id).body.x, y: this.sprites.get(id).body.y, flip: this.sprites.get(id).body.flipX, key: this.sprites.get(id).key };
+      const key = last ? last.key : DC.sheets.enemySheet(ev.enemyType);
+      const sheet = SHEETS.get(key);
+      this.gone.delete(id);
+      if (!sheet || !sheet.anims.death) return;
+      const x = last ? last.x : ev.x, y = last ? last.y : ev.y + oldFoot(key);
+      const body = this.add.sprite(x, y, key + '-sheet', sheet.anims.death.start)
+        .setOrigin(sheet.foot[0] / sheet.size, sheet.foot[1] / sheet.size).setScale(2).setDepth(2).setFlipX(!!(last && last.flip));
+      body.play(DC.sheets.animKey(key, 'death'));
+      this.corpses.push(body);
+      const d = sheet.anims.death;
+      this.tweens.add({ targets: body, alpha: 0, delay: (d.count / d.fps) * 1000 + 250, duration: 400,
+        onComplete: () => { body.destroy(); this.corpses = this.corpses.filter((c) => c !== body); } });
+    }
+
     onEvent(ev, snap) {
       const fx = this.fx;
       const now = this.time.now;
@@ -764,8 +883,14 @@
             Hud.hurt();
           }
         }
-      } else if (ev.type === 'cast') this.castEffect(ev, snap);
-      else if (ev.type === 'explode') {
+      } else if (ev.type === 'cast') {
+        const skills = SKILL_SOUND[playerAt(ev.by)?.heroClass] || [];
+        const action = skills[0] === ev.skill ? 'q' : skills[1] === ev.skill ? 'space' : null;
+        if (action) this.startAction('p:' + ev.by, action, now);
+        this.castEffect(ev, snap);
+      } else if (ev.type === 'attack') {
+        this.startAction('p:' + ev.by, 'attack', now);
+      } else if (ev.type === 'explode') {
         fx.ring(ev.x, ev.y, { from: 10, to: ev.r + 10, life: 0.35, color: 0xf2a541, width: 8, fill: 0.35 });
         fx.burst(ev.x, ev.y, 0xf2a541, 26, 'flame');
         fx.burst(ev.x, ev.y, 0xe5622b, 14, 'flame');
@@ -786,6 +911,7 @@
         for (let i = 0; i < 3; i++) fx.ring(ev.x, ev.y, { from: 10, to: ev.r, life: 0.45, color: 0xb9a6e8, width: 4, delay: i * 0.08 });
         fx.burst(ev.x, ev.y, 0xb9a6e8, 10, 'spark');
       } else if (ev.type === 'kill') {
+        this.deathBody(ev);
         const color = Effects.MONSTER_COLORS[ev.enemyType] || 0xffffff;
         const big = !!BIG[ev.enemyType];
         fx.burst(ev.x, ev.y, color, big ? 40 : 16, 'drip');
@@ -1197,6 +1323,7 @@
     if (!me || me.downed || snap.paused || snap.transition) return;
     const hero = DC.data.HEROES[me.heroClass];
     const now = performance.now();
+    const act = (key) => { if (scene) scene.startAction('p:' + App.me, key); };
     const tryPlay = (key, skill, name) => {
       const serverLeft = me.cd ? me.cd[key] : 0;
       const prev = lastLeft[key];
@@ -1204,7 +1331,7 @@
       if (serverLeft > prev + 0.2) {
         // The server just fired one. If I didn't already play it, play it now,
         // and follow the server's cooldown from here.
-        if (now - lastPlayed[key] > 250) { Sound.play(name); lastPlayed[key] = now; }
+        if (now - lastPlayed[key] > 250) { Sound.play(name); lastPlayed[key] = now; act(key); }
         localNext[key] = now + serverLeft * 1000 - 30;
         return;
       }
@@ -1213,6 +1340,7 @@
       localNext[key] = now + skill.cd * 1000;
       lastPlayed[key] = now;
       Sound.play(name);
+      act(key);
     };
     tryPlay('attack', hero.attack, ATTACK_SOUND[me.heroClass]);
     tryPlay('q', hero.q, SKILL_SOUND[me.heroClass][0]);
