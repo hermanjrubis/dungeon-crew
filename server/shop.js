@@ -36,10 +36,23 @@ function setShopReady(game, playerId, ready) {
   checkDone(game);
 }
 
+const SHOP_TIME = 45; // seconds the team gets in the camp shop
+
 // Everyone still connected is ready: go to the next floor, or finish.
 function checkDone(game) {
   if (game.phase !== 'shop' || game.players.size === 0) return;
   if (![...game.players.values()].every((p) => p.ready)) return;
+  startNextFloor(game);
+}
+
+// The shop's time is up: move on, ready or not. Purchases are kept.
+function timeUp(game) {
+  if (game.phase !== 'shop') return;
+  game.event({ type: 'shoptimeup' });
+  startNextFloor(game);
+}
+
+function startNextFloor(game) {
   if (game.floorIndex < game.floors.length - 1) {
     for (const p of game.players.values()) {
       p.ready = false;
@@ -69,6 +82,7 @@ function shopState(game) {
     floorName: game.floor.name,
     nextFloorName: next ? next.name : null,
     final: !game.floor.shop && !next, // the whole dungeon is cleared
+    timeLeft: game.phase === 'shop' ? Math.max(0, Math.round((game.shopEndsAt - game.time) * 10) / 10) : 0,
     results: game.lastResults || null,
     run: !game.floor.shop && !next ? game.runResults() : null,
     time: Math.round(game.time),
@@ -81,4 +95,4 @@ function shopState(game) {
   };
 }
 
-module.exports = { buy, setShopReady, checkDone, shopState };
+module.exports = { buy, setShopReady, checkDone, timeUp, shopState, SHOP_TIME };

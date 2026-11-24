@@ -40,7 +40,8 @@ function createHub({ debug = {} } = {}) {
       game.loadRoom();
     }
     if (debug.skipToShop) {
-      game.phase = 'shop';
+      game.enterShop();
+      game.drainEvents();
       for (const pl of game.players.values()) pl.gold = 150;
     }
     room.lastTick = Date.now();
@@ -147,6 +148,14 @@ function createHub({ debug = {} } = {}) {
         if (game.phase === 'playing') {
           game.tick(dt);
           broadcast(room, 'game:snapshot', game.snapshot());
+        } else if (game.phase === 'shop') {
+          // The shop clock: resend the shop once a second so everyone's timer agrees.
+          game.tick(dt);
+          const second = Math.ceil(game.shopEndsAt - game.time);
+          if (game.phase === 'shop' && second !== room.shopSecond) {
+            room.shopSecond = second;
+            sendShop(room);
+          }
         }
         const events = game.drainEvents();
         if (events.length) broadcast(room, 'game:events', events);

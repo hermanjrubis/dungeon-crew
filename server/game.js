@@ -473,6 +473,12 @@ class Game {
 
   tick(dt) {
     dt = Math.min(dt, 0.1);
+    // In the shop only the clock runs, until its time is up.
+    if (dt > 0 && this.phase === 'shop' && this.players.size > 0) {
+      this.time += dt;
+      if (this.time >= this.shopEndsAt - 1e-9) shop.timeUp(this);
+      return;
+    }
     if (!(dt > 0) || this.phase !== 'playing' || this.paused || this.players.size === 0) return;
     this.time += dt;
 
@@ -531,8 +537,18 @@ class Game {
 
   // After a floor: its camp shop, or the end of the run if it has none.
   openShopOrFinish() {
-    this.phase = this.floor.shop ? 'shop' : 'done';
-    this.event({ type: 'phase', phase: this.phase });
+    if (this.floor.shop) this.enterShop();
+    else {
+      this.phase = 'done';
+      this.event({ type: 'phase', phase: 'done' });
+    }
+  }
+
+  // The camp shop is open for SHOP_TIME seconds.
+  enterShop() {
+    this.phase = 'shop';
+    this.shopEndsAt = this.time + shop.SHOP_TIME;
+    this.event({ type: 'phase', phase: 'shop' });
   }
 
   snapshot() {
