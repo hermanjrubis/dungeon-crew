@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const sheets = require('../shared/art');
-const { ENEMIES, HEROES } = require('../shared/data');
+const { MONSTERS, HEROES } = require('../shared/data');
 
 const all = sheets.sheetFiles();
 const byKey = new Map(all.map((s) => [s.key, s]));
@@ -48,7 +48,7 @@ test('Mini Gloop is drawn smaller than the Gloop', () => {
   assert.ok(count('minigloop') < count('gloop') * 0.7);
 });
 
-test('every hero and monster in the game has new art', { todo: 'filled in by the art tasks' }, () => {
+test('every hero and monster in the game has new art', () => {
   for (const cls of Object.keys(HEROES)) assert.ok(byKey.get(sheets.heroSheet(cls, 'orange')), cls);
-  for (const type of Object.keys(ENEMIES)) assert.ok(byKey.get(sheets.enemySheet(type)), type);
+  for (const type of Object.keys(MONSTERS)) assert.ok(byKey.get(sheets.enemySheet(type)), type);
 });

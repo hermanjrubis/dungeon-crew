@@ -70,6 +70,16 @@
       { body: { sx: 0.85, sy: 1.15, rot: 10 }, root: { x: 3, y: -4 }, mouth: { show: true }, eyes: { y: -1 } },
       { body: { sx: 1.1, sy: 0.9 }, root: { x: 3 }, mouth: { show: true } }
     ] },
+    // about to jump: squashing down, eyes narrowed
+    squish: { fps: 10, frames: [
+      { body: { sx: 1.25, sy: 0.75 }, eyes: { y: 1 } },
+      { body: { sx: 1.32, sy: 0.68 }, root: { x: -1 }, eyes: { y: 1, sy: 0.5 } }
+    ] },
+    // in the air (the game lifts it too)
+    leap: { fps: 8, frames: [
+      { body: { sx: 0.85, sy: 1.18 }, mouth: { show: true }, eyes: { y: -1 } },
+      { body: { sx: 0.9, sy: 1.12 }, mouth: { show: true }, eyes: { y: -1 }, drip: { show: true } }
+    ] },
     hurt: { fps: 6, loopPause: 0.5, frames: [
       { body: { sx: 1.25, sy: 0.75, rot: -8 }, root: { x: -2 }, eyes: { sy: 0.5 } }
     ] },

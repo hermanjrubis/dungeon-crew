@@ -5,7 +5,7 @@
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
     const art = {};
-    for (const name of ['knight', 'archer', 'mage', 'warden', 'engineer', 'gloop']) art[name] = require('./' + name);
+    for (const name of ['knight', 'archer', 'mage', 'warden', 'engineer', 'gloop', 'bat', 'bonearcher', 'bones', 'sporecap', 'seed', 'mother', 'queen', 'golem', 'king', 'dragon']) art[name] = require('./' + name);
     module.exports = factory(require('../rig'), art);
   } else {
     root.DC = root.DC || {};

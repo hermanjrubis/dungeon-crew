@@ -41,5 +41,69 @@
     };
   }
 
-  return { add, on, commonAnims };
+  // Pixel noise that is the same every time (so the art never changes between builds).
+  function hash(x, y, seed) {
+    let h = (x * 374761393 + y * 668265263 + (seed || 0) * 2246822519) | 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+  }
+
+  // A rounded body as letter rows, lit from the top-left:
+  // `light` near the top-left, `base` in the middle, `dark` toward the bottom-right.
+  // opts: { light, base, dark, shine, flat (0..1 flattens the bottom), rough (0..1 bumpy edge), seed, speckle, speck }
+  function blob(w, h, opts) {
+    const o = Object.assign({ light: 'L', base: 'b', dark: 'd', flat: 0, rough: 0, seed: 1 }, opts);
+    const rows = [];
+    for (let y = 0; y < h; y++) {
+      let row = '';
+      for (let x = 0; x < w; x++) {
+        const nx = (x + 0.5 - w / 2) / (w / 2);
+        let ny = (y + 0.5 - h / 2) / (h / 2);
+        if (o.flat && ny > 0) ny *= 1 - o.flat * 0.5;
+        const edge = 1 - o.rough * 0.35 * hash(Math.floor(x / 2), Math.floor(y / 2), o.seed);
+        const d = nx * nx + ny * ny;
+        if (d > edge) { row += '.'; continue; }
+        const lit = nx * 0.55 + ny * 0.85;
+        let ch = lit < -0.66 ? o.light : lit > 0.45 ? o.dark : o.base;
+        if (o.shine && nx > -0.62 && nx < -0.38 && ny > -0.72 && ny < -0.5) ch = o.shine;
+        if (o.speckle && ch === o.base && hash(x, y, o.seed + 7) < o.speckle) ch = o.speck || o.dark;
+        row += ch;
+      }
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  // Draw `art` rows on top of `rows` at (x, y); '.' in art leaves what is there.
+  function stamp(rows, art, x, y) {
+    const out = rows.slice();
+    art.forEach((line, j) => {
+      const r = out[y + j];
+      if (r === undefined) return;
+      let chars = [...r];
+      [...line].forEach((ch, i) => { if (ch !== '.' && x + i >= 0 && x + i < chars.length) chars[x + i] = ch; });
+      out[y + j] = chars.join('');
+    });
+    return out;
+  }
+
+  const mirror = (rows) => rows.map((r) => [...r].reverse().join(''));
+
+  // A rounded box (armor plates, legs, arms): lit on the left, shaded on the right.
+  function plate(w, h, opts) {
+    const o = Object.assign({ light: 'L', base: 'b', dark: 'd', round: 1 }, opts);
+    const rows = [];
+    for (let y = 0; y < h; y++) {
+      let row = '';
+      for (let x = 0; x < w; x++) {
+        const corner = (x < o.round || x >= w - o.round) && (y < o.round || y >= h - o.round);
+        if (corner) { row += '.'; continue; }
+        row += x < Math.max(1, Math.round(w * 0.22)) || y === 0 ? o.light : x >= w - Math.max(1, Math.round(w * 0.25)) || y === h - 1 ? o.dark : o.base;
+      }
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  return { add, on, commonAnims, hash, blob, stamp, mirror, plate };
 });

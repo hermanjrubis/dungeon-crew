@@ -161,8 +161,9 @@
         // The server picked this room's layout; build it from the rows it sent.
         this.roomKey = snap.room.key;
         this.room = parseRoom(snap.room.rows);
-        for (const c of this.corpses) c.destroy();
+        for (const c of this.corpses) { this.tweens.killTweensOf(c); c.destroy(); }
         this.corpses = [];
+        this.gone.clear();
         this.me = null;
       }
       if (App.screen === 'game') localSounds(this.currentInput(), snap);
