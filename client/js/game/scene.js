@@ -505,6 +505,26 @@
           g.lineStyle(4, 0xe5534b, 0.6 + 0.4 * pulse).strokeCircle(z.x, z.y, z.r);
           g.lineStyle(2, 0x9ac83a, 0.9).strokeCircle(z.x, z.y, z.r * left);
           if (Math.random() < 0.5) this.fx.burst(z.x + (Math.random() - 0.5) * z.r, z.y + (Math.random() - 0.5) * z.r * 0.6, 0x5a4a2e, 1, 'rise');
+        } else if (z.kind === 'shockwave') {
+          const k = 1 - Math.max(0, Math.min(1, (z.until - snap.t) / 0.4));
+          g.lineStyle(8 * (1 - k) + 2, 0x9ad7f0, 0.9 * (1 - k)).strokeEllipse(z.x, z.y, z.r * 2 * k, z.r * 1.2 * k);
+        } else if (z.kind === 'beamWarn' || z.kind === 'beam') {
+          // the prism beam: a thin warning line while charging, then a blazing strip
+          const cx = Math.cos(z.aim), cy = Math.sin(z.aim);
+          const ex = z.x + cx * z.r, ey = z.y + cy * z.r;
+          if (z.kind === 'beamWarn') {
+            g.lineStyle(2, 0xe5534b, 0.5 + 0.5 * pulse).lineBetween(z.x, z.y, ex, ey);
+            g.lineStyle(z.width, 0x6ce8ff, 0.08 + 0.1 * pulse).lineBetween(z.x, z.y, ex, ey);
+          } else {
+            const flick = 0.85 + 0.15 * Math.sin(time / 25);
+            g.lineStyle(z.width + 14, 0x4acff0, 0.35 * flick).lineBetween(z.x, z.y, ex, ey);
+            g.lineStyle(z.width, 0x9af0ff, 0.85 * flick).lineBetween(z.x, z.y, ex, ey);
+            g.lineStyle(z.width * 0.4, 0xffffff, 1).lineBetween(z.x, z.y, ex, ey);
+            // rainbow sparkles along it
+            const along = Math.random() * z.r;
+            const colors = [0xff8a80, 0xffe48a, 0x9af0ff, 0xb89af0];
+            this.fx.burst(z.x + cx * along, z.y + cy * along, colors[Math.floor(Math.random() * 4)], 1, 'rise');
+          }
         } else if (z.kind === 'taunt') {
           g.lineStyle(4, 0xf2a541, 0.8).strokeCircle(z.x, z.y, z.r * 0.5);
         }
@@ -745,7 +765,13 @@
         alive.add(pr.id);
         const prev = this.lastShot.get(pr.id) || pr;
         const ang = Math.atan2(pr.y - prev.y, pr.x - prev.x);
-        if (pr.kind === 'poisonGlob') {
+        if (pr.kind === 'shard') {
+          // a spinning violet crystal shard
+          const cx = Math.cos(ang), cy = Math.sin(ang);
+          g.lineStyle(3, 0xb89af0, 0.35).lineBetween(pr.x - cx * 24, pr.y - cy * 24, pr.x, pr.y);
+          g.fillStyle(0xf0e8ff).fillTriangle(pr.x + cx * 10, pr.y + cy * 10, pr.x - cy * 5, pr.y + cx * 5, pr.x + cy * 5, pr.y - cx * 5);
+          g.fillStyle(0x7a5ac8).fillTriangle(pr.x - cx * 6, pr.y - cy * 6, pr.x - cy * 5, pr.y + cx * 5, pr.x + cy * 5, pr.y - cx * 5);
+        } else if (pr.kind === 'poisonGlob') {
           // a wobbling glob of green poison, dripping as it flies
           const k = 1 + 0.15 * Math.sin(this.time.now / 40 + pr.id);
           g.fillStyle(0x3e8a2e, 0.5).fillCircle(pr.x - Math.cos(ang) * 8, pr.y - Math.sin(ang) * 8, 6);
@@ -965,6 +991,15 @@
       } else if (ev.type === 'screech') {
         for (let i = 0; i < 3; i++) fx.ring(ev.x, ev.y, { from: 10, to: ev.r, life: 0.45, color: 0xb9a6e8, width: 4, delay: i * 0.08 });
         fx.burst(ev.x, ev.y, 0xb9a6e8, 10, 'spark');
+      } else if (ev.type === 'roar') {
+        fx.ring(ev.x, ev.y, { from: 40, to: ev.r || 260, life: 0.7, color: 0x9ad7f0, width: 12, fill: 0.12 });
+        fx.shake(600, 0.014);
+        this.floatText(ev.x, ev.y - 160, 'PRISMAURUS ROARS!', '#9AF0FF');
+      } else if (ev.type === 'stomp') {
+        fx.burst(ev.x, ev.y + 40, 0xb9b2c8, 20, 'rise');
+        fx.shake(350, 0.012);
+      } else if (ev.type === 'beam') {
+        fx.shake(1200, 0.006);
       } else if (ev.type === 'wyrmerupt') {
         fx.ring(ev.x, ev.y, { from: 20, to: ev.r || 80, life: 0.4, color: 0x9ac83a, width: 8, fill: 0.2 });
         fx.burst(ev.x, ev.y, 0x5a4a2e, 26, 'rise');
@@ -1374,6 +1409,7 @@
     storm: 'puff', puff: 'puff', seed: 'puff', sprout: 'puff', explode: 'fireball', volley: 'arrow',
     rebuild: 'bones', bonesBroken: 'bones', outofreach: 'click', torchlit: 'fireball', shoptimeup: 'timeup',
     turretfire: 'turretShot', mineboom: 'mineBoom',
+    roar: 'roar', stomp: 'quake', charge: 'shadow', beam: 'breath', shards: 'arrow',
     spit: 'puff', splat: 'slimeSplit', grab: 'bash', hands: 'crumble', wyrmrage: 'roar', wyrmburrow: 'quake', wyrmerupt: 'slam'
   };
   function playSound(ev) {
