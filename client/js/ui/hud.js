@@ -59,10 +59,12 @@
             <li><kbd>1 · 2</kbd><span>Health Potion · Revive Feather</span></li>
             <li><kbd>Esc</kbd><span>Pause / resume</span></li>
           </ul>
+          <div data-r="soundCtl"></div>
           <button type="button" class="btn btn-outline" data-r="leaveBtn">Leave game</button>
         </div>
       </div>`;
     for (const n of hud().querySelectorAll('[data-r]')) refs[n.dataset.r] = n;
+    if (window.Sound) Sound.mountControls(refs.soundCtl);
     refs.pauseBtn.addEventListener('click', () => Net.pause(true));
     refs.resumeBtn.addEventListener('click', () => Net.pause(false));
     refs.leaveBtn.addEventListener('click', () => {

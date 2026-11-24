@@ -96,7 +96,10 @@
       this.drawTorches(snap, time);
       this.drawDarkness(snap, time);
       this.fx.update(dt);
-      for (const ev of pendingEvents.splice(0)) this.onEvent(ev, snap);
+      for (const ev of pendingEvents.splice(0)) {
+        playSound(ev);
+        this.onEvent(ev, snap);
+      }
     }
 
     // ---------- my own hero ----------
@@ -1049,6 +1052,36 @@
     g.lineStyle(1, 0x1b1725).strokeRect(x + 1.5, y + 1.5, TILE - 3, TILE - 3);
     g.fillStyle(0x4a4063, 0.6).fillRect(x + 2, y + 2, TILE - 4, 3);
     if (hash(tx, ty) > 0.6) g.lineStyle(1, 0x1b1725).lineBetween(x + 10, y + 20, x + 22, y + 30);
+  }
+
+  // ---------- sound for each thing that happens ----------
+  const ATTACK_SOUND = { knight: 'swing', archer: 'arrow', mage: 'bolt' };
+  const EVENT_SOUND = {
+    split: 'slimeSplit', brood: 'slimeSplit', screech: 'batScreech', bite: 'hit',
+    spike: 'spike', fall: 'fall', rockfall: 'crumble', crumble: 'crumble', ringfall: 'crumble',
+    erupt: 'geyser', jetfire: 'jet', lavafall: 'lava', bridgemove: 'bridge',
+    slam: 'slam', land: 'slam', flop: 'slam', landed: 'slam', sweep: 'sweep', tail: 'sweep',
+    breath: 'breath', gust: 'gust', meteor: 'meteor', takeoff: 'roar', roostcrumble: 'roar',
+    crownflare: 'roar', court: 'shadow', shadowring: 'shadow', teleport: 'shadow', darkness: 'shadow',
+    storm: 'puff', puff: 'puff', seed: 'puff', sprout: 'puff', explode: 'fireball', volley: 'arrow',
+    rebuild: 'bones', bonesBroken: 'bones', outofreach: 'click', torchlit: 'fireball', shoptimeup: 'timeup'
+  };
+  function playSound(ev) {
+    if (!window.Sound) return;
+    const me = App.me;
+    let name = EVENT_SOUND[ev.type];
+    if (ev.type === 'attack') name = ATTACK_SOUND[ev.kind];
+    else if (ev.type === 'cast') name = ev.skill;
+    else if (ev.type === 'damage') name = ev.enemyId !== undefined ? 'hit' : ev.targetId === me ? 'hurt' : null;
+    else if (ev.type === 'kill') {
+      const m = DC.data.MONSTERS[ev.enemyType];
+      name = m && m.boss ? 'bossKill' : 'kill';
+      if (!ev.noReward) Sound.play('coin');
+    } else if (ev.type === 'levelup') name = ev.targetId === me ? 'levelup' : null;
+    else if (ev.type === 'downed') name = 'downed';
+    else if (ev.type === 'revived') name = 'revive';
+    else if (ev.type === 'transition' && ev.kind === 'boss') name = 'roar';
+    if (name) Sound.play(name);
   }
 
   function drawBar(g, x, y, frac, color, width = 36) {

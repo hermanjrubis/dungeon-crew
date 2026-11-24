@@ -282,3 +282,9 @@ kbd {
 .end-card .res-stats { max-width: 220px; }
 #end { position: relative; overflow: hidden; }
 #end .end-card { position: relative; z-index: 1; }
+
+/* sound controls (menu + pause) */
+.sound-ctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.sound-ctl .btn { padding: 6px 12px; font-size: 14px; }
+.sound-vol { flex: 1; min-width: 120px; accent-color: var(--orange); }
+.pause-card .sound-ctl { margin-top: 0; }

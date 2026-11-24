@@ -12,6 +12,7 @@
   };
   window.App = App;
 
+  Sound.mountControls(document.getElementById('menu-sound'));
   Menu.init();
   Lobby.init();
 

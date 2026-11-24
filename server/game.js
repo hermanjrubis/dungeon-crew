@@ -428,7 +428,7 @@ class Game {
         this.addXp(p, m.xp);
       }
     }
-    this.event({ type: 'kill', enemyId: e.id, enemyType: e.type, x: Math.round(e.x), y: Math.round(e.y) });
+    this.event({ type: 'kill', enemyId: e.id, enemyType: e.type, x: Math.round(e.x), y: Math.round(e.y), noReward: !reward || !!e.noReward });
     enemies.onEnemyDeath(this, e, { reward });
   }
 

@@ -6,6 +6,7 @@
   let deadline = 0;     // when the shop closes, in this browser's clock
   let timerLoop = null;
   let lastTickSecond = null;
+  let timeUpPlayed = false;
 
   // The shop countdown bar, updated 10 times a second between server updates.
   function updateTimer() {
@@ -20,6 +21,11 @@
       lastTickSecond = secs;
       if (window.Sound) Sound.play('tick');
     }
+    if (left <= 0 && !timeUpPlayed) {
+      timeUpPlayed = true;
+      if (window.Sound) Sound.play('timeup');
+    }
+    if (left > 0) timeUpPlayed = false;
   }
 
   function esc(s) {
@@ -106,10 +112,14 @@
         busy = true;
         const res = await Net.buy(btn.dataset.buy);
         busy = false;
+        if (window.Sound) Sound.play(res.ok ? 'buy' : 'click');
         if (!res.ok) document.getElementById('shop-error').textContent = res.error;
       });
     }
-    root.querySelector('#shop-ready').addEventListener('click', () => Net.ready(!me.ready));
+    root.querySelector('#shop-ready').addEventListener('click', () => {
+      if (!me.ready && window.Sound) Sound.play('ready');
+      Net.ready(!me.ready);
+    });
     updateTimer();
   }
 
