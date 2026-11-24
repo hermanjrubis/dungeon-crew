@@ -8,6 +8,7 @@ const golem = require('./golem');
 const king = require('./king');
 const dragon = require('./dragon');
 const warrens = require('./warrens');
+const wastes = require('./wastes');
 const { dist, pickTarget, moveEnemy, walkToward, contactDamage } = require('./ai');
 
 const EPS = 1e-6;
@@ -174,6 +175,9 @@ function updateEnemy(game, e, dt) {
   else if (e.type === 'slug') warrens.updateSlug(game, e, dt);
   else if (e.type === 'rothand') warrens.updateRotHand(game, e, dt);
   else if (e.type === 'wyrm') warrens.updateWyrm(game, e, dt);
+  else if (e.type === 'crawler') wastes.updateCrawler(game, e, dt);
+  else if (e.type === 'wisp') wastes.updateWisp(game, e, dt);
+  else if (e.type === 'prism') wastes.updatePrism(game, e, dt);
   else if (e.boss) boss.updateBoss(game, e, dt);
 }
 

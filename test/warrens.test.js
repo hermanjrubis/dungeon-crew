@@ -108,7 +108,7 @@ test('at half HP the Wyrm goes wild: a roar and faster attacks', () => {
   assert.ok(game.drainEvents().some((e) => e.type === 'wyrmrage'));
 });
 
-test('beating the Wyrm ends the run (it is the last floor for now)', () => {
+test('beating the Wyrm opens the Warrens camp shop (Floor 6 is next)', () => {
   const { FLOORS } = require('../shared/rooms');
   const { Game } = require('../server/game');
   const floors = [FLOORS[4]].map((f) => ({ ...f, rooms: [f.rooms[3]] }));
@@ -121,5 +121,5 @@ test('beating the Wyrm ends the run (it is the last floor for now)', () => {
   game.damageEnemy(w, 5, 'p0');
   for (const e of game.enemies.slice()) game.killEnemy(e, { reward: false });
   game.tick(0.05);
-  assert.strictEqual(game.phase, 'done');
+  assert.strictEqual(game.phase, 'shop');
 });

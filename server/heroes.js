@@ -213,7 +213,8 @@ function updateProjectiles(game, dt) {
         const victim = [...game.players.values()].find((p) => !p.downed && game.time >= p.invulnUntil &&
           Math.hypot(p.x - pr.x, p.y - pr.y) <= p.r + pr.r);
         if (victim) {
-          game.damagePlayer(victim, pr.dmg, pr.kind === 'poisonGlob' ? 'poison' : 'arrow');
+          const guard = pr.prismatic && game.prismguardSet(victim) ? 0.6 : 1; // Prismguard set
+          game.damagePlayer(victim, Math.round(pr.dmg * guard), pr.kind === 'poisonGlob' ? 'poison' : 'arrow');
           if (pr.splash) finishProjectile(game, pr);
           else removeProjectile(game, pr);
           break;

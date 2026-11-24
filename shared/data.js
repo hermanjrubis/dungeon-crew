@@ -76,7 +76,11 @@
     rotgrub: { name: 'Rotgrub', hp: 40, dmg: 8, speed: 55, r: 15, xp: 28, gold: [9, 13] },
     slug: { name: 'Acid Slug', hp: 60, dmg: 7, speed: 45, r: 17, xp: 28, gold: [9, 13] },
     rothand: { name: 'Rot Hand', hp: 20, dmg: 9, speed: 0, r: 13, xp: 8, gold: [2, 4] },
-    wyrm: { name: 'The Rothand Wyrm', hp: 1100, dmg: 22, speed: 150, r: 44, xp: 250, gold: [200, 200], hpPerExtraPlayer: 0.25, boss: true }
+    wyrm: { name: 'The Rothand Wyrm', hp: 1100, dmg: 22, speed: 150, r: 44, xp: 250, gold: [200, 200], hpPerExtraPlayer: 0.25, boss: true },
+    // Floor 6: the Crystal Wastes.
+    crawler: { name: 'Crystal Crawler', hp: 70, dmg: 9, speed: 60, r: 17, xp: 32, gold: [10, 15] },
+    wisp: { name: 'Shard Wisp', hp: 35, dmg: 9, speed: 70, r: 14, xp: 30, gold: [10, 15], flying: true },
+    prism: { name: 'Prismaurus', hp: 1400, dmg: 24, speed: 50, r: 48, xp: 0, gold: [400, 400], hpPerExtraPlayer: 0.25, boss: true }
   };
 
   // XP needed to reach level 1..10. Each level after 1 gives +10 max HP and +2 damage.
@@ -150,6 +154,20 @@
         { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
       ],
       weapons: { knight: 'Dragonbone Sword', archer: 'Wyvern Bow', mage: 'Ashmaw Staff', warden: 'Obsidian Sling', engineer: 'Dragonforge Wrench' }
+    },
+    warrens: {
+      setName: 'Prismguard Set',
+      setBonus: "Prism beam and crystal shards hurt 40% less, and Prismaurus's roar can't slow you. Built for Floor 6.",
+      setPieces: ['helm5', 'plate5', 'boots5'],
+      items: [
+        { id: 'helm5', name: 'Wyrmskull Helm', slot: 'Head', price: 280, once: true, effect: { maxHp: 45 }, text: '+45 max HP' },
+        { id: 'plate5', name: 'Chitin Plate', slot: 'Chest', price: 340, once: true, effect: { defense: 14 }, text: '+14 defense' },
+        { id: 'boots5', name: 'Mirror Greaves', slot: 'Feet', price: 280, once: true, effect: { speedMul: 0.25 }, text: '+25% move speed' },
+        { id: 'weapon5', name: 'Class weapon', slot: 'Weapon', price: 340, once: true, effect: { weaponBonus: 38 }, text: '+38 damage' },
+        { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
+        { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
+      ],
+      weapons: { knight: 'Rotfang Blade', archer: 'Thousand-Hand Bow', mage: 'Wyrmroot Staff', warden: 'Bog Sling', engineer: 'Acidforge Wrench' }
     }
   };
 

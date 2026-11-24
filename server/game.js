@@ -13,6 +13,7 @@ const blankStats = () => ({ kills: 0, damage: 0, gold: 0, downs: 0, revives: 0 }
 const heroes = require('./heroes');
 const enemies = require('./enemies');
 const warrens = require('./warrens');
+const wastes = require('./wastes');
 const hazards = require('./hazards');
 const shop = require('./shop');
 const forge = require('./forge');
@@ -243,6 +244,11 @@ class Game {
     return this.hasSet(p, ['helm', 'mail', 'boots']) ? 0.5 : 0;
   }
 
+  // Prismguard set (Floor 6): beam and shards −40%, and the roar can't slow you.
+  prismguardSet(p) {
+    return this.hasSet(p, ['helm5', 'plate5', 'boots5']);
+  }
+
   // Rotward set (Floor 5): poison −60%, and Rot Hands can't hold you.
   rotwardSet(p) {
     return this.hasSet(p, ['helm4', 'plate4', 'boots4']);
@@ -433,7 +439,7 @@ class Game {
       e.angryAt = byId;
       e.angryUntil = this.time + ANGRY_TIME;
     }
-    const armor = e.type === 'golem' ? golem.frontFactor(this, e, byId) : 1;
+    const armor = e.type === 'golem' ? golem.frontFactor(this, e, byId) : wastes.armorOf(e);
     const dealt = Math.max(1, Math.round(amount * armor));
     e.hp -= dealt;
     this.addStat(this.players.get(byId), 'damage', dealt);
@@ -443,7 +449,7 @@ class Game {
     if (e.hp <= 0) {
       this.addStat(this.players.get(byId), 'kills', 1);
       this.killEnemy(e, { reward: true, byId });
-    }
+    } else if (e.type === 'crawler') wastes.crawlerHit(this, e);
     return dealt;
   }
 

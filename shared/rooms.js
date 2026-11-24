@@ -174,6 +174,17 @@
     [15, 6, 'W']
   ]);
 
+  // ---------- Floor 6: the Crystal Wastes ----------
+
+  const FLOOR6_NAME = 'Crystal Wastes';
+  const FLOOR6_ROOM_NAMES = ['Shard Fields', 'Glimmer Hollow', 'The Prism Gate', "Prismaurus' Crater"];
+
+  // The crater: wide open, a few crystal pillars to hide behind from the beam.
+  const CRATER = paint(PLAIN, [
+    [6, 3, 'w'], [6, 9, 'w'], [11, 2, 'w'], [11, 10, 'w'], [19, 3, 'w'], [19, 9, 'w'],
+    [16, 6, 'Z']
+  ]);
+
   // A floor = a name, room names, the shop after it, and its rooms.
   // A room is either { recipe } (traps placed at random every game) or
   // { layout } (hand-made, always the same; used for boss rooms).
@@ -268,7 +279,7 @@
       power: { hp: 2.5, dmg: 1.9 },
       targetTime: 330, // seconds for the 'fast' star
       roomNames: FLOOR5_ROOM_NAMES,
-      shop: null, // the last floor for now
+      shop: 'warrens',
       stalactites: false,
       rooms: [
         { recipe: { shape: PLAIN,
@@ -285,8 +296,31 @@
           monsters: { slug: 3, rothand: 3, bat: 2 } } },
         { layout: WYRM_PIT }
       ]
+    },
+    {
+      name: FLOOR6_NAME,
+      power: { hp: 2.75, dmg: 2.05 },
+      targetTime: 360, // seconds for the 'fast' star
+      roomNames: FLOOR6_ROOM_NAMES,
+      shop: null, // the last floor: beating Prismaurus ends the run
+      stalactites: false,
+      rooms: [
+        { recipe: { shape: PLAIN,
+          fallback: paint(PLAIN, [[15, 3, 'C'], [15, 9, 'C'], [19, 6, 'C'], [12, 2, 'I'], [12, 10, 'I'], [8, 4, 'w'], [8, 8, 'w']]),
+          scatter: [{ kind: 'pillar', count: [3, 5], size: [1, 1] }, { kind: 'spikes', count: 1, size: [2, 2] }],
+          monsters: { crawler: 3, wisp: 2 } } },
+        { recipe: { shape: PLAIN,
+          fallback: paint(PLAIN, [[16, 3, 'C'], [16, 9, 'C'], [12, 6, 'C'], [19, 2, 'I'], [19, 10, 'I'], [20, 6, 'I']]),
+          scatter: [{ kind: 'pillar', count: [3, 5], size: [1, 1] }, { kind: 'puddle', count: 1, size: [2, 2] }],
+          monsters: { crawler: 3, wisp: 3 } } },
+        { recipe: { shape: PLAIN, dark: [12, 1, 22, 11], torches: 3, fallbackTorches: [{ tx: 13, ty: 2 }, { tx: 18, ty: 6 }, { tx: 13, ty: 10 }],
+          fallback: paint(PLAIN, [[16, 3, 'C'], [16, 9, 'C'], [19, 6, 'G'], [13, 2, 'I'], [13, 10, 'I'], [20, 2, 'I']]),
+          scatter: [{ kind: 'pillar', count: [2, 4], size: [1, 1] }],
+          monsters: { crawler: 2, wisp: 3, golem: 1 } } },
+        { layout: CRATER }
+      ]
     }
   ];
 
-  return { FLOORS, WYRM_PIT, FLOOR5_NAME, FLOOR5_ROOM_NAMES, ROOST, ROOST_CORE, FLOOR4_NAME, FLOOR4_ROOM_NAMES, FLOOR3_NAME, FLOOR3_ROOM_NAMES, RIVER_STOPS, FLOOR1, FLOOR1_NAME, FLOOR1_ROOM_NAMES, FLOOR2_NAME, FLOOR2_ROOM_NAMES, PLAIN };
+  return { FLOORS, CRATER, WYRM_PIT, FLOOR5_NAME, FLOOR5_ROOM_NAMES, ROOST, ROOST_CORE, FLOOR4_NAME, FLOOR4_ROOM_NAMES, FLOOR3_NAME, FLOOR3_ROOM_NAMES, RIVER_STOPS, FLOOR1, FLOOR1_NAME, FLOOR1_ROOM_NAMES, FLOOR2_NAME, FLOOR2_ROOM_NAMES, PLAIN };
 });
