@@ -1,3 +1,4 @@
+const { ECONOMY } = require('../shared/data');
 const test = require('node:test');
 const assert = require('node:assert');
 const { ARENA, makeGame, run } = require('./helpers');
@@ -52,7 +53,7 @@ test('killed archer leaves bones that rebuild after 5 s', () => {
   assert.ok(!game.enemies.some((e) => e.type === 'bones'));
 });
 
-test('standing on the bones destroys them and pays 15 XP and 5 gold', () => {
+test('standing on the bones destroys them and pays 15 XP and 5 gold (plus the room bonus)', () => {
   const game = makeGame(['knight'], ARENA);
   const me = place(game, 0, 100, 600);
   const a = game.spawnEnemy('archer', 700, 312);
@@ -62,7 +63,7 @@ test('standing on the bones destroys them and pays 15 XP and 5 gold', () => {
   game.tick(0.05);
   assert.strictEqual(game.enemies.length, 0);
   assert.strictEqual(me.xp, 15);
-  assert.strictEqual(me.gold, 5);
+  assert.strictEqual(me.gold, 5 + ECONOMY.roomBonus[0]);
   assert.ok(game.drainEvents().some((e) => e.type === 'bonesBroken'));
 });
 

@@ -29,7 +29,8 @@
   let game = null;
   let scene = null;
   let latest = null;         // newest snapshot
-  const buffer = [];         // recent snapshots for smoothing { at, snap }
+  const buffer = [];         // recent snapshots for smoothing { at (server ms), snap }
+  let clockOffset = null;    // local ms minus server ms, from the quickest snapshots
   const pendingEvents = [];
 
   // ---------- the Phaser scene ----------
@@ -223,9 +224,14 @@
       const input = this.currentInput();
       const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
       const dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+      let step = 0;
+      let ux = 0;
+      let uy = 0;
       if (dx !== 0 || dy !== 0) {
         const len = Math.hypot(dx, dy);
-        const step = server.speed * dt;
+        ux = dx / len;
+        uy = dy / len;
+        step = server.speed * dt;
         const pos = moveWithCollision(this.room, this.me.x, this.me.y, (dx / len) * step, (dy / len) * step, 16, { doorOpen: snap.doorOpen });
         this.me.x = pos.x;
         this.me.y = pos.y;
@@ -244,12 +250,20 @@
         for (const h of this.history) if (h.seq > server.seq) { h.x += ox; h.y += oy; }
         this.history = this.history.filter((h) => h.seq > server.seq);
       }
-      // Ease the difference in over a few frames.
+      // Ease the difference in over a few frames. While walking, a correction
+      // may slow the hero down but never pull it backwards (that looks like shaking).
       const k = Math.min(1, dt * 12);
-      this.me.x += this.corr.x * k;
-      this.me.y += this.corr.y * k;
-      this.corr.x *= 1 - k;
-      this.corr.y *= 1 - k;
+      let cx = this.corr.x * k;
+      let cy = this.corr.y * k;
+      if (step > 0) {
+        const along = cx * ux + cy * uy;
+        const floor = -0.8 * step;
+        if (along < floor) { cx -= (along - floor) * ux; cy -= (along - floor) * uy; }
+      }
+      this.me.x += cx;
+      this.me.y += cy;
+      this.corr.x -= cx;
+      this.corr.y -= cy;
     }
 
     resetPrediction(server) {
@@ -516,14 +530,27 @@
             g.lineStyle(2, 0xe5534b, 0.5 + 0.5 * pulse).lineBetween(z.x, z.y, ex, ey);
             g.lineStyle(z.width, 0x6ce8ff, 0.08 + 0.1 * pulse).lineBetween(z.x, z.y, ex, ey);
           } else {
+            // one solid beam from Prismaurus's mouth to where it hits the wall,
+            // with a glowing strip on the floor showing where it hurts
             const flick = 0.85 + 0.15 * Math.sin(time / 25);
-            g.lineStyle(z.width + 14, 0x4acff0, 0.35 * flick).lineBetween(z.x, z.y, ex, ey);
-            g.lineStyle(z.width, 0x9af0ff, 0.85 * flick).lineBetween(z.x, z.y, ex, ey);
-            g.lineStyle(z.width * 0.4, 0xffffff, 1).lineBetween(z.x, z.y, ex, ey);
-            // rainbow sparkles along it
-            const along = Math.random() * z.r;
+            const w = z.width || 30;
+            const mx = z.x + (Math.cos(z.aim) < 0 ? -48 : 48), my = z.y - 64;
+            g.fillStyle(0x6ce8ff, 0.18 * flick);
+            g.fillPoints([
+              { x: z.x - cy * w / 2, y: z.y + cx * w / 2 }, { x: ex - cy * w / 2, y: ey + cx * w / 2 },
+              { x: ex + cy * w / 2, y: ey - cx * w / 2 }, { x: z.x + cy * w / 2, y: z.y - cx * w / 2 }
+            ], true);
+            g.lineStyle(w + 16, 0x4acff0, 0.3 * flick).lineBetween(mx, my, ex, ey);
+            g.lineStyle(w, 0x9af0ff, 0.9 * flick).lineBetween(mx, my, ex, ey);
+            g.lineStyle(w * 0.4, 0xffffff, 1).lineBetween(mx, my, ex, ey);
+            g.fillStyle(0xffffff, 0.9).fillCircle(mx, my, w * 0.6);
+            g.fillStyle(0x9af0ff, 0.6 * flick).fillCircle(ex, ey, w * (0.9 + 0.3 * Math.sin(time / 30)));
+            g.fillStyle(0xffffff, 0.9).fillCircle(ex, ey, w * 0.45);
+            // rainbow sparkles along it, and sparks where it hits
+            const along = Math.random();
             const colors = [0xff8a80, 0xffe48a, 0x9af0ff, 0xb89af0];
-            this.fx.burst(z.x + cx * along, z.y + cy * along, colors[Math.floor(Math.random() * 4)], 1, 'rise');
+            this.fx.burst(mx + (ex - mx) * along, my + (ey - my) * along, colors[Math.floor(Math.random() * 4)], 1, 'rise');
+            if (Math.random() < 0.6) this.fx.burst(ex, ey, colors[Math.floor(Math.random() * 4)], 2, 'rise');
           }
         } else if (z.kind === 'taunt') {
           g.lineStyle(4, 0xf2a541, 0.8).strokeCircle(z.x, z.y, z.r * 0.5);
@@ -596,6 +623,20 @@
         if (p.rolling && time - (this.ghostAt.get(id) || 0) > 35) {
           this.ghostAt.set(id, time);
           this.fx.ghost(s.body, DC.data.COLORS[p.color] ? parseInt(DC.data.COLORS[p.color].slice(1), 16) : 0xffffff);
+        }
+        // Where am I? A ring at my feet in my color and a bobbing arrow over my head.
+        // Teammates get a faint ring.
+        const color = parseInt((DC.data.COLORS[p.color] || '#FFFFFF').slice(1), 16);
+        const feetY = pos.y + 18;
+        if (isMe) {
+          const k = 0.5 + 0.5 * Math.sin(time / 220);
+          this.zoneLayer.fillStyle(color, 0.16 + 0.08 * k).fillEllipse(pos.x, feetY, 52, 18);
+          this.zoneLayer.lineStyle(3, color, 0.85).strokeEllipse(pos.x, feetY, 52, 18);
+          const ay = pos.y - 64 + Math.sin(time / 180) * 4;
+          this.statusLayer.fillStyle(0x0d0b12, 0.9).fillTriangle(pos.x - 9, ay - 2, pos.x + 9, ay - 2, pos.x, ay + 10);
+          this.statusLayer.fillStyle(color, 1).fillTriangle(pos.x - 6, ay, pos.x + 6, ay, pos.x, ay + 7);
+        } else {
+          this.zoneLayer.lineStyle(2, color, 0.45).strokeEllipse(pos.x, feetY, 44, 15);
         }
         s.label.setPosition(pos.x, pos.y - 34);
         s.bar.clear();
@@ -764,7 +805,8 @@
       for (const pr of snap.projectiles) {
         alive.add(pr.id);
         const prev = this.lastShot.get(pr.id) || pr;
-        const ang = Math.atan2(pr.y - prev.y, pr.x - prev.x);
+        // the server says which way it flies (between updates the position doesn't move)
+        const ang = pr.aim !== undefined ? pr.aim : Math.atan2(pr.y - prev.y, pr.x - prev.x);
         if (pr.kind === 'shard') {
           // a spinning violet crystal shard
           const cx = Math.cos(ang), cy = Math.sin(ang);
@@ -991,6 +1033,9 @@
       } else if (ev.type === 'screech') {
         for (let i = 0; i < 3; i++) fx.ring(ev.x, ev.y, { from: 10, to: ev.r, life: 0.45, color: 0xb9a6e8, width: 4, delay: i * 0.08 });
         fx.burst(ev.x, ev.y, 0xb9a6e8, 10, 'spark');
+      } else if (ev.type === 'roombonus' || ev.type === 'stargold') {
+        const meP = snap.players.find((q) => q.id === App.me);
+        if (meP) this.floatText(meP.x, meP.y - 70, `+${ev.gold} gold`, '#FFD873');
       } else if (ev.type === 'roar') {
         fx.ring(ev.x, ev.y, { from: 40, to: ev.r || 260, life: 0.7, color: 0x9ad7f0, width: 12, fill: 0.12 });
         fx.shake(600, 0.014);
@@ -1409,6 +1454,7 @@
     storm: 'puff', puff: 'puff', seed: 'puff', sprout: 'puff', explode: 'fireball', volley: 'arrow',
     rebuild: 'bones', bonesBroken: 'bones', outofreach: 'click', torchlit: 'fireball', shoptimeup: 'timeup',
     turretfire: 'turretShot', mineboom: 'mineBoom',
+    roombonus: 'coin', stargold: 'coin',
     roar: 'roar', stomp: 'quake', charge: 'shadow', beam: 'breath', shards: 'arrow',
     spit: 'puff', splat: 'slimeSplit', grab: 'bash', hands: 'crumble', wyrmrage: 'roar', wyrmburrow: 'quake', wyrmerupt: 'slam'
   };
@@ -1475,13 +1521,16 @@
   // Positions of everyone a moment ago, smoothed between two snapshots.
   function interpolated(snap) {
     const out = new Map();
-    const renderAt = performance.now() - INTERP_DELAY;
+    if (buffer.length < 2 || clockOffset === null) return out;
+    const renderAt = performance.now() - clockOffset - INTERP_DELAY;
     let a = null;
     let b = null;
     for (let i = buffer.length - 1; i > 0; i--) {
       if (buffer[i - 1].at <= renderAt) { a = buffer[i - 1]; b = buffer[i]; break; }
     }
-    if (!a || a.snap.room.key !== snap.room.key || b.snap.room.key !== snap.room.key) return out;
+    // a late snapshot: hold the newest positions instead of jumping around
+    if (!a) { a = buffer[buffer.length - 2]; b = buffer[buffer.length - 1]; }
+    if (a.snap.room.key !== snap.room.key || b.snap.room.key !== snap.room.key) return out;
     const t = Math.max(0, Math.min(1, (renderAt - a.at) / Math.max(1, b.at - a.at)));
     const index = (list, prefix) => new Map(list.map((o) => [prefix + o.id, o]));
     const before = new Map([...index(a.snap.players, 'p:'), ...index(a.snap.enemies, 'e:')]);
@@ -1503,6 +1552,7 @@
       height: H,
       backgroundColor: '#0D0B12',
       pixelArt: true,
+      roundPixels: true, // whole pixels: pixel art doesn't shimmer as it moves
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
       scene: DungeonScene
     });
@@ -1516,6 +1566,7 @@
         // a new run (Play again): forget everything from the last one
         latest = null;
         buffer.length = 0;
+        clockOffset = null;
         pendingEvents.length = 0;
         if (scene) scene.resetView();
         if (window.Results) Results.hide();
@@ -1526,7 +1577,14 @@
         // Coming back from the shop into the next floor.
         if (App.screen === 'shop' && snap.phase === 'playing') App.show('game');
         latest = snap;
-        buffer.push({ at: performance.now(), snap });
+        // Place each snapshot on the server's own clock (snap.t), not on when it
+        // happened to arrive: network hiccups then can't make things speed up and slow down.
+        const now = performance.now();
+        const offset = now - snap.t * 1000;
+        if (clockOffset === null || buffer.length && snap.t < buffer[buffer.length - 1].snap.t) clockOffset = offset;
+        // follow the fastest arrivals, drift slowly toward slower ones
+        else clockOffset = offset < clockOffset ? offset : clockOffset + (offset - clockOffset) * 0.02;
+        buffer.push({ at: snap.t * 1000, snap });
         if (buffer.length > 12) buffer.shift();
         Hud.update(snap, App.me);
       });

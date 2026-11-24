@@ -146,7 +146,7 @@ function skillQ(game, p, hero) {
     game.zones = game.zones.filter((z) => !(z.kind === 'turret' && z.ownerId === p.id));
     game.addZone({
       kind: 'turret', ownerId: p.id, x: p.x, y: p.y, r: s.range, until: game.time + s.duration,
-      nextShot: game.time + s.every, every: s.every, dmg: s.dmg + Math.round(p.weaponBonus / 2), speed: s.speed, ttl: s.ttl
+      nextShot: game.time + s.every, every: s.every, dmg: s.dmg + p.weaponBonus, speed: s.speed, ttl: s.ttl
     });
   }
 }

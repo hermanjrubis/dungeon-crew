@@ -1,3 +1,4 @@
+const { ECONOMY } = require('../shared/data');
 const test = require('node:test');
 const assert = require('node:assert');
 const { ONE_GLOOP_ROOMS, EMPTY_ROOMS, makeGame, run, center } = require('./helpers');
@@ -56,7 +57,7 @@ test('killing the last enemy opens the door and gives gold and xp to everyone', 
   game.tick(0.05);
   assert.strictEqual(game.doorOpen, true);
   for (const pl of game.players.values()) {
-    assert.strictEqual(pl.gold, 4); // Gloop 2 + two Mini Gloops 1 each
+    assert.strictEqual(pl.gold, 8 + ECONOMY.roomBonus[0]); // (Gloop 2 + two Mini Gloops 1 each) doubled, plus the room bonus
     assert.strictEqual(pl.xp, 16);
   }
   assert.ok(game.drainEvents().some((e) => e.type === 'roomclear'));

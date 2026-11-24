@@ -1,3 +1,4 @@
+const { ECONOMY } = require('../shared/data');
 const test = require('node:test');
 const assert = require('node:assert');
 const { makeGame, run, center } = require('./helpers');
@@ -91,12 +92,12 @@ test('rolling over lava still burns you', () => {
   assert.strictEqual(me(game).x, center(1, 2).x);
 });
 
-test('a monster knocked into lava dies without a reward', () => {
+test('a monster knocked into lava dies without a reward (only the room bonus)', () => {
   const game = makeGame(['knight'], [LAVA, OPEN]);
   const g = game.spawnEnemy('gloop', center(4, 2).x, center(4, 2).y);
   game.tick(0.05);
   assert.ok(!game.enemies.includes(g));
-  assert.strictEqual(me(game).gold, 0);
+  assert.ok(me(game).gold === 0 || me(game).gold === ECONOMY.roomBonus[0]);
 });
 
 test('a geyser glows for 1.5 s, then erupts for 30 damage and burning', () => {

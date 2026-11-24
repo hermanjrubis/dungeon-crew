@@ -345,6 +345,21 @@ class Game {
     };
   }
 
+  // This floor's entry in an ECONOMY bonus list.
+  bonusFor(list) {
+    const l = data.ECONOMY[list];
+    return l[Math.min(this.floorIndex, l.length - 1)];
+  }
+
+  payEveryone(gold, type) {
+    if (!gold) return;
+    for (const p of this.players.values()) {
+      p.gold += gold;
+      this.addStat(p, 'gold', gold);
+    }
+    this.event({ type, gold });
+  }
+
   runResults() {
     return { time: Math.round(this.time), players: this.resultRows('runStats') };
   }
@@ -462,7 +477,7 @@ class Game {
       const m = data.MONSTERS[e.type];
       for (const p of this.players.values()) {
         const [lo, hi] = m.gold;
-        const roll = lo + Math.floor(this.rng() * (hi - lo + 1));
+        const roll = (lo + Math.floor(this.rng() * (hi - lo + 1))) * data.ECONOMY.goldMul;
         const gold = Math.round(roll * (1 + (data.HEROES[p.heroClass].goldBonus || 0))); // Engineer's Scrapper
         p.gold += gold;
         this.addStat(p, 'gold', gold);
@@ -557,8 +572,11 @@ class Game {
     if (!this.doorOpen && this.enemies.length === 0) {
       this.doorOpen = true;
       this.event({ type: 'roomclear', roomIndex: this.roomIndex });
+      this.payEveryone(this.bonusFor('roomBonus'), 'roombonus');
       if (this.roomIndex === this.layouts.length - 1) {
         this.lastResults = this.floorResults();
+        this.lastResults.starGold = this.lastResults.stars * this.bonusFor('starBonus');
+        this.payEveryone(this.lastResults.starGold, 'stargold');
         this.event({ type: 'floorresults', results: this.lastResults });
         if (this.transitionsOn) {
           if (this.floor.shop) this.showCard('floorclear', `Floor ${this.floorIndex + 1} cleared!`, 'Heading to the camp shop…');
@@ -640,10 +658,13 @@ class Game {
         facing: e.facing === undefined ? 0 : Math.round(e.facing * 100) / 100,
         stunned: this.time < e.stunUntil, sky: !!e.sky, angry: e.angryUntil > this.time, rage: !!e.rage
       })),
-      projectiles: this.projectiles.map((pr) => ({ id: pr.id, kind: pr.kind, x: r(pr.x), y: r(pr.y) })),
+      // `aim` = the way it's flying, so arrows always point forward on screen
+      projectiles: this.projectiles.map((pr) => ({ id: pr.id, kind: pr.kind, x: r(pr.x), y: r(pr.y), aim: Math.round(Math.atan2(pr.vy, pr.vx) * 100) / 100 })),
       zones: this.zones.map((z) => {
         const out = { id: z.id, kind: z.kind, x: r(z.x), y: r(z.y), r: z.r, until: z.until };
-        if (z.aim !== undefined) { out.aim = Math.round(z.aim * 100) / 100; out.spread = Math.round(z.spread * 100) / 100; }
+        if (z.aim !== undefined) out.aim = Math.round(z.aim * 100) / 100;
+        if (z.spread !== undefined) out.spread = Math.round(z.spread * 100) / 100;
+        if (z.width !== undefined) out.width = z.width;
         if (z.armAt !== undefined) out.armed = this.time >= z.armAt;
         if (z.ownerId) out.ownerId = z.ownerId;
         return out;

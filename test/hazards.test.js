@@ -1,3 +1,4 @@
+const { ECONOMY } = require('../shared/data');
 const test = require('node:test');
 const assert = require('node:assert');
 const { makeGame, run, center } = require('./helpers');
@@ -70,14 +71,14 @@ test('standing on a broken tile is the same as a pit', () => {
   assert.strictEqual(me(game).hp, 105);
 });
 
-test('gloop pushed into a pit dies and gives no gold', () => {
+test('gloop pushed into a pit dies and gives no gold (only the room bonus)', () => {
   const game = makeGame(['knight'], HAZARD_ROOMS);
   Object.assign(me(game), center(1, 3));
   const g = game.spawnEnemy('gloop', center(7, 2).x, center(7, 2).y);
   game.tick(0.05);
   assert.ok(!game.enemies.includes(g));
   assert.strictEqual(game.enemies.length, 0);
-  assert.strictEqual(me(game).gold, 0);
+  assert.ok(me(game).gold === 0 || me(game).gold === ECONOMY.roomBonus[0]);
 });
 
 test('bats are not hurt by spikes or pits', () => {

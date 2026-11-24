@@ -51,9 +51,17 @@
       name: 'Engineer', hp: 95, baseDmg: 9, speed: 175, mana: 0, goldBonus: 0.1,
       starter: { name: 'Rusty Wrench', bonus: 3 },
       attack: { kind: 'swing', arc: 80, range: 56, cd: 0.45 },
-      q: { name: 'Turret', cd: 12, duration: 10, range: 300, every: 0.6, dmg: 7, speed: 520, ttl: 0.8 },
+      q: { name: 'Turret', cd: 12, duration: 15, range: 390, every: 0.42, dmg: 14, speed: 560, ttl: 0.9 },
       space: { name: 'Mine', cd: 6, armTime: 0.5, trigger: 28, radius: 72, dmg: 30, duration: 20, max: 2 }
     }
+  };
+
+  // Gold on top of what monsters drop: every room cleared, and every star a floor earns.
+  // Index = floor (Floor 1 is 0). Monsters drop goldMul times their listed gold.
+  const ECONOMY = {
+    goldMul: 2,
+    roomBonus: [15, 25, 35, 50, 60, 70],
+    starBonus: [20, 30, 45, 60, 70, 80]
   };
 
   const MONSTERS = {
@@ -173,6 +181,6 @@
 
   return {
     TICK_RATE, CLASSES, COLORS, HEROES, MONSTERS, LEVELS, LEVEL_HP, LEVEL_DMG,
-    POTION_HEAL, BURN, SHOP_ITEMS, SHOP_WEAPONS, SET_NAME, SET_BONUS, SHOPS
+    POTION_HEAL, BURN, SHOP_ITEMS, SHOP_WEAPONS, SET_NAME, SET_BONUS, SHOPS, ECONOMY
   };
 });

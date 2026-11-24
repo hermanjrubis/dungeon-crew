@@ -117,3 +117,37 @@ test('beating Prismaurus ends the run', () => {
   game.tick(0.05);
   assert.strictEqual(game.phase, 'done');
 });
+
+test('the prism beam is one solid strip that stops at the first wall or pillar', () => {
+  const pillarRoom = [[
+    'wwwwwwwwwwwwwwwwwwwwwwww',
+    'wffffffffffffffffffffffw',
+    'wffffffffffffffffffffffw',
+    'wffffffffffffffffffffffw',
+    'wffffffffffffffffffffffw',
+    'wffffffffffffffffffffffw',
+    'weffffwffffffffffffffffw',
+    'wffffffffffffffffffffffw',
+    'wffffffffffffffffffffffw',
+    'wffffffffffffffffffffffw',
+    'wffffffffffffffffffffffw',
+    'wffffffffffffffffffffffw',
+    'wwwwwwwwwwwwwwwwwwwwwwww'
+  ]];
+  const game = makeGame(['knight'], pillarRoom);
+  game.enemies = [];
+  const p = tough(me(game));
+  Object.assign(p, center(3, 6)); // behind the pillar at x=6
+  const z = game.spawnEnemy('prism', center(16, 6).x, center(16, 6).y);
+  for (let i = 0; i < 400 && z.state !== 'beam'; i++) game.tick(0.05);
+  assert.strictEqual(z.state, 'beam');
+  z.beamAim = Math.PI; z.beamStart = Math.PI; z.sweepDir = 0; // aim straight at the player
+  run(game, 0.3);
+  const beam = game.zones.find((q) => q.kind === 'beam');
+  assert.ok(beam.r < 16 * 48 - 6 * 48, 'stops at the pillar: ' + beam.r);
+  const snapZone = game.snapshot().zones.find((q) => q.kind === 'beam');
+  assert.ok(snapZone.width > 0, 'the browser gets the beam width');
+  const hp = p.hp;
+  run(game, 0.5);
+  assert.strictEqual(p.hp, hp, 'safe behind the pillar');
+});

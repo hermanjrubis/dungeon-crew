@@ -81,10 +81,10 @@ test('the lair goes dark at half HP', () => {
   assert.ok(game.drainEvents().some((e) => e.type === 'darkness'));
 });
 
-test('beating the queen pays 70 gold and 150 XP', () => {
+test('beating the queen pays 140 gold (70 doubled) and 150 XP', () => {
   const { game, players, q } = setup();
   game.damageEnemy(q, 9999, 'p0');
-  assert.strictEqual(players[0].gold, 70);
+  assert.strictEqual(players[0].gold, 140);
   assert.strictEqual(players[0].xp, 150);
 });
 

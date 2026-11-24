@@ -83,6 +83,7 @@
         <p class="res-eyebrow">${esc(r.floorName)} · ${clock(r.time)}</p>
         <h1 class="res-title">FLOOR ${r.floorIndex + 1} CLEARED!</h1>
         <div class="res-stars">${stars}</div>
+        ${r.starGold ? `<p class="res-stargold">+${r.starGold} gold each for the stars</p>` : ''}
         <div class="res-cards">${cards}</div>
       </div>`;
     root.classList.remove('hidden', 'leaving');

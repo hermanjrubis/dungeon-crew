@@ -109,7 +109,7 @@ test("the engineer's wrench swings", () => {
   assert.strictEqual(g.hp, 100 - (9 + 3));
 });
 
-test('a turret shoots the nearest monster for 10 s', () => {
+test('a turret shoots the nearest monster for 15 s', () => {
   const game = makeGame(['engineer'], ROOMS);
   at(game, 0, 4, 6);
   const g = dummy(game, 'golem', 9, 6);
@@ -123,8 +123,8 @@ test('a turret shoots the nearest monster for 10 s', () => {
   run(game, 3);
   assert.ok(g.hp < 1000);
   assert.ok(game.drainEvents().some((e) => e.type === 'turretfire'));
-  run(game, 7.5);
-  assert.ok(!game.zones.some((z) => z.kind === 'turret'), 'gone after 10 s');
+  run(game, 12.5);
+  assert.ok(!game.zones.some((z) => z.kind === 'turret'), 'gone after 15 s');
 });
 
 test('a new turret replaces the old one, but two engineers keep one each', () => {
@@ -192,9 +192,9 @@ test('scrapper gives the engineer 10% more gold', () => {
   const game = makeGame(['engineer', 'knight'], ROOMS);
   const golem = game.spawnEnemy('golem', 300, 300);
   game.damageEnemy(golem, 999, 'p1');
-  // rng () => 0 -> the lowest roll: 10 gold; engineer gets 11
-  assert.strictEqual(me(game, 1).gold, 10);
-  assert.strictEqual(me(game, 0).gold, 11);
+  // rng () => 0 -> the lowest roll: 10 gold, doubled = 20; engineer gets 22
+  assert.strictEqual(me(game, 1).gold, 20);
+  assert.strictEqual(me(game, 0).gold, 22);
 });
 
 test("the shops sell the new heroes' weapons", () => {

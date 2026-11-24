@@ -1,3 +1,4 @@
+const { ECONOMY } = require('../shared/data');
 const test = require('node:test');
 const assert = require('node:assert');
 const { Game } = require('../server/game');
@@ -152,7 +153,8 @@ test('beating Ashmaw opens the Roost camp shop (Floor 5 is next)', () => {
   game.damageEnemy(d, 5, 'p0');
   game.tick(0.05);
   assert.strictEqual(game.phase, 'shop');
-  assert.strictEqual(me(game).gold, 300);
+  // 300 gold doubled; the rest is the room and star bonuses
+  assert.strictEqual(me(game).gold - ECONOMY.roomBonus[0] - game.lastResults.starGold, 600);
 });
 
 test('at half HP Ashmaw rages: roars, calls Skitterbats, and attacks faster', () => {

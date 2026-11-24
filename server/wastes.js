@@ -11,6 +11,7 @@
 //     Roar:   at 2/3 and 1/3 HP: slows everyone nearby by half for 2.5 s and
 //             calls 2 Shard Wisps (no reward; never more than 4).
 //   The Prismguard set cuts beam and shard damage by 40% and ignores the roar.
+const tiles = require('../shared/tiles');
 const { dist, pickTarget, walkToward, contactDamage } = require('./ai');
 
 const EPS = 1e-6;
@@ -155,7 +156,7 @@ function updatePrism(game, e, dt) {
     // the aim follows its target until the last moment
     if (target && game.time < e.stateUntil - 0.4) e.beamAim = Math.atan2(target.y - e.y, target.x - e.x);
     const warn = game.zones.find((z) => z.kind === 'beamWarn' && z.ownerId === e.id);
-    if (warn) warn.aim = e.beamAim;
+    if (warn) { warn.aim = e.beamAim; warn.r = beamReach(game, e, e.beamAim); }
     if (over) {
       e.state = 'beam';
       e.stateUntil = game.time + BEAM_TIME;
@@ -168,9 +169,11 @@ function updatePrism(game, e, dt) {
   if (e.state === 'beam') {
     const k = Math.min(1, 1 - (e.stateUntil - game.time) / BEAM_TIME);
     e.beamAim = e.beamStart + BEAM_SWEEP * k * e.sweepDir;
+    e.beamLength = beamReach(game, e, e.beamAim);
     let zone = game.zones.find((z) => z.kind === 'beam' && z.ownerId === e.id);
-    if (!zone) zone = game.addZone({ kind: 'beam', ownerId: e.id, x: e.x, y: e.y, r: BEAM_LENGTH, width: BEAM_WIDTH, aim: e.beamAim, until: e.stateUntil });
+    if (!zone) zone = game.addZone({ kind: 'beam', ownerId: e.id, x: e.x, y: e.y, r: e.beamLength, width: BEAM_WIDTH, aim: e.beamAim, until: e.stateUntil });
     zone.aim = e.beamAim;
+    zone.r = e.beamLength;
     while (e.timers.beamTick <= game.time + EPS) {
       e.timers.beamTick += BEAM_TICK;
       for (const p of game.alivePlayers()) {
@@ -200,7 +203,7 @@ function updatePrism(game, e, dt) {
     e.stateUntil = game.time + CHARGE_TIME;
     e.beamAim = e.facing;
     e.sweepDir = game.rng() < 0.5 ? -1 : 1;
-    game.addZone({ kind: 'beamWarn', ownerId: e.id, x: e.x, y: e.y, r: BEAM_LENGTH, width: BEAM_WIDTH, aim: e.beamAim, until: e.stateUntil });
+    game.addZone({ kind: 'beamWarn', ownerId: e.id, x: e.x, y: e.y, r: beamReach(game, e, e.beamAim), width: BEAM_WIDTH, aim: e.beamAim, until: e.stateUntil });
     game.event({ type: 'charge', x: Math.round(e.x), y: Math.round(e.y) });
     return;
   }
@@ -228,13 +231,22 @@ function behind(e, p) {
   return diff > Math.PI * 0.6;
 }
 
+// How far the beam reaches before it hits a wall or pillar.
+function beamReach(game, e, aim) {
+  const cx = Math.cos(aim), cy = Math.sin(aim);
+  for (let d = e.r; d < BEAM_LENGTH; d += 8) {
+    if (tiles.isSolid(tiles.tileAt(game.room, e.x + cx * d, e.y + cy * d), { doorOpen: true })) return d;
+  }
+  return BEAM_LENGTH;
+}
+
 // Is player p inside the beam (a long thin strip from Prismaurus along beamAim)?
 function inBeam(e, p) {
   const cx = Math.cos(e.beamAim), cy = Math.sin(e.beamAim);
   const dx = p.x - e.x, dy = p.y - e.y;
   const along = dx * cx + dy * cy;
   const side = Math.abs(-dx * cy + dy * cx);
-  return along > 0 && along <= BEAM_LENGTH && side <= BEAM_WIDTH / 2 + p.r;
+  return along > 0 && along <= (e.beamLength || BEAM_LENGTH) && side <= BEAM_WIDTH / 2 + p.r;
 }
 
 function roar(game, e) {
