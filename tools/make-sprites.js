@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const { spriteFiles } = require('../shared/sprites');
+const sheets = require('../shared/art');
 
 const OUT = path.join(__dirname, '..', 'client', 'assets');
 
@@ -63,12 +64,56 @@ function encodePng(rows, palette, size) {
   ]);
 }
 
-if (require.main === module) {
-  fs.mkdirSync(OUT, { recursive: true });
-  for (const s of spriteFiles()) {
-    fs.writeFileSync(path.join(OUT, s.file), encodePng(s.rows, s.palette, s.size));
+// Encode a grid of colors (rows of '#RRGGBB' or null) as a PNG.
+function encodeGrid(grid) {
+  const h = grid.length, w = grid[0].length;
+  const raw = Buffer.alloc((w * 4 + 1) * h);
+  for (let y = 0; y < h; y++) {
+    const rowStart = y * (w * 4 + 1);
+    for (let x = 0; x < w; x++) {
+      const c = grid[y][x];
+      if (!c) continue;
+      const [r, g, b] = hexToRgb(c);
+      const i = rowStart + 1 + x * 4;
+      raw[i] = r; raw[i + 1] = g; raw[i + 2] = b; raw[i + 3] = 255;
+    }
   }
-  console.log(`Wrote ${spriteFiles().length} sprites to client/assets/`);
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(w, 0);
+  header.writeUInt32BE(h, 4);
+  header[8] = 8;
+  header[9] = 6;
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk('IHDR', header),
+    chunk('IDAT', zlib.deflateSync(raw)),
+    chunk('IEND', Buffer.alloc(0))
+  ]);
 }
 
-module.exports = { encodePng };
+// A sheet: every frame side by side in one row.
+function sheetGrid(sheet) {
+  const frames = sheet.frames.map((_, i) => sheets.renderSheetFrame(sheet, i));
+  const size = sheet.size;
+  return Array.from({ length: size }, (_, y) => frames.flatMap((f) => f[y]));
+}
+
+if (require.main === module) {
+  fs.mkdirSync(OUT, { recursive: true });
+  const made = new Set();
+  for (const sh of sheets.sheetFiles()) {
+    fs.writeFileSync(path.join(OUT, sh.file), encodeGrid(sheetGrid(sh)));
+    fs.writeFileSync(path.join(OUT, sh.portrait), encodeGrid(sheets.renderSheetFrame(sh, sh.anims.idle.start)));
+    made.add(sh.portrait);
+  }
+  // characters not redrawn yet keep their old single picture
+  let old = 0;
+  for (const s of spriteFiles()) {
+    if (made.has(s.file)) continue;
+    fs.writeFileSync(path.join(OUT, s.file), encodePng(s.rows, s.palette, s.size));
+    old++;
+  }
+  console.log(`Wrote ${made.size} sprite sheets and ${old} old sprites to client/assets/`);
+}
+
+module.exports = { encodePng, encodeGrid, sheetGrid };
