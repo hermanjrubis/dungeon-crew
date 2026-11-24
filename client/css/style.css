@@ -435,3 +435,26 @@ kbd { border-radius: 0; border: 3px solid var(--frame-out); background: #2E2440;
 .hero-card img { width: 44px; height: 44px; }
 .color-panel { padding: 10px 14px; }
 .slot { border-radius: 0 !important; }
+
+/* ---------- lobby layout: heroes in a 2-column grid so the list never spills into the footer ---------- */
+.lobby-body { flex-wrap: nowrap; align-items: stretch; }
+.lobby-left { width: clamp(420px, 27vw, 540px); flex-shrink: 0; min-height: 0; }
+.hero-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hero-list .hero-card, .hero-card { padding: 8px 10px; gap: 10px; min-width: 0; }
+.hero-card img { width: 48px; height: 48px; flex-shrink: 0; }
+.hero-card-name { font-size: 22px; }
+.hero-card-text { min-width: 0; }
+.hero-card-text > .small { font-size: 17px; line-height: 1.05; }
+.color-panel { flex-shrink: 0; }
+.hero-preview { width: 300px; flex-shrink: 0; }
+.hero-preview img { width: min(240px, 100%); height: auto; }
+.hero-details { min-width: 0; overflow: auto; }
+.lobby-bottom { flex-shrink: 0; }
+/* narrow windows: stack the columns and let the page scroll */
+@media (max-width: 1100px) {
+  .lobby-body { flex-wrap: wrap; flex: none; }
+  .hero-details { width: 100%; flex: none; overflow: visible; }
+  .lobby-left, .hero-preview { width: 100%; }
+  .hero-list { grid-template-columns: repeat(3, 1fr); }
+  .hero-preview { min-height: 280px; }
+}
