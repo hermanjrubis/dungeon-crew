@@ -68,6 +68,9 @@
 
   // Gold on top of what monsters drop: every room cleared, and every star a floor earns.
   // Index = floor (Floor 1 is 0). Monsters drop goldMul times their listed gold.
+  // Extra drops from kills (see server/loot.js). One roll per normal kill; bosses always burst.
+  const LOOT = { chance: { feather: 0.02, potion: 0.06, heart: 0.12, coins: 0.35 }, life: 12, blink: 3, heartHeal: 0.2, bossCoins: [5, 8] };
+
   const ECONOMY = {
     goldMul: 2,
     roomBonus: [15, 25, 35, 50, 60, 70],
@@ -191,6 +194,6 @@
 
   return {
     TICK_RATE, CLASSES, COLORS, HEROES, MONSTERS, LEVELS, LEVEL_HP, LEVEL_DMG,
-    POTION_HEAL, BURN, SHOP_ITEMS, SHOP_WEAPONS, SET_NAME, SET_BONUS, SHOPS, ECONOMY
+    POTION_HEAL, BURN, SHOP_ITEMS, SHOP_WEAPONS, SET_NAME, SET_BONUS, SHOPS, ECONOMY, LOOT
   };
 });

@@ -6,6 +6,7 @@ const data = require('../shared/data');
 const { FLOORS } = require('../shared/rooms');
 const { buildRoom } = require('./layout');
 const { makeRng } = require('./rng');
+const loot = require('./loot');
 
 // How long each title card stays up, in seconds. The game is frozen meanwhile.
 const CARD_TIME = { start: 2, room: 1.6, boss: 2.2, reset: 1.6, floorclear: 7 }; // floorclear = the results screen
@@ -122,6 +123,7 @@ class Game {
     this.enemies = [];
     this.projectiles = [];
     this.zones = [];
+    this.loot = [];              // drops on the floor (server/loot.js)
     this.broken = new Set();     // cracked tiles that became pits
     this.cracking = new Map();   // tile index -> time it breaks
     this.tauntBy = null;
@@ -485,6 +487,7 @@ class Game {
         this.addStat(p, 'gold', gold);
         this.addXp(p, m.xp);
       }
+      loot.roll(this, e);
     }
     this.event({ type: 'kill', enemyId: e.id, enemyType: e.type, x: Math.round(e.x), y: Math.round(e.y), noReward: !reward || !!e.noReward });
     enemies.onEnemyDeath(this, e, { reward });
@@ -563,6 +566,7 @@ class Game {
       if (this.enemies.includes(e)) enemies.updateEnemy(this, e, dt);
     }
     this.updateTeamwork(dt);
+    loot.update(this);
 
     // Everyone down? Start the room again.
     if (this.alivePlayers().length === 0) {
@@ -662,6 +666,7 @@ class Game {
       })),
       // `aim` = the way it's flying, so arrows always point forward on screen
       projectiles: this.projectiles.map((pr) => ({ id: pr.id, kind: pr.kind, x: r(pr.x), y: r(pr.y), aim: Math.round(Math.atan2(pr.vy, pr.vx) * 100) / 100 })),
+      loot: loot.snapshot(this),
       zones: this.zones.map((z) => {
         const out = { id: z.id, kind: z.kind, x: r(z.x), y: r(z.y), r: z.r, until: z.until };
         if (z.aim !== undefined) out.aim = Math.round(z.aim * 100) / 100;
