@@ -28,7 +28,7 @@
   });
 
   // ---------- background music: pick the song for what's on screen ----------
-  const FLOOR_SONGS = ['cellar', 'caverns', 'forge', 'roost'];
+  const FLOOR_SONGS = ['cellar', 'caverns', 'forge', 'roost', 'warrens', 'wastes'];
   let lastSnap = null;
   let lastWanted = null;
   Net.on('game:snapshot', (s) => { lastSnap = s; });

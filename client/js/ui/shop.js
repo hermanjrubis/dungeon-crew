@@ -166,7 +166,10 @@
     wireEndButtons(root);
   }
 
-  // The whole dungeon is cleared: Ashmaw is beaten.
+  // The whole dungeon is cleared: the last floor's boss is beaten.
+  const FINAL_BOSS = ['the Gloop Mother', 'the Spore Queen', 'the Hollow King', 'Ashmaw', 'the Rothand Wyrm', 'Prismaurus'];
+  const COUNT_WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   function renderVictory(state) {
     const root = document.getElementById('end');
     const mins = Math.floor(state.time / 60);
@@ -188,11 +191,11 @@
     root.innerHTML = `
       <div class="end-card victory">
         <p class="eyebrow">Victory</p>
-        <h1>Ashmaw is defeated!</h1>
-        <p class="lead">Your crew cleared all four floors of the dungeon in ${mins}:${secs}.</p>
+        <h1>${esc(cap(FINAL_BOSS[state.floorIndex] || 'The last boss'))} is defeated!</h1>
+        <p class="lead">Your crew cleared all ${COUNT_WORDS[state.floorIndex] || state.floorIndex + 1} floors of the dungeon in ${mins}:${secs}.</p>
         <div class="end-team">${cards}</div>
         <div class="trophies">
-          <span class="muted small">Dragon's hoard</span>
+          <span class="muted small">The dungeon's hoard</span>
           <span class="trophy">Phoenix Feather</span>
           <span class="trophy">300 gold each</span>
         </div>

@@ -68,6 +68,20 @@
               'C5 - Eb5 - G5 - C6 - | Ab5 - - - G5 - F5 - | F5 - G5 - Ab5 - Bb5 - | B5 - - - G5 - - -',
       drums: { k: 'x.....x...x.....', s: '........x.......', h: 'x...x...x...x...', t: '..........x.x.x.' }
     },
+    warrens: {
+      title: 'Floor 5 · Rot Warrens', bpm: 88, lead: 'triangle', leadVol: 0.12, bassStyle: 'half', arp: false, echo: true,
+      chords: ['Bbm', 'Gb', 'Bbm', 'F', 'Bbm', 'Gb', 'Db', 'F'],
+      melody: 'F4 - Bb4 - Db5 - C5 Bb4 | A4 - - - F4 - . . | Gb4 - Bb4 - Eb5 - Db5 C5 | C5 - - - - - . . | ' +
+              'Bb4 . Db5 . F5 - Eb5 Db5 | C5 - Db5 - Bb4 - Gb4 - | Ab4 - Bb4 - C5 - Db5 - | C5 - - - A4 - . .',
+      drums: { k: 'x.......x..x....', s: '............x...', h: '..x.......x.....' }
+    },
+    wastes: {
+      title: 'Floor 6 · Crystal Wastes', bpm: 100, lead: 'sine', leadVol: 0.12, bassStyle: 'quarter', arp: true, echo: true,
+      chords: ['F#m', 'D', 'A', 'E', 'F#m', 'D', 'Bm', 'C#'],
+      melody: 'C#5 - - F#5 - - E5 - | D5 - C#5 - A4 - - - | E5 - - A5 - - G#5 - | B5 - - - G#5 - . . | ' +
+              'F#5 - A5 - C#6 - B5 A5 | F#5 - - - D5 - E5 - | F#5 - D5 - B4 - D5 - | C#5 - - - F5 - . .',
+      drums: { k: 'x.......x.......', s: '....x.......x...', h: 'x...x...x...x.x.' }
+    },
     boss: {
       title: 'Boss Fight', bpm: 150, lead: 'square', leadVol: 0.06, bassStyle: 'eighths', arp: false,
       chords: ['Em', 'Em', 'C', 'D', 'Em', 'Em', 'C', 'B'],

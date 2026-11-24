@@ -11,10 +11,11 @@
   // How far below an entity's position its feet were in the old pictures, so
   // the new art stands in the same spot.
   const footCache = new Map();
+  const NEW_FEET = { rotgrub: 14, slug: 14, rothand: 12, wyrm: 40, crawler: 14, wisp: 22, prism: 44 };
   function oldFoot(key) {
     if (footCache.has(key)) return footCache.get(key);
     const old = DC.sprites.spriteFiles().find((s) => s.key === key);
-    let v = 18;
+    let v = NEW_FEET[key] !== undefined ? NEW_FEET[key] : 18;
     if (old) {
       let last = 0;
       old.rows.forEach((r, i) => { if (/[^.]/.test(r)) last = i; });
@@ -23,7 +24,7 @@
     footCache.set(key, v);
     return v;
   }
-  const BIG = { mother: [52, 80], halfmother: [52, 80], queen: [52, 80], king: [56, 90], dragon: [74, 120] }; // ms: draw others slightly in the past so movement is smooth
+  const BIG = { mother: [52, 80], halfmother: [52, 80], queen: [52, 80], king: [56, 90], dragon: [74, 120], wyrm: [60, 150], prism: [80, 170] }; // ms: draw others slightly in the past so movement is smooth
 
   let game = null;
   let scene = null;
@@ -261,9 +262,10 @@
     // ---------- the room ----------
 
     drawTiles(snap) {
-      const key = [snap.room.key, snap.doorOpen, snap.spikes, snap.broken.join(','), snap.cracking.join(',')].join('|');
+      const key = [snap.floorIndex, snap.room.key, snap.doorOpen, snap.spikes, snap.broken.join(','), snap.cracking.join(',')].join('|');
       if (key === this.tileKey) return;
       this.tileKey = key;
+      THEME = THEMES[snap.floorIndex] || STONE;
       const g = this.tileLayer;
       g.clear();
       const room = this.room;
@@ -490,6 +492,19 @@
           g.fillStyle(0xe5534b, 0.15 + 0.2 * (1 - left)).fillCircle(z.x, z.y, z.r);
           g.lineStyle(3, 0xe5534b, 0.9).strokeCircle(z.x, z.y, z.r);
           g.lineStyle(2, 0xf2a541, 0.9).strokeCircle(z.x, z.y, z.r * left);
+        } else if (z.kind === 'acid') {
+          // a sizzling yellow-green acid puddle
+          const left = Math.max(0, Math.min(1, (z.until - snap.t) / 1));
+          g.fillStyle(0x9ac83a, 0.28 * left + 0.1).fillEllipse(z.x, z.y, z.r * 2.2, z.r * 1.3);
+          g.fillStyle(0xd8f050, 0.35 * left).fillEllipse(z.x - 4, z.y - 2, z.r * 1.1, z.r * 0.6);
+          if (Math.random() < 0.08) this.fx.burst(z.x + (Math.random() - 0.5) * z.r, z.y, 0xd8f050, 1, 'rise');
+        } else if (z.kind === 'wyrmWarn') {
+          // the ground is about to burst: cracks and a pulsing ring
+          const left = Math.max(0, Math.min(1, (z.until - snap.t) / 1));
+          g.fillStyle(0x3a2a1e, 0.55).fillCircle(z.x, z.y, z.r * (1 - left * 0.5));
+          g.lineStyle(4, 0xe5534b, 0.6 + 0.4 * pulse).strokeCircle(z.x, z.y, z.r);
+          g.lineStyle(2, 0x9ac83a, 0.9).strokeCircle(z.x, z.y, z.r * left);
+          if (Math.random() < 0.5) this.fx.burst(z.x + (Math.random() - 0.5) * z.r, z.y + (Math.random() - 0.5) * z.r * 0.6, 0x5a4a2e, 1, 'rise');
         } else if (z.kind === 'taunt') {
           g.lineStyle(4, 0xf2a541, 0.8).strokeCircle(z.x, z.y, z.r * 0.5);
         }
@@ -582,7 +597,15 @@
         seen.add(id);
         const pos = past.get(id) || e;
         const s = this.spriteFor(id, DC.sprites.enemyTexture(e.type));
-        s.body.setVisible(e.state !== 'airborne' && e.state !== 'fly');
+        const buried = e.type === 'wyrm' && (e.state === 'under' || e.state === 'surfacing');
+        s.body.setVisible(e.state !== 'airborne' && e.state !== 'fly' && !buried);
+        if (e.type === 'wyrm' && e.state === 'under') {
+          // tunnelling: a moving mound of dirt
+          const wob = Math.sin(time / 60) * 3;
+          this.zoneLayer.fillStyle(0x3a2a1e, 0.85).fillEllipse(pos.x, pos.y + 10, 90 + wob, 34);
+          this.zoneLayer.fillStyle(0x5a4a2e, 0.9).fillEllipse(pos.x - 6, pos.y + 4, 56, 18 + wob);
+          if (Math.random() < 0.5) this.fx.burst(pos.x + (Math.random() - 0.5) * 70, pos.y + 6, 0x5a4a2e, 1, 'rise');
+        }
         if (e.type === 'dragon') {
           // its shadow on the ground; bigger and softer while it's in the sky
           const lifted = e.sky || e.state === 'fly';
@@ -722,7 +745,14 @@
         alive.add(pr.id);
         const prev = this.lastShot.get(pr.id) || pr;
         const ang = Math.atan2(pr.y - prev.y, pr.x - prev.x);
-        if (pr.kind === 'enemyArrow') {
+        if (pr.kind === 'poisonGlob') {
+          // a wobbling glob of green poison, dripping as it flies
+          const k = 1 + 0.15 * Math.sin(this.time.now / 40 + pr.id);
+          g.fillStyle(0x3e8a2e, 0.5).fillCircle(pr.x - Math.cos(ang) * 8, pr.y - Math.sin(ang) * 8, 6);
+          g.fillStyle(0x7ec850).fillCircle(pr.x, pr.y, 9 * k);
+          g.fillStyle(0xd8ff8a).fillCircle(pr.x - 3, pr.y - 3, 3.5);
+          if (Math.random() < 0.3) this.fx.burst(pr.x, pr.y, 0x7ec850, 1, 'fall');
+        } else if (pr.kind === 'enemyArrow') {
           const cx = Math.cos(ang);
           const cy = Math.sin(ang);
           g.lineStyle(2, 0xe5534b, 0.35).lineBetween(pr.x - cx * 30, pr.y - cy * 30, pr.x, pr.y);
@@ -935,6 +965,22 @@
       } else if (ev.type === 'screech') {
         for (let i = 0; i < 3; i++) fx.ring(ev.x, ev.y, { from: 10, to: ev.r, life: 0.45, color: 0xb9a6e8, width: 4, delay: i * 0.08 });
         fx.burst(ev.x, ev.y, 0xb9a6e8, 10, 'spark');
+      } else if (ev.type === 'wyrmerupt') {
+        fx.ring(ev.x, ev.y, { from: 20, to: ev.r || 80, life: 0.4, color: 0x9ac83a, width: 8, fill: 0.2 });
+        fx.burst(ev.x, ev.y, 0x5a4a2e, 26, 'rise');
+        fx.shake(300, 0.01);
+      } else if (ev.type === 'wyrmburrow') {
+        fx.burst(ev.x, ev.y + 20, 0x5a4a2e, 18, 'rise');
+        fx.shake(200, 0.006);
+      } else if (ev.type === 'wyrmrage') {
+        fx.ring(ev.x, ev.y, { from: 30, to: 240, life: 0.6, color: 0x7ec850, width: 10, fill: 0.15 });
+        fx.shake(500, 0.012);
+        this.floatText(ev.x, ev.y - 130, 'THE WYRM GOES WILD!', '#B8F07A');
+      } else if (ev.type === 'splat') {
+        fx.burst(ev.x, ev.y, 0x7ec850, 8, 'fall');
+      } else if (ev.type === 'grab') {
+        fx.burst(ev.x, ev.y, 0x8a6a8e, 10, 'rise');
+        if (ev.targetId === App.me) this.floatText(ev.x, ev.y - 40, 'Grabbed!', '#B8F07A');
       } else if (ev.type === 'rage') {
         fx.ring(ev.x, ev.y, { from: 30, to: 260, life: 0.6, color: 0xe5534b, width: 10, fill: 0.15 });
         fx.burst(ev.x, ev.y, 0xf2a541, 30, 'flame');
@@ -1130,27 +1176,34 @@
     return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
   }
 
-  const FLOOR_SHADES = [0x2a2438, 0x2b2539, 0x29233a, 0x2c263b];
+  // Floor and wall colors per floor (Floors 1-4 share the dungeon stone).
+  const STONE = { shades: [0x2a2438, 0x2b2539, 0x29233a, 0x2c263b], line: 0x241f30, speck: 0x332c45, crack: 0x221d2e, wall: 0x3d3452, wallTop: 0x4a4063, brick: 0x342c47, wallLine: 0x332b45 };
+  const THEMES = [STONE, STONE, STONE, STONE,
+    // Floor 5: the Rot Warrens — mossy mud and earthen walls
+    { shades: [0x252c1f, 0x272e20, 0x24291d, 0x29301f], line: 0x1c2216, speck: 0x3e5a2a, crack: 0x1a1f14, wall: 0x3a2e24, wallTop: 0x4a3a2a, brick: 0x30261d, wallLine: 0x2a2018, pillarTop: 0x5a4632, pillarShine: 0x6e5a40 },
+    // Floor 6: the Crystal Wastes — pale blue stone, violet walls
+    { shades: [0x2c3246, 0x2e3449, 0x2a3043, 0x30364b], line: 0x23283a, speck: 0x4a5878, crack: 0x20253a, wall: 0x3a3c5a, wallTop: 0x5a5c82, brick: 0x323450, wallLine: 0x2c2e48, pillarTop: 0x6a7aa8, pillarShine: 0x9ad7f0 }];
+  let THEME = STONE;
 
   function drawFloor(g, tx, ty) {
     const x = tx * TILE;
     const y = ty * TILE;
     const r = hash(tx, ty);
-    g.fillStyle(FLOOR_SHADES[Math.floor(r * FLOOR_SHADES.length)]).fillRect(x, y, TILE, TILE);
-    g.lineStyle(1, 0x241f30).strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
-    if (r < 0.18) g.fillStyle(0x332c45).fillCircle(x + 10 + r * 120, y + 34 - r * 60, 2).fillCircle(x + 16 + r * 100, y + 38 - r * 50, 1.5);
+    g.fillStyle(THEME.shades[Math.floor(r * THEME.shades.length)]).fillRect(x, y, TILE, TILE);
+    g.lineStyle(1, THEME.line).strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
+    if (r < 0.18) g.fillStyle(THEME.speck).fillCircle(x + 10 + r * 120, y + 34 - r * 60, 2).fillCircle(x + 16 + r * 100, y + 38 - r * 50, 1.5);
     else if (r > 0.9) {
-      g.lineStyle(1, 0x221d2e);
+      g.lineStyle(1, THEME.crack);
       g.beginPath(); g.moveTo(x + 8, y + 30); g.lineTo(x + 18, y + 26); g.lineTo(x + 24, y + 32); g.strokePath();
     }
   }
 
   function drawWall(g, x, y, tx, ty) {
-    g.fillStyle(0x3d3452).fillRect(x, y, TILE, TILE);
-    g.fillStyle(0x4a4063).fillRect(x, y, TILE, 6);
-    g.lineStyle(1, 0x332b45).strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
+    g.fillStyle(THEME.wall).fillRect(x, y, TILE, TILE);
+    g.fillStyle(THEME.wallTop).fillRect(x, y, TILE, 6);
+    g.lineStyle(1, THEME.wallLine).strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
     // bricks
-    g.lineStyle(1, 0x342c47);
+    g.lineStyle(1, THEME.brick);
     g.lineBetween(x, y + 24, x + TILE, y + 24);
     const off = (tx + ty) % 2 ? 16 : 32;
     g.lineBetween(x + off, y + 6, x + off, y + 24);
@@ -1171,10 +1224,10 @@
   // A stone column. It fills its whole tile, the same space it blocks.
   function drawPillar(g, x, y, pillarBelow) {
     if (!pillarBelow) g.fillStyle(0x000000, 0.35).fillRect(x + 2, y + TILE, TILE - 4, 8);
-    g.fillStyle(0x3d3452).fillRect(x + 2, y + 12, TILE - 4, TILE - 12);
-    g.fillStyle(0x5a4f78).fillRect(x + 2, y + 2, TILE - 4, 12);
-    g.fillStyle(0x6e618f).fillRect(x + 4, y + 3, TILE - 8, 2);
-    g.lineStyle(1, 0x342c47).lineBetween(x + 2, y + 30, x + TILE - 2, y + 30);
+    g.fillStyle(THEME.wall).fillRect(x + 2, y + 12, TILE - 4, TILE - 12);
+    g.fillStyle(THEME.pillarTop || 0x5a4f78).fillRect(x + 2, y + 2, TILE - 4, 12);
+    g.fillStyle(THEME.pillarShine || 0x6e618f).fillRect(x + 4, y + 3, TILE - 8, 2);
+    g.lineStyle(1, THEME.brick).lineBetween(x + 2, y + 30, x + TILE - 2, y + 30);
     g.lineBetween(x + 24, y + 14, x + 24, y + 30);
     g.lineStyle(2, 0x1b1725).strokeRect(x + 2, y + 2, TILE - 4, TILE - 4);
   }
@@ -1320,7 +1373,8 @@
     crownflare: 'roar', rage: 'roar', court: 'shadow', shadowring: 'shadow', teleport: 'shadow', darkness: 'shadow',
     storm: 'puff', puff: 'puff', seed: 'puff', sprout: 'puff', explode: 'fireball', volley: 'arrow',
     rebuild: 'bones', bonesBroken: 'bones', outofreach: 'click', torchlit: 'fireball', shoptimeup: 'timeup',
-    turretfire: 'turretShot', mineboom: 'mineBoom'
+    turretfire: 'turretShot', mineboom: 'mineBoom',
+    spit: 'puff', splat: 'slimeSplit', grab: 'bash', hands: 'crumble', wyrmrage: 'roar', wyrmburrow: 'quake', wyrmerupt: 'slam'
   };
   function playSound(ev) {
     if (!window.Sound) return;
