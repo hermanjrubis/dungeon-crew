@@ -119,11 +119,11 @@
     { id: 'boots', name: 'Wader Boots', slot: 'Feet', price: 45, once: true, effect: { speedMul: 0.10 }, text: '+10% move speed' },
     { id: 'weapon', name: 'Class weapon', slot: 'Weapon', price: 70, once: true, effect: { weaponBonus: 8 }, text: '+8 damage' },
     { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
-    { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
+    { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Brings a fallen friend back up' }
   ];
   const SHOP_WEAPONS = { knight: 'Iron Sword', archer: "Hunter's Bow", mage: 'Oak Staff', warden: 'Iron Sling', engineer: 'Steel Wrench', cleric: 'Silver Rod' };
   const SET_NAME = 'Cellar Guard Set';
-  const SET_BONUS = 'Poison damage −50%. Useful in Floor 2.';
+  const SET_BONUS = 'Poison hurts half as much. Handy in the Caverns.';
 
   // One shop per floor (the floor's `shop` in rooms.js picks which).
   const SHOPS = {
@@ -133,7 +133,7 @@
     },
     forge: {
       setName: 'Forgewalker Set',
-      setBonus: 'Less damage from lava and burning. Built for Floor 3.',
+      setBonus: 'Lava and burning hurt less. Handy in the Forge.',
       setPieces: ['helm2', 'plate2', 'boots2'],
       items: [
         { id: 'helm2', name: 'Copper Helm', slot: 'Head', price: 80, once: true, effect: { maxHp: 20 }, text: '+20 max HP' },
@@ -141,13 +141,13 @@
         { id: 'boots2', name: 'Ashstep Boots', slot: 'Feet', price: 90, once: true, effect: { speedMul: 0.15 }, text: '+15% move speed' },
         { id: 'weapon2', name: 'Class weapon', slot: 'Weapon', price: 120, once: true, effect: { weaponBonus: 14 }, text: '+14 damage' },
         { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
-        { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
+        { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Brings a fallen friend back up' }
       ],
       weapons: { knight: 'Steel Sword', archer: 'Longbow', mage: 'Crystal Staff', warden: 'Granite Sling', engineer: 'Arc Wrench', cleric: 'Moonpetal Staff' }
     },
     crown: {
       setName: 'Hollow Crown Set',
-      setBonus: "Dragon fire damage −40%, and the whole team deals +10% damage while you're alive. Built for Floor 4.",
+      setBonus: "Dragon fire hurts 40% less, and your whole team hits 10% harder while you're standing. For the Roost.",
       setPieces: ['helm3', 'plate3', 'boots3'],
       items: [
         { id: 'helm3', name: 'Crown Helm', slot: 'Head', price: 150, once: true, effect: { maxHp: 30 }, text: '+30 max HP' },
@@ -155,13 +155,13 @@
         { id: 'boots3', name: 'Shadow Greaves', slot: 'Feet', price: 160, once: true, effect: { speedMul: 0.20 }, text: '+20% move speed' },
         { id: 'weapon3', name: 'Class weapon', slot: 'Weapon', price: 200, once: true, effect: { weaponBonus: 22 }, text: '+22 damage' },
         { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
-        { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
+        { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Brings a fallen friend back up' }
       ],
       weapons: { knight: 'Ember Blade', archer: 'Shadow Bow', mage: "King's Scepter", warden: 'Magma Sling', engineer: 'Forgemaster Wrench', cleric: 'Gilded Sceptre' }
     },
     roost: {
       setName: 'Rotward Set',
-      setBonus: "Poison damage −60%, and Rot Hands can't hold you in place. Built for Floor 5.",
+      setBonus: "Poison hurts 60% less, and Rot Hands can't pin you. For the Warrens.",
       setPieces: ['helm4', 'plate4', 'boots4'],
       items: [
         { id: 'helm4', name: 'Bonemask Helm', slot: 'Head', price: 240, once: true, effect: { maxHp: 40 }, text: '+40 max HP' },
@@ -169,13 +169,13 @@
         { id: 'boots4', name: 'Bog Striders', slot: 'Feet', price: 250, once: true, effect: { speedMul: 0.25 }, text: '+25% move speed' },
         { id: 'weapon4', name: 'Class weapon', slot: 'Weapon', price: 300, once: true, effect: { weaponBonus: 32 }, text: '+32 damage' },
         { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
-        { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
+        { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Brings a fallen friend back up' }
       ],
       weapons: { knight: 'Dragonbone Sword', archer: 'Wyvern Bow', mage: 'Ashmaw Staff', warden: 'Obsidian Sling', engineer: 'Dragonforge Wrench', cleric: 'Dawnfire Rod' }
     },
     warrens: {
       setName: 'Prismguard Set',
-      setBonus: "Prism beam and crystal shards hurt 40% less, and Prismaurus's roar can't slow you. Built for Floor 6.",
+      setBonus: "The prism beam and crystal shards hurt 40% less, and the roar can't slow you. For the Wastes.",
       setPieces: ['helm5', 'plate5', 'boots5'],
       items: [
         { id: 'helm5', name: 'Wyrmskull Helm', slot: 'Head', price: 280, once: true, effect: { maxHp: 45 }, text: '+45 max HP' },
@@ -183,7 +183,7 @@
         { id: 'boots5', name: 'Mirror Greaves', slot: 'Feet', price: 280, once: true, effect: { speedMul: 0.25 }, text: '+25% move speed' },
         { id: 'weapon5', name: 'Class weapon', slot: 'Weapon', price: 340, once: true, effect: { weaponBonus: 38 }, text: '+38 damage' },
         { id: 'potion', name: 'Health Potion', slot: 'Consumable', price: 15, once: false, effect: { potions: 1 }, text: 'Heals 40 HP' },
-        { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Instantly revives a downed teammate' }
+        { id: 'feather', name: 'Revive Feather', slot: 'Consumable', price: 50, once: false, effect: { feathers: 1 }, text: 'Brings a fallen friend back up' }
       ],
       weapons: { knight: 'Rotfang Blade', archer: 'Thousand-Hand Bow', mage: 'Wyrmroot Staff', warden: 'Bog Sling', engineer: 'Acidforge Wrench', cleric: 'Purewater Staff' }
     }

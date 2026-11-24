@@ -126,7 +126,7 @@
       this.statusLayer = this.add.graphics().setDepth(6);
       this.darkLayer = this.add.graphics().setDepth(6.5);  // darkness covers monsters and shots
       this.glowLayer = this.add.graphics().setDepth(6.6);  // the Queen's glowing spots show through it
-      this.torchHint = this.add.text(0, 0, 'Hold E to light', { fontFamily: 'Inter, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#F2C14E', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(8).setVisible(false);
+      this.torchHint = this.add.text(0, 0, 'Hold E to light', { fontFamily: "'Jersey 15', monospace", fontSize: '17px', color: '#F2C14E', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(8).setVisible(false);
       this.flashUntil = new Map(); // sprite id -> time the hit flash ends
       this.ghostAt = new Map();    // sprite id -> time of the last afterimage
       this.lastShot = new Map();   // projectile id -> previous position
@@ -654,7 +654,7 @@
         const body = sheet
           ? this.add.sprite(0, 0, key + '-sheet', 0).setOrigin(sheet.foot[0] / sheet.size, sheet.foot[1] / sheet.size).setDepth(3)
           : this.add.image(0, 0, key).setDepth(3);
-        const label = labelText ? this.add.text(0, 0, labelText, { fontFamily: 'Inter, sans-serif', fontSize: '12px', fontStyle: 'bold', color: labelColor || '#EDE8F5', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5, 1).setDepth(4) : null;
+        const label = labelText ? this.add.text(0, 0, labelText, { fontFamily: "'Jersey 15', monospace", fontSize: '17px', color: labelColor || '#EDE8F5', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5, 1).setDepth(4) : null;
         const bar = this.add.graphics().setDepth(4);
         s = { body, label, bar, key, seen: 0, sheet };
         this.sprites.set(id, s);
@@ -1002,7 +1002,7 @@
     }
 
     floatText(x, y, text, color) {
-      const t = this.add.text(x, y, text, { fontFamily: 'Pixelify Sans, monospace', fontSize: '20px', fontStyle: 'bold', color, stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setDepth(8);
+      const t = this.add.text(x, y, text, { fontFamily: "'Jersey 15', monospace", fontSize: '24px', color, stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setDepth(8);
       this.floaters.push({ text: t, life: 0.8 });
     }
 

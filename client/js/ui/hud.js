@@ -26,17 +26,17 @@
       <div class="hud-box hud-room">
         <span class="room-title" data-r="roomTitle"></span>
         <div class="room-dots" data-r="roomDots"></div>
-        <span class="hud-gold" data-r="gold"></span>
+        <span class="hud-gold"><img class="px-icon" src="${DC.icons.iconUrl('coin')}" width="22" height="22" alt="gold"><span data-r="gold"></span></span>
       </div>
       <div class="hud-box hud-hotbar">
         <div class="slot"><span class="key">Click</span><span data-r="atkName"></span><span class="cd hidden" data-r="atkCd"></span></div>
         <div class="slot"><span class="key">Q</span><span data-r="qName"></span><span class="cd hidden" data-r="qCd"></span></div>
         <div class="slot"><span class="key">Space</span><span data-r="spName"></span><span class="cd hidden" data-r="spCd"></span></div>
-        <div class="slot"><span class="key">1</span>Potion<span class="count" data-r="potions"></span></div>
-        <div class="slot"><span class="key">2</span>Feather<span class="count" data-r="feathers"></span></div>
+        <div class="slot"><span class="key">1</span><img class="px-icon" src="${DC.icons.iconUrl('potion')}" width="32" height="32" alt="Potion"><span class="count" data-r="potions"></span></div>
+        <div class="slot"><span class="key">2</span><img class="px-icon" src="${DC.icons.iconUrl('feather')}" width="32" height="32" alt="Feather"><span class="count" data-r="feathers"></span></div>
       </div>
-      <div class="hud-box hud-help">Hold <b>E</b> next to a downed friend to revive them.</div>
-      <div class="hud-down hidden" data-r="down">You're down!<br><span class="muted">A teammate can hold E next to you to revive you.</span></div>
+      <div class="hud-box hud-help">Hold <b>E</b> by a fallen friend to revive</div>
+      <div class="hud-down hidden" data-r="down">You're down!<br><span class="muted">Hang on, a friend can hold E next to you.</span></div>
       <div class="hud-banner hidden" data-r="banner"></div>
       <div class="hud-hurt" data-r="hurt"></div>
       <div class="stage-card" data-r="card" aria-live="polite">
@@ -146,7 +146,7 @@
         const cls = [i < snap.roomIndex ? 'done' : i === snap.roomIndex ? 'here' : '', i === snap.roomCount - 1 ? 'boss' : ''].join(' ');
         return `<span class="${cls}" title="${i === snap.roomCount - 1 ? 'Boss room' : 'Room ' + (i + 1)}"></span>`;
       }).join('');
-      refs.gold.textContent = `${me.gold} gold`;
+      refs.gold.textContent = `${me.gold}`;
 
       refs.atkName.textContent = { knight: 'Sword', archer: 'Arrow', mage: 'Bolt', warden: 'Rock', engineer: 'Wrench', cleric: 'Light' }[me.heroClass] || 'Attack';
       refs.qName.textContent = hero.q.name;

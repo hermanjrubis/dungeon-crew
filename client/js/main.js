@@ -12,7 +12,16 @@
   };
   window.App = App;
 
-  Sound.mountControls(document.getElementById('menu-sound'));
+  // The Settings window (music and effects volume, mute).
+  window.Settings = {
+    open() { document.getElementById('settings').classList.remove('hidden'); if (window.Sound) Sound.play('click'); },
+    close() { document.getElementById('settings').classList.add('hidden'); }
+  };
+  Sound.mountControls(document.getElementById('settings-sound'));
+  document.getElementById('settings-close').addEventListener('click', () => Settings.close());
+  document.getElementById('settings').addEventListener('click', (e) => { if (e.target.id === 'settings') Settings.close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !document.getElementById('settings').classList.contains('hidden')) Settings.close(); });
+  document.getElementById('menu-settings').addEventListener('click', () => Settings.open());
   Menu.init();
   Lobby.init();
 

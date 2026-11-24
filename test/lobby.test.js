@@ -112,3 +112,13 @@ test('a socket already in a room leaves it before creating another', () => {
   assert.notStrictEqual(first, second);
   assert.strictEqual(lobby.joinRoom('b', 'Mira', first).ok, false);
 });
+
+test('the host can lock the room: nobody new can join until it is unlocked', () => {
+  const { lobby, code } = roomWith(2);
+  assert.strictEqual(lobby.setRoomLocked('p1', true).ok, false, 'only the host');
+  assert.deepStrictEqual(lobby.setRoomLocked('p0', true), { ok: true });
+  assert.strictEqual(lobby.publicState(lobby.roomOf('p0')).roomLocked, true);
+  assert.deepStrictEqual(lobby.joinRoom('p2', 'Late', code), { ok: false, error: 'This room is locked' });
+  lobby.setRoomLocked('p0', false);
+  assert.strictEqual(lobby.joinRoom('p2', 'Late', code).ok, true);
+});

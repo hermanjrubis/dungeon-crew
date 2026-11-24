@@ -78,6 +78,11 @@ function createHub({ debug = {} } = {}) {
       const room = lobby.roomOf(id);
       if (room && room.game) room.game.setPaused(id, p.paused === true);
     },
+    'room:lock': (id, p, reply) => {
+      const res = lobby.setRoomLocked(id, p && p.locked);
+      reply(res);
+      if (res.ok) sendLobby(lobby.roomOf(id));
+    },
     'room:again': (id, p, reply) => {
       const res = lobby.again(id);
       reply(res);

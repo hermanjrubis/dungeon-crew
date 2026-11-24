@@ -158,9 +158,9 @@
     const slots = s.players.map((p) => el('div', { class: 'team-slot' }, [
       el('span', { class: 'team-dot', style: `background:${COLORS[p.color]}` }),
       el('span', { class: 'team-name', text: p.id === mine.id ? `${p.name} (you)` : p.name }),
-      el('span', { class: 'muted small', text: `${HEROES[p.heroClass].name} · ${p.locked ? 'ready' : 'choosing…'}${p.id === s.hostId ? ' · host' : ''}` })
+      el('span', { class: 'muted small', text: `${HEROES[p.heroClass].name} · ${p.locked ? 'ready' : 'picking'}${p.id === s.hostId ? ' · host' : ''}` })
     ]));
-    for (let i = s.players.length; i < 4; i++) slots.push(el('div', { class: 'team-slot empty', text: 'Open slot' }));
+    for (let i = s.players.length; i < 4; i++) slots.push(el('div', { class: 'team-slot empty', text: s.roomLocked ? 'Locked' : 'Empty' }));
     $('team-strip').replaceChildren(...slots);
 
     // Buttons
@@ -170,7 +170,13 @@
     const allLocked = s.players.every((p) => p.locked);
     $('start-btn').classList.toggle('hidden', !isHost);
     $('start-btn').disabled = !allLocked;
-    $('start-btn').title = allLocked ? '' : 'Start unlocks when everyone is locked in';
+    $('start-btn').title = allLocked ? '' : 'Everyone has to lock in first';
+    // Only the host can lock the room (nobody new can join while it's locked).
+    $('room-lock').classList.toggle('hidden', !isHost);
+    $('room-lock').textContent = s.roomLocked ? 'Unlock room' : 'Lock room';
+    $('room-lock').setAttribute('aria-pressed', String(!!s.roomLocked));
+    $('room-lock').classList.toggle('btn-primary', !!s.roomLocked);
+    $('room-lock').classList.toggle('btn-outline', !s.roomLocked);
   }
 
   window.Lobby = {
@@ -192,8 +198,13 @@
         } catch (e) {
           $('copy-link').textContent = link;
         }
-        setTimeout(() => { $('copy-link').textContent = 'Copy invite link'; }, 2000);
+        setTimeout(() => { $('copy-link').textContent = 'Copy link'; }, 2000);
       });
+      $('room-lock').addEventListener('click', async () => {
+        const res = await Net.lockRoom(!(state && state.roomLocked));
+        $('lobby-error').textContent = res.ok ? '' : res.error;
+      });
+      $('lobby-settings').addEventListener('click', () => Settings.open());
     },
     render
   };

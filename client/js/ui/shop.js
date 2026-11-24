@@ -45,7 +45,8 @@
     const ARMOR = state.setPieces;
     const pieces = ARMOR.filter((id) => me.owned.includes(id)).length;
     const floorNo = state.floorIndex + 1;
-    const readyLabel = state.nextFloorName ? `Ready for Floor ${floorNo + 1}` : 'Finish the run';
+    const readyLabel = state.nextFloorName ? `On to Floor ${floorNo + 1}` : 'Finish the run';
+    const icon = (id, cls, size = 48) => `<img class="px-icon" src="${DC.icons.iconUrl(id, cls)}" width="${size}" height="${size}" alt="">`;
     const readyCount = state.players.filter((p) => p.ready).length;
 
     const items = state.items.map((item) => {
@@ -54,13 +55,15 @@
       const slot = isWeapon ? `${HEROES[me.heroClass].name} weapon` : item.slot;
       const owned = item.once && me.owned.includes(item.id);
       const action = owned
-        ? '<span class="owned-tag">Owned · equipped</span>'
-        : `<button type="button" class="btn btn-primary" data-buy="${item.id}" ${me.gold < item.price || busy ? 'disabled' : ''}>Buy · ${item.price}g</button>`;
+        ? '<span class="owned-tag">Equipped</span>'
+        : `<button type="button" class="btn btn-primary btn-price" data-buy="${item.id}" ${me.gold < item.price || busy ? 'disabled' : ''}>${icon('coin', null, 24)}<span>${item.price}</span></button>`;
       return `
         <div class="item${owned ? ' owned' : ''}">
-          <span class="item-name">${esc(name)}</span>
-          <span class="muted small">${esc(slot)}</span>
-          <span>${esc(item.text)}</span>
+          <div class="item-head">
+            <span class="item-icon">${icon(item.id, me.heroClass)}</span>
+            <span class="item-title"><span class="item-name">${esc(name)}</span><span class="muted small">${esc(slot)}</span></span>
+          </div>
+          <span class="item-text">${esc(item.text)}</span>
           ${action}
         </div>`;
     }).join('');
@@ -68,20 +71,20 @@
     const team = state.players.map((p) =>
       `<span class="team-slot"><span class="team-dot" style="background:${COLORS[p.color]}"></span>
        <span class="team-name">${esc(p.name)}${p.id === me.id ? ' (you)' : ''}</span>
-       <span class="muted small">${p.ready ? 'ready' : 'shopping…'}</span></span>`).join('');
+       <span class="muted small">${p.ready ? 'ready' : 'shopping'}</span></span>`).join('');
 
     root.innerHTML = `
       <div class="shop-top">
         <div>
-          <p class="eyebrow">Floor ${floorNo} cleared · Camp</p>
-          <h1 class="screen-title">Blacksmith's Shop</h1>
+          <p class="eyebrow">Camp · after Floor ${floorNo}</p>
+          <h1 class="screen-title">The Blacksmith</h1>
         </div>
         <div id="shop-timer" class="shop-timer" role="timer" aria-label="Time left in the shop">
           <span class="shop-timer-text"></span>
           <span class="shop-timer-track"><span class="shop-timer-fill"></span></span>
-          <span class="muted small">Next floor starts automatically</span>
+          <span class="muted small">The crew moves on when time runs out</span>
         </div>
-        <span class="shop-gold">${me.gold} gold</span>
+        <span class="shop-gold">${icon('coin', null, 28)}${me.gold}</span>
       </div>
       <div class="shop-body">
         <div class="panel shop-me">
@@ -89,12 +92,13 @@
           <b>${esc(me.name)} · ${esc(HEROES[me.heroClass].name)} · Lv ${me.level}</b>
           <span class="muted small">${esc(state.setName)} · ${pieces} of 3 pieces</span>
           <div class="set-bar">${ARMOR.map((id) => `<span class="${me.owned.includes(id) ? 'on' : ''}"></span>`).join('')}</div>
-          <div class="skill"><span><span class="label">Set bonus · all 3 pieces</span><span class="skill-text">${esc(state.setBonus)}</span></span></div>
+          <div class="set-icons">${ARMOR.map((id) => `<span class="${me.owned.includes(id) ? 'on' : ''}">${icon(id, me.heroClass, 36)}</span>`).join('')}</div>
+          <div class="skill"><span><span class="label">Full set bonus</span><span class="skill-text">${esc(state.setBonus)}</span></span></div>
           <div class="stat"><span class="muted">Health</span><span></span><span class="stat-value">${me.maxHp}</span></div>
           <div class="stat"><span class="muted">Damage</span><span></span><span class="stat-value">${me.damage}</span></div>
           <div class="stat"><span class="muted">Defense</span><span></span><span class="stat-value">${me.defense}</span></div>
           <div class="stat"><span class="muted">Weapon</span><span></span><span class="stat-value" style="white-space:nowrap">${esc(me.weaponName)}</span></div>
-          <div class="stat"><span class="muted">Items</span><span></span><span class="stat-value">${me.potions} potion(s) · ${me.feathers} feather(s)</span></div>
+          <div class="stat"><span class="muted">Bag</span><span></span><span class="stat-value bag">${icon('potion', null, 24)} ${me.potions} ${icon('feather', null, 24)} ${me.feathers}</span></div>
         </div>
         <div class="shop-items">${items}</div>
       </div>
@@ -103,7 +107,7 @@
         <div class="team-strip">${team}</div>
         <div class="lobby-actions">
           <span class="muted">${readyCount} of ${state.players.length} ready</span>
-          <button type="button" id="shop-ready" class="btn btn-big ${me.ready ? 'btn-outline' : 'btn-teal'}">${me.ready ? 'Not ready yet' : readyLabel}</button>
+          <button type="button" id="shop-ready" class="btn btn-big ${me.ready ? 'btn-outline' : 'btn-teal'}">${me.ready ? 'Wait, not yet' : readyLabel}</button>
         </div>
       </div>`;
 

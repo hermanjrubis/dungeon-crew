@@ -301,3 +301,137 @@ kbd {
 .sound-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .sound-row { display: grid; grid-template-columns: 64px 1fr 48px; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2); }
 .sound-row input { width: 100%; accent-color: var(--orange); }
+
+/* =====================================================================
+   Pixel-fantasy look: square pixel frames instead of rounded web cards,
+   chunky buttons, a self-hosted pixel font, stone walls behind the menus.
+   ===================================================================== */
+@font-face { font-family: 'Jersey 15'; font-display: swap; src: url('../fonts/jersey-15-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Jersey 10'; font-display: swap; src: url('../fonts/jersey-10-latin-400-normal.woff2') format('woff2'); }
+
+:root {
+  --frame-out: #0B0810;
+  --frame-rim: #4C3D63;
+  --frame-hi: #6A5888;
+  --panel: #231B2E;
+  --panel-dark: #17111F;
+  --pixel: 'Jersey 15', ui-monospace, monospace;
+  --pixel-title: 'Jersey 10', 'Jersey 15', ui-monospace, monospace;
+  --notch: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
+}
+html, body { font-family: var(--pixel); font-size: 20px; letter-spacing: .02em; }
+* { font-synthesis: none; } /* the pixel fonts have one weight: never fake a bold */
+.small { font-size: 16px; }
+.muted { color: #B3AAC8; }
+body { background-color: #120E18; }
+input, button, select { font-family: var(--pixel); }
+
+/* stone brick walls behind the menu, lobby, shop and end screens */
+#menu, #lobby, #shop, #end {
+  background-color: #15101C;
+  background-image:
+    radial-gradient(ellipse at 50% 40%, transparent 30%, rgba(5,3,8,.75) 100%),
+    linear-gradient(#0B0810 2px, transparent 2px),
+    linear-gradient(90deg, #0B0810 2px, transparent 2px),
+    linear-gradient(90deg, #0B0810 2px, transparent 2px),
+    linear-gradient(#1C1526, #18121F);
+  background-size: 100% 100%, 96px 48px, 96px 96px, 96px 96px, 100% 100%;
+  background-position: 0 0, 0 0, 0 0, 48px 48px, 0 0;
+}
+
+/* framed panels */
+.panel, .hero-card, .item, .hud-box, .team-slot, .skill, .res-card, .pause-card, .end-card .panel, .stage-card {
+  border: 3px solid var(--frame-out) !important;
+  border-radius: 0 !important;
+  background-color: var(--panel);
+  box-shadow: inset 0 0 0 3px var(--frame-rim), inset 0 3px 0 3px var(--frame-hi);
+  clip-path: var(--notch);
+}
+.skill { background-color: var(--panel-dark); box-shadow: inset 0 0 0 2px #2E2440; }
+.team-slot.empty { box-shadow: none; background: rgba(11,8,16,.5); border-style: dashed !important; border-color: #3A2F4D !important; clip-path: none; }
+.hud-box { background-color: rgba(28,21,38,.94); }
+.hero-card.selected { box-shadow: inset 0 0 0 3px var(--me), inset 0 3px 0 3px color-mix(in srgb, var(--me) 60%, white); background-color: #2E2238; }
+.hero-card img, .hud-me img { border-radius: 0 !important; background: #1A1424 !important; }
+
+/* chunky buttons with a lit top-left and a shaded bottom-right */
+.btn {
+  border-radius: 0 !important; border: 3px solid var(--frame-out) !important; clip-path: var(--notch);
+  box-shadow: inset -3px -4px 0 rgba(0,0,0,.28), inset 3px 3px 0 rgba(255,255,255,.28);
+  text-shadow: none; transition: transform .05s, filter .1s;
+}
+.btn:hover:not(:disabled) { filter: brightness(1.1); }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 3px 3px 0 rgba(0,0,0,.28); }
+.btn-outline { background: #2A2136 !important; color: var(--text) !important; }
+.btn-primary { color: #2A1406 !important; }
+.btn-teal { color: #08211D !important; }
+.join-row .btn { background: var(--teal) !important; color: #08211D !important; }
+
+/* text fields look carved into the stone */
+.menu-form input {
+  border-radius: 0 !important; border: 3px solid var(--frame-out) !important; background: #110C17 !important;
+  box-shadow: inset 3px 3px 0 #07050A, inset -2px -2px 0 #2E2440; clip-path: var(--notch); font-size: 19px;
+}
+kbd { border-radius: 0; border: 3px solid var(--frame-out); background: #2E2440; box-shadow: inset -2px -3px 0 rgba(0,0,0,.35), inset 2px 2px 0 rgba(255,255,255,.18); }
+
+/* titles: big pixel letters with a stepped shadow */
+.title { font-family: var(--pixel-title); font-size: 128px; line-height: .85; color: #F2A541; text-shadow: 4px 4px 0 #9A5A1C, 8px 8px 0 #0B0810; letter-spacing: .02em; }
+.screen-title, .res-title, .end-card h1, .stage-title { font-family: var(--pixel-title); text-shadow: 3px 3px 0 #0B0810; letter-spacing: .03em; }
+.screen-title { font-size: 56px; }
+.code { font-family: var(--pixel-title); font-size: 44px; }
+.hero-card-name, .preview-name { font-size: 28px; }
+.preview-name { font-family: var(--pixel-title); font-size: 40px; }
+.skill-name { font-size: 20px; }
+.skill-text, .hero-desc { font-size: 18px; }
+.stat { font-size: 17px; }
+.btn { font-size: 22px; letter-spacing: .04em; }
+.btn-big { font-size: 28px; }
+.btn-small { font-size: 18px; height: 38px; }
+.menu-main label, .menu-form label { font-size: 18px; }
+#menu-settings { margin-top: 18px; }
+.eyebrow { font-weight: 700; letter-spacing: .12em; }
+.lead { font-size: 26px; color: #CFC8DE; }
+.label { letter-spacing: .08em; }
+.how-to h2, .settings-card h2 { font-family: var(--pixel-title); font-size: 40px; margin: 0 0 14px; text-shadow: 3px 3px 0 #0B0810; }
+
+/* pixel icons stay crisp */
+.px-icon { image-rendering: pixelated; vertical-align: middle; }
+
+/* shop items: icon + name on top, price button with a coin */
+.item { display: flex; flex-direction: column; gap: 10px; }
+.item-head { display: flex; align-items: center; gap: 12px; }
+.item-icon { width: 60px; height: 60px; display: grid; place-items: center; background: #17111F; box-shadow: inset 0 0 0 2px #2E2440; flex: none; }
+.item-title { display: flex; flex-direction: column; gap: 2px; }
+.item-name { font-size: 22px; }
+.item-text { color: #E8D9A8; font-size: 19px; flex: 1; }
+.btn-price { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.shop-gold { display: inline-flex; align-items: center; gap: 8px; }
+.set-icons { display: flex; gap: 8px; justify-content: center; }
+.set-icons span { width: 48px; height: 48px; display: grid; place-items: center; background: #17111F; box-shadow: inset 0 0 0 2px #2E2440; opacity: .35; filter: grayscale(1); }
+.set-icons span.on { opacity: 1; filter: none; box-shadow: inset 0 0 0 2px var(--me); }
+.bag { display: inline-flex; align-items: center; gap: 6px; }
+.hud-gold { display: inline-flex; align-items: center; gap: 6px; }
+.hud-hotbar .slot img.px-icon { display: block; margin: 2px auto 0; }
+
+/* the Settings window */
+.settings-overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(5,3,8,.7); }
+.settings-card { width: 420px; max-width: calc(100vw - 32px); display: flex; flex-direction: column; gap: 18px; }
+.settings-card .btn { align-self: flex-end; height: 44px; }
+.room-code { flex-wrap: wrap; }
+/* the pixel font runs small: bump the HUD's tiny text */
+#hud { font-size: 17px; }
+.hud-bar > b { font-size: 14px; top: -3px; }
+.slot .key { font-size: 14px; }
+.slot .count { font-size: 18px; }
+.label { font-size: 15px; }
+.stage-eyebrow { font-size: 18px; }
+.stage-title { font-size: 96px; }
+.stage-sub { font-size: 22px; }
+.hud-room .room-title { font-size: 22px; }
+.hud-gold { font-size: 22px; }
+.team-name { font-size: 18px; }
+.eyebrow { font-size: 18px; }
+.hero-list { gap: 8px; }
+.hero-card { padding: 6px 12px; }
+.hero-card img { width: 44px; height: 44px; }
+.color-panel { padding: 10px 14px; }
+.slot { border-radius: 0 !important; }

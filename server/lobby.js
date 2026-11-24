@@ -40,7 +40,7 @@ class Lobby {
   createRoom(socketId, name) {
     this.leave(socketId);
     const code = this.makeCode();
-    const room = { code, hostId: socketId, phase: 'lobby', players: new Map(), game: null };
+    const room = { code, hostId: socketId, phase: 'lobby', players: new Map(), game: null, locked: false };
     this.rooms.set(code, room);
     this.addPlayer(room, socketId, name);
     return { ok: true, code };
@@ -51,10 +51,20 @@ class Lobby {
     const room = this.rooms.get(code);
     if (!room) return { ok: false, error: 'No room with that code' };
     if (room.phase !== 'lobby') return { ok: false, error: 'Game already started' };
+    if (room.locked) return { ok: false, error: 'This room is locked' };
     if (room.players.size >= MAX_PLAYERS) return { ok: false, error: 'Room is full' };
     this.leave(socketId);
     this.addPlayer(room, socketId, name);
     return { ok: true, code };
+  }
+
+  // The host can lock the room so nobody new can join (a private game).
+  setRoomLocked(socketId, locked) {
+    const room = this.roomOf(socketId);
+    if (!room) return { ok: false, error: 'Not in a room' };
+    if (room.hostId !== socketId) return { ok: false, error: 'Only the host can lock the room' };
+    room.locked = !!locked;
+    return { ok: true };
   }
 
   roomOf(socketId) {
@@ -122,6 +132,7 @@ class Lobby {
       code: room.code,
       hostId: room.hostId,
       phase: room.phase,
+      roomLocked: !!room.locked,
       players: [...room.players.values()].map((p) => ({ ...p }))
     };
   }
