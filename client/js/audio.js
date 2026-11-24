@@ -9,6 +9,7 @@
 
   let ctx = null;
   let master = null;
+  let bus = null;     // where the sound being built goes (master, or a quieter gain)
   let noiseBuf = null;
   const recent = new Map();  // name -> recent play times
 
@@ -42,7 +43,8 @@
       }
     },
 
-    play(name) {
+    // opts.vol: 0..1 extra loudness for this one play (teammates' sounds are quieter).
+    play(name, opts = {}) {
       Sound.requested[name] = (Sound.requested[name] || 0) + 1;
       const recipe = RECIPES[name];
       if (!recipe || !ctx || ctx.state !== 'running' || Sound.muted || Sound.volume <= 0) return;
@@ -52,9 +54,16 @@
       times.push(now);
       recent.set(name, times);
       try {
+        bus = master;
+        if (opts.vol !== undefined && opts.vol < 1) {
+          bus = ctx.createGain();
+          bus.gain.value = Math.max(0, opts.vol);
+          bus.connect(master);
+        }
         recipe(ctx.currentTime + 0.005);
         Sound.played[name] = (Sound.played[name] || 0) + 1;
       } catch (e) { /* never let a sound break the game */ }
+      bus = master;
     },
 
     setVolume(v) {
@@ -121,7 +130,7 @@
     gain.gain.setValueAtTime(0.0001, start);
     gain.gain.exponentialRampToValueAtTime(vol, start + attack);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-    osc.connect(gain).connect(master);
+    osc.connect(gain).connect(bus || master);
     osc.start(start);
     osc.stop(start + dur + 0.02);
   }
@@ -141,7 +150,7 @@
     gain.gain.setValueAtTime(0.0001, start);
     gain.gain.exponentialRampToValueAtTime(vol, start + attack);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-    src.connect(bq).connect(gain).connect(master);
+    src.connect(bq).connect(gain).connect(bus || master);
     src.start(start, Math.random() * 0.5);
     src.stop(start + dur + 0.02);
   }
@@ -202,6 +211,16 @@
     },
     star: (t) => { tone(t, { f: N.E6, f2: 1760, dur: 0.12, vol: 0.12 }); tone(t, { type: 'triangle', f: 2637, dur: 0.3, vol: 0.08, delay: 0.06 }); },
     tick: (t) => tone(t, { f: 1000, dur: 0.04, vol: 0.12 }),
+    // Stonewarden
+    rock: (t) => { noise(t, { filter: 'bandpass', f: 600, f2: 250, q: 1.5, dur: 0.12, vol: 0.3 }); tone(t, { type: 'triangle', f: 180, f2: 90, dur: 0.1, vol: 0.12 }); },
+    boulder: (t) => { noise(t, { f: 300, dur: 0.9, vol: 0.35, attack: 0.05 }); tone(t, { type: 'sine', f: 70, f2: 50, dur: 0.9, vol: 0.3, attack: 0.05 }); },
+    quake: (t) => { noise(t, { f: 200, dur: 0.7, vol: 0.6 }); tone(t, { type: 'sine', f: 55, f2: 30, dur: 0.7, vol: 0.55 }); for (let i = 0; i < 4; i++) noise(t, { filter: 'bandpass', f: 900, dur: 0.06, vol: 0.18, delay: 0.08 + i * 0.07 }); },
+    // Engineer
+    wrench: (t) => { noise(t, { filter: 'bandpass', f: 2200, f2: 900, q: 3, dur: 0.1, vol: 0.22 }); tone(t, { f: 1300, f2: 1100, dur: 0.05, vol: 0.05, delay: 0.05 }); },
+    turret: (t) => { notes(t, [N.C5, N.G5, N.C6], { len: 0.06, gap: 0.05, vol: 0.09 }); noise(t, { filter: 'highpass', f: 3000, dur: 0.15, vol: 0.08 }); },
+    turretShot: (t) => { tone(t, { f: 1500, f2: 700, dur: 0.05, vol: 0.06 }); noise(t, { filter: 'highpass', f: 4000, dur: 0.03, vol: 0.05 }); },
+    mine: (t) => { tone(t, { f: 880, dur: 0.05, vol: 0.08 }); tone(t, { f: 880, dur: 0.05, vol: 0.08, delay: 0.12 }); },
+    mineBoom: (t) => { noise(t, { f: 900, f2: 120, dur: 0.6, vol: 0.5 }); tone(t, { type: 'sine', f: 110, f2: 35, dur: 0.5, vol: 0.4 }); },
     timeup: (t) => { tone(t, { type: 'sawtooth', f: 440, dur: 0.2, vol: 0.14 }); tone(t, { type: 'sawtooth', f: 330, dur: 0.35, vol: 0.14, delay: 0.2 }); },
     victory: (t) => {
       const seq = [N.C5, N.E5, N.G5, N.C6, N.G5, N.C6, N.E6, N.G6];
@@ -209,6 +228,7 @@
     }
   };
   Sound.names = Object.keys(RECIPES);
+  Object.defineProperty(Sound, 'ctx', { get: () => ctx });
 
   // Unlock on the first click or key press, and click sounds for buttons.
   const unlock = () => Sound.unlock();

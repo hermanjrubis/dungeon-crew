@@ -86,6 +86,7 @@
         this.room = parseRoom(snap.room.rows);
         this.me = null;
       }
+      if (App.screen === 'game') localSounds(this.currentInput(), snap);
       this.drawTiles(snap);
       this.drawHazards(snap, time);
       this.predictMe(snap, dt);
@@ -1111,7 +1112,8 @@
   }
 
   // ---------- sound for each thing that happens ----------
-  const ATTACK_SOUND = { knight: 'swing', archer: 'arrow', mage: 'bolt' };
+  const ATTACK_SOUND = { knight: 'swing', archer: 'arrow', mage: 'bolt', warden: 'rock', engineer: 'wrench' };
+  const SKILL_SOUND = { knight: ['bash', 'taunt'], archer: ['arrowRain', 'roll'], mage: ['fireball', 'heal'], warden: ['boulder', 'quake'], engineer: ['turret', 'mine'] };
   const EVENT_SOUND = {
     split: 'slimeSplit', brood: 'slimeSplit', screech: 'batScreech', bite: 'hit',
     spike: 'spike', fall: 'fall', rockfall: 'crumble', crumble: 'crumble', ringfall: 'crumble',
@@ -1120,14 +1122,17 @@
     breath: 'breath', gust: 'gust', meteor: 'meteor', takeoff: 'roar', roostcrumble: 'roar',
     crownflare: 'roar', court: 'shadow', shadowring: 'shadow', teleport: 'shadow', darkness: 'shadow',
     storm: 'puff', puff: 'puff', seed: 'puff', sprout: 'puff', explode: 'fireball', volley: 'arrow',
-    rebuild: 'bones', bonesBroken: 'bones', outofreach: 'click', torchlit: 'fireball', shoptimeup: 'timeup'
+    rebuild: 'bones', bonesBroken: 'bones', outofreach: 'click', torchlit: 'fireball', shoptimeup: 'timeup',
+    turretfire: 'turretShot', mineboom: 'mineBoom'
   };
   function playSound(ev) {
     if (!window.Sound) return;
     const me = App.me;
     let name = EVENT_SOUND[ev.type];
-    if (ev.type === 'attack') name = ATTACK_SOUND[ev.kind];
-    else if (ev.type === 'cast') name = ev.skill;
+    // My own attacks and skills already played the instant I pressed (see localSounds).
+    if ((ev.type === 'attack' || ev.type === 'cast') && ev.by === me) return;
+    if (ev.type === 'attack') { Sound.play(ATTACK_SOUND[ev.kind], { vol: 0.6 }); return; }
+    if (ev.type === 'cast') { Sound.play(ev.skill, { vol: 0.75 }); return; }
     else if (ev.type === 'damage') name = ev.enemyId !== undefined ? 'hit' : ev.targetId === me ? 'hurt' : null;
     else if (ev.type === 'kill') {
       const m = DC.data.MONSTERS[ev.enemyType];
@@ -1138,6 +1143,39 @@
     else if (ev.type === 'revived') name = 'revive';
     else if (ev.type === 'transition' && ev.kind === 'boss') name = 'roar';
     if (name) Sound.play(name);
+  }
+
+  // Play my attack/skill sound the moment I press, if the server will allow it
+  // (same cooldowns and mana it uses). The server's echo of it is skipped.
+  const localNext = { attack: 0, q: 0, space: 0 };
+  const lastLeft = { attack: 0, q: 0, space: 0 };
+  const lastPlayed = { attack: -1e9, q: -1e9, space: -1e9 };
+  function localSounds(input, snap) {
+    if (!window.Sound || !snap) return;
+    const me = snap.players.find((p) => p.id === App.me);
+    if (!me || me.downed || snap.paused || snap.transition) return;
+    const hero = DC.data.HEROES[me.heroClass];
+    const now = performance.now();
+    const tryPlay = (key, skill, name) => {
+      const serverLeft = me.cd ? me.cd[key] : 0;
+      const prev = lastLeft[key];
+      lastLeft[key] = serverLeft;
+      if (serverLeft > prev + 0.2) {
+        // The server just fired one. If I didn't already play it, play it now,
+        // and follow the server's cooldown from here.
+        if (now - lastPlayed[key] > 250) { Sound.play(name); lastPlayed[key] = now; }
+        localNext[key] = now + serverLeft * 1000 - 30;
+        return;
+      }
+      if (!input[key] || now < localNext[key]) return;
+      if (skill.mana && (me.mana || 0) < skill.mana) return;
+      localNext[key] = now + skill.cd * 1000;
+      lastPlayed[key] = now;
+      Sound.play(name);
+    };
+    tryPlay('attack', hero.attack, ATTACK_SOUND[me.heroClass]);
+    tryPlay('q', hero.q, SKILL_SOUND[me.heroClass][0]);
+    tryPlay('space', hero.space, SKILL_SOUND[me.heroClass][1]);
   }
 
   function drawBar(g, x, y, frac, color, width = 36) {
