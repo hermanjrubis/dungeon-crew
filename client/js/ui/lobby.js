@@ -56,8 +56,8 @@
     desc: 'Fights with a wrench and lets gadgets do the work. Passive Scrapper: earns 10% more gold.',
     stats: [['Health', 2], ['Damage', 2], ['Speed', 4], ['Range', 4]],
     skills: [
-      ['Q', 'Turret', 'every 12s', 'Builds a turret that shoots the nearest monster for 15s.'],
-      ['Space', 'Mine', 'every 6s', 'Lays a mine that explodes when a monster steps close. Up to 2.']
+      ['Q', 'Turret', 'every 6s', 'Builds a turret that shoots the nearest monster for 15s. Up to 3.'],
+      ['Space', 'Mine', 'every 2.5s', 'Lays a mine that explodes when a monster steps close. Up to 5.']
     ]
   };
   const STAT_VALUES = {

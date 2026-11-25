@@ -52,8 +52,8 @@
       name: 'Engineer', hp: 95, baseDmg: 9, speed: 175, mana: 0, goldBonus: 0.1,
       starter: { name: 'Rusty Wrench', bonus: 3 },
       attack: { kind: 'swing', arc: 80, range: 56, cd: 0.45 },
-      q: { name: 'Turret', cd: 12, duration: 15, range: 390, every: 0.42, dmg: 14, speed: 560, ttl: 0.9 },
-      space: { name: 'Mine', cd: 6, armTime: 0.5, trigger: 28, radius: 72, dmg: 30, duration: 20, max: 2 }
+      q: { name: 'Turret', cd: 6, max: 3, duration: 15, range: 390, every: 0.42, dmg: 14, speed: 560, ttl: 0.9 },
+      space: { name: 'Mine', cd: 2.5, armTime: 0.5, trigger: 28, radius: 72, dmg: 30, duration: 25, max: 5 }
     },
     // Support. Passive Kind Hands: revives teammates twice as fast.
     cleric: {

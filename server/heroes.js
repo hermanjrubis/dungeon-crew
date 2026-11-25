@@ -156,8 +156,9 @@ function skillQ(game, p, hero) {
     // Boulder Toss: rolls straight on, hitting every monster once.
     shoot(game, p, 'boulder', s.speed, s.ttl, s.dmg, { r: s.r, pierce: true, hitIds: [], push: s.push, stun: s.stun });
   } else if (p.heroClass === 'engineer') {
-    // Turret: one per Engineer; a new one replaces the old.
-    game.zones = game.zones.filter((z) => !(z.kind === 'turret' && z.ownerId === p.id));
+    // Turret: up to `max` per Engineer; the oldest goes when one more is built.
+    const built = game.zones.filter((z) => z.kind === 'turret' && z.ownerId === p.id);
+    if (built.length >= s.max) game.zones = game.zones.filter((z) => z !== built[0]);
     game.addZone({
       kind: 'turret', ownerId: p.id, x: p.x, y: p.y, r: s.range, until: game.time + s.duration,
       nextShot: game.time + s.every, every: s.every, dmg: s.dmg + p.weaponBonus, speed: s.speed, ttl: s.ttl

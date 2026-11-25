@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const { HEROES } = require('../shared/data');
 const data = require('../shared/data');
 const { makeGame, run, center, ARENA } = require('./helpers');
 
@@ -127,19 +128,24 @@ test('a turret shoots the nearest monster for 15 s', () => {
   assert.ok(!game.zones.some((z) => z.kind === 'turret'), 'gone after 15 s');
 });
 
-test('a new turret replaces the old one, but two engineers keep one each', () => {
+test('an Engineer keeps up to 3 turrets; a 4th replaces the oldest; each engineer has their own', () => {
   const game = makeGame(['engineer', 'engineer'], ROOMS);
   dummy(game, 'gloop', 20, 2);
-  press(game, 'p0', { q: true });
-  game.tick(0.05);
-  me(game).cd.q = 0;
-  press(game, 'p0', {});
-  game.tick(0.05);
-  press(game, 'p0', { q: true });
+  assert.strictEqual(HEROES.engineer.q.max, 3);
+  assert.strictEqual(HEROES.engineer.q.cd, 6);
+  for (let i = 0; i < 4; i++) {
+    at(game, 0, 3 + i * 2, 8);
+    me(game).cd.q = 0;
+    press(game, 'p0', { q: true });
+    game.tick(0.05);
+    press(game, 'p0', {});
+    game.tick(0.05);
+  }
   press(game, 'p1', { q: true });
   game.tick(0.05);
-  const turrets = game.zones.filter((z) => z.kind === 'turret');
-  assert.deepStrictEqual(turrets.map((t) => t.ownerId).sort(), ['p0', 'p1']);
+  const mine = game.zones.filter((z) => z.kind === 'turret' && z.ownerId === 'p0');
+  assert.deepStrictEqual(mine.map((t) => Math.round(t.x)), [center(5, 8).x, center(7, 8).x, center(9, 8).x]);
+  assert.strictEqual(game.zones.filter((z) => z.kind === 'turret' && z.ownerId === 'p1').length, 1);
 });
 
 test('mines arm, then blow up when a monster steps close', () => {
@@ -162,11 +168,12 @@ test('mines arm, then blow up when a monster steps close', () => {
   assert.strictEqual(keep.hp, keep.maxHp);
 });
 
-test('at most two mines', () => {
+test('up to five mines, laid every 2.5 s; a sixth replaces the oldest', () => {
   const game = makeGame(['engineer'], ROOMS);
   dummy(game, 'gloop', 20, 2);
-  for (let i = 0; i < 3; i++) {
-    at(game, 0, 3 + i * 3, 8);
+  assert.deepStrictEqual([HEROES.engineer.space.max, HEROES.engineer.space.cd], [5, 2.5]);
+  for (let i = 0; i < 6; i++) {
+    at(game, 0, 3 + i * 2, 8);
     me(game).cd.space = 0;
     press(game, 'p0', { space: true });
     game.tick(0.05);
@@ -174,8 +181,7 @@ test('at most two mines', () => {
     game.tick(0.05);
   }
   const mines = game.zones.filter((z) => z.kind === 'mine');
-  assert.strictEqual(mines.length, 2);
-  assert.deepStrictEqual(mines.map((m) => Math.round(m.x)), [center(6, 8).x, center(9, 8).x]);
+  assert.deepStrictEqual(mines.map((m) => Math.round(m.x)), [5, 7, 9, 11, 13].map((tx) => center(tx, 8).x));
 });
 
 test('turrets and mines vanish when the room changes', () => {

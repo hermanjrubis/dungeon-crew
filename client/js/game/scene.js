@@ -1667,11 +1667,18 @@
     else if (ev.type === 'pickup') { Sound.play(ev.kind === 'coins' ? 'coin' : 'pickup', { vol: ev.playerId === me ? 1 : 0.5 }); return; }
     else if (ev.type === 'revived') name = 'revive';
     else if (ev.type === 'transition' && ev.kind === 'boss') name = 'roar';
+    else if (ev.type === 'turretfire') {
+      // several turrets firing together: one shot sound at most every 0.12 s
+      const now = performance.now();
+      if (now - lastTurretSound < 120) return;
+      lastTurretSound = now;
+    }
     if (name) Sound.play(name);
   }
 
   // Play my attack/skill sound the moment I press, if the server will allow it
   // (same cooldowns and mana it uses). The server's echo of it is skipped.
+  let lastTurretSound = 0;
   const localNext = { attack: 0, q: 0, space: 0 };
   const lastLeft = { attack: 0, q: 0, space: 0 };
   const lastPlayed = { attack: -1e9, q: -1e9, space: -1e9 };
