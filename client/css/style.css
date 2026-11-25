@@ -282,7 +282,7 @@ kbd {
 .shop-timer.urgent .shop-timer-text { color: var(--red); animation: blink .5s steps(2) infinite; }
 .shop-timer.urgent .shop-timer-fill { background: var(--red); }
 .end-card .res-stats { max-width: 220px; }
-#end { position: relative; overflow: hidden; }
+#end { overflow: hidden; } /* stays fixed full-screen like the other screens */
 #end .end-card { position: relative; z-index: 1; }
 
 /* sound controls (menu + pause) */
@@ -458,3 +458,26 @@ kbd { border-radius: 0; border: 3px solid var(--frame-out); background: #2E2440;
   .hero-list { grid-template-columns: repeat(3, 1fr); }
   .hero-preview { min-height: 280px; }
 }
+
+/* ---------- plain-text badges and trophies (no pill boxes) ---------- */
+.badge, .badge-mvp, .badge-lifesaver, .badge-untouchable {
+  background: none !important; border: none !important; box-shadow: none !important; clip-path: none !important;
+  padding: 0; border-radius: 0; font-size: 18px; letter-spacing: .06em;
+}
+.badge-mvp { color: #F2C14E; text-shadow: 0 2px 0 #5A3A10; }
+.trophy {
+  display: inline-flex; align-items: center; gap: 8px; padding: 0; border: none !important; background: none !important;
+  box-shadow: none !important; clip-path: none !important; border-radius: 0; font-size: 18px; color: #F2C14E;
+}
+.trophy .px-icon { width: 32px; height: 32px; image-rendering: pixelated; }
+.trophy-name { color: #F2C14E; text-shadow: 0 2px 0 #3A2408; }
+.trophy-tag { color: #C77DFF; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; }
+.trophy-label { color: #B3AAC8; font-size: 17px; margin-right: 6px; }
+.trophies { gap: 22px; }
+
+/* ---------- text is part of the picture: no highlighting when you click or drag ---------- */
+body, button, label, h1, h2, h3, p, span, b, div {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
+img { -webkit-user-drag: none; user-drag: none; }

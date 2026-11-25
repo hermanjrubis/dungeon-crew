@@ -174,6 +174,7 @@
   const FINAL_BOSS = ['the Gloop Mother', 'the Spore Queen', 'the Hollow King', 'Ashmaw', 'the Rothand Wyrm', 'Prismaurus'];
   const COUNT_WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
   const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  const smallIcon = (id, cls) => (window.DC && DC.icons ? `<img class="px-icon" src="${DC.icons.iconUrl(id, cls)}" width="32" height="32" alt="">` : '');
   function renderVictory(state) {
     const root = document.getElementById('end');
     const mins = Math.floor(state.time / 60);
@@ -188,8 +189,8 @@
         <span class="muted small">${esc(HEROES[p.heroClass].name)} · Level ${p.level}</span>
         <span class="hud-gold">${p.gold} gold</span>
         <div class="res-stats">${Results.STATS.map(([k, label]) => `<span class="muted small">${label}</span><span class="res-num">${r[k] || 0}</span>`).join('')}</div>
-        <div class="res-badges">${(r.badges || []).map((b) => `<span class="badge badge-${b}">${Results.BADGES[b].label}</span>`).join('')}</div>
-        <span class="trophy">${esc(TROPHY_WEAPONS[p.heroClass])}<span class="muted small"> · Legendary</span></span>
+        <div class="res-badges">${(r.badges || []).map((b) => `<span class="badge badge-${b}">★ ${Results.BADGES[b].label}</span>`).join('')}</div>
+        <span class="trophy">${smallIcon('weapon5', p.heroClass)}<span class="trophy-name">${esc(TROPHY_WEAPONS[p.heroClass])}</span><span class="trophy-tag">Legendary</span></span>
       </div>`;
     }).join('');
     root.innerHTML = `
@@ -199,9 +200,9 @@
         <p class="lead">Your crew cleared all ${COUNT_WORDS[state.floorIndex] || state.floorIndex + 1} floors of the dungeon in ${mins}:${secs}.</p>
         <div class="end-team">${cards}</div>
         <div class="trophies">
-          <span class="muted small">The dungeon's hoard</span>
-          <span class="trophy">Phoenix Feather</span>
-          <span class="trophy">300 gold each</span>
+          <span class="trophy-label">The dungeon's hoard</span>
+          <span class="trophy">${smallIcon('feather')}<span class="trophy-name">Phoenix Feather</span></span>
+          <span class="trophy">${smallIcon('coin')}<span class="trophy-name">300 gold each</span></span>
         </div>
         ${END_BUTTONS}
       </div>

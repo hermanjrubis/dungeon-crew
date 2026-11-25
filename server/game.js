@@ -49,7 +49,7 @@ class Game {
     this.transition = null; // the title card on screen: { kind, title, subtitle, until }
     this.shopAt = null;     // when the floor-cleared card ends and the shop opens
     this.floors = rooms
-      ? [{ ...FLOORS[0], power: null, rooms: rooms.map((layout) => ({ layout })) }]
+      ? [{ ...FLOORS[0], power: null, bossPower: null, crowd: null, rooms: rooms.map((layout) => ({ layout })) }]
       : floors;
     this.roomIndex = 0;
     this.time = 0;
@@ -129,6 +129,7 @@ class Game {
     this.tauntBy = null;
     forge.reset(this, layout);
     for (const s of this.room.spawns) this.spawnEnemy(s.type, s.x, s.y);
+    this.spawnCrowd();
     for (const p of this.players.values()) {
       p.x = this.room.entry.x;
       p.y = this.room.entry.y;
@@ -424,18 +425,48 @@ class Game {
     return (this.floor && this.floor.power) || { hp: 1, dmg: 1 };
   }
 
-  // A monster's damage number scaled for this floor (for bosses' special attacks).
+  // A monster's damage number scaled for this floor (poison puddles, acid).
   monsterDamage(amount) {
     return Math.round(amount * this.power().dmg);
+  }
+
+  // Bosses hit harder than the floor's monsters: floor power times the floor's boss power.
+  bossPower() {
+    return (this.floor && this.floor.bossPower) || { hp: 1, dmg: 1 };
+  }
+
+  bossDamage(amount) {
+    return Math.round(amount * this.power().dmg * this.bossPower().dmg);
+  }
+
+  // Floor 3 and up: extra copies of each room's normal monsters, placed on open floor next to them.
+  spawnCrowd() {
+    const crowd = (this.floor && this.floor.crowd) || 1;
+    const normal = this.enemies.filter((e) => !e.boss && !e.summonedBy);
+    const extra = Math.round(normal.length * (crowd - 1));
+    const T = tiles.TILE;
+    const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1], [2, 0], [0, 2], [-2, 0], [0, -2]];
+    for (let i = 0; i < extra; i++) {
+      const base = normal[i % normal.length];
+      for (let k = 0; k < dirs.length; k++) {
+        const [dx, dy] = dirs[(k + i) % dirs.length];
+        const x = base.x + dx * T, y = base.y + dy * T;
+        const r = data.MONSTERS[base.type].r;
+        if (tiles.tileAt(this.room, x, y) !== 'f' || tiles.hits(this.room, x, y, r, { flying: base.flying })) continue;
+        this.spawnEnemy(base.type, x, y);
+        break;
+      }
+    }
   }
 
   spawnEnemy(type, x, y, opts = {}) {
     const m = data.MONSTERS[type];
     const power = this.power();
-    let hp = m.hp > 1 ? Math.round(m.hp * power.hp) : m.hp;
+    const boss = m.boss ? this.bossPower() : { hp: 1, dmg: 1 };
+    let hp = m.hp > 1 ? Math.round(m.hp * power.hp * boss.hp) : m.hp;
     if (m.hpPerExtraPlayer) hp = Math.round(hp * (1 + m.hpPerExtraPlayer * (this.startCount - 1)));
     const e = {
-      id: this.nextId++, type, x, y, r: m.r, hp, maxHp: hp, dmg: Math.round(m.dmg * power.dmg), speed: m.speed,
+      id: this.nextId++, type, x, y, r: m.r, hp, maxHp: hp, dmg: Math.round(m.dmg * power.dmg * boss.dmg), speed: m.speed,
       flying: !!m.flying, boss: !!m.boss, state: 'idle', stateUntil: 0, targetId: null,
       noReward: !!opts.noReward, invulnerable: false, stunUntil: 0, hitAt: {}, slows: {},
       timers: {}

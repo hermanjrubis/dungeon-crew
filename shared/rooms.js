@@ -194,6 +194,7 @@
     {
       name: FLOOR1_NAME,
       power: { hp: 1.5, dmg: 1.3 }, // monsters' HP and damage multipliers on this floor
+      bossPower: { hp: 1.2, dmg: 1.15 }, // the boss gets this on top of power
       targetTime: 240, // seconds for the 'fast' star
       roomNames: FLOOR1_ROOM_NAMES,
       shop: 'cellar',
@@ -214,6 +215,7 @@
     {
       name: FLOOR2_NAME,
       power: { hp: 1.75, dmg: 1.45 }, // monsters' HP and damage multipliers on this floor
+      bossPower: { hp: 1.3, dmg: 1.25 }, // the boss gets this on top of power
       targetTime: 300, // seconds for the 'fast' star
       roomNames: FLOOR2_ROOM_NAMES,
       shop: 'forge',
@@ -237,6 +239,8 @@
     {
       name: FLOOR3_NAME,
       power: { hp: 2, dmg: 1.6 }, // monsters' HP and damage multipliers on this floor
+      bossPower: { hp: 1.4, dmg: 1.3 }, // the boss gets this on top of power
+      crowd: 1.35, // this many times the normal monsters in each room
       targetTime: 360, // seconds for the 'fast' star
       roomNames: FLOOR3_ROOM_NAMES,
       shop: 'crown',
@@ -262,6 +266,8 @@
     {
       name: FLOOR4_NAME,
       power: { hp: 2.25, dmg: 1.75 }, // monsters' HP and damage multipliers on this floor
+      bossPower: { hp: 1.5, dmg: 1.4 }, // the boss gets this on top of power
+      crowd: 1.5, // this many times the normal monsters in each room
       targetTime: 300, // seconds for the 'fast' star
       roomNames: FLOOR4_ROOM_NAMES,
       shop: 'roost',
@@ -277,6 +283,8 @@
     {
       name: FLOOR5_NAME,
       power: { hp: 2.5, dmg: 1.9 },
+      bossPower: { hp: 1.6, dmg: 1.45 }, // the boss gets this on top of power
+      crowd: 1.65, // this many times the normal monsters in each room
       targetTime: 330, // seconds for the 'fast' star
       roomNames: FLOOR5_ROOM_NAMES,
       shop: 'warrens',
@@ -300,6 +308,8 @@
     {
       name: FLOOR6_NAME,
       power: { hp: 2.75, dmg: 2.05 },
+      bossPower: { hp: 1.7, dmg: 1.5 }, // the boss gets this on top of power
+      crowd: 1.8, // this many times the normal monsters in each room
       targetTime: 360, // seconds for the 'fast' star
       roomNames: FLOOR6_ROOM_NAMES,
       shop: null, // the last floor: beating Prismaurus ends the run

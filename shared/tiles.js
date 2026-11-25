@@ -86,5 +86,5 @@
     return Math.floor(py / TILE) * room.w + Math.floor(px / TILE);
   }
 
-  return { TILE, ROOM_W, ROOM_H, SPAWN_LETTERS, parseRoom, tileAt, isSolid, moveWithCollision, tileIndex };
+  return { TILE, ROOM_W, ROOM_H, SPAWN_LETTERS, parseRoom, tileAt, isSolid, moveWithCollision, tileIndex, hits };
 });

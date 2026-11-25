@@ -167,7 +167,7 @@ function breath(game, e) {
   for (const p of game.alivePlayers()) {
     if (dist(p, e) > BREATH_RANGE + p.r) continue;
     if (angleDiff(Math.atan2(p.y - e.y, p.x - e.x), e.breathAim) > BREATH_SPREAD / 2) continue;
-    if (game.damagePlayer(p, fireDamage(game, p, game.monsterDamage(BREATH_DAMAGE)), 'dragonfire') > 0) game.burnPlayer(p);
+    if (game.damagePlayer(p, fireDamage(game, p, game.bossDamage(BREATH_DAMAGE)), 'dragonfire') > 0) game.burnPlayer(p);
   }
   game.event({ type: 'breath', x: Math.round(e.x), y: Math.round(e.y), aim: Math.round(e.breathAim * 100) / 100, r: BREATH_RANGE });
   done(game, e);
@@ -199,7 +199,7 @@ function gust(game, e) {
 
 function tailSwipe(game, e) {
   for (const p of game.alivePlayers()) {
-    if (dist(p, e) <= TAIL_RANGE + p.r && isBehind(e, p)) game.damagePlayer(p, game.monsterDamage(TAIL_DAMAGE), e);
+    if (dist(p, e) <= TAIL_RANGE + p.r && isBehind(e, p)) game.damagePlayer(p, game.bossDamage(TAIL_DAMAGE), e);
   }
   game.event({ type: 'tail', x: Math.round(e.x), y: Math.round(e.y), aim: Math.round((e.facing + Math.PI) * 100) / 100 });
   e.state = 'walk';
@@ -231,7 +231,7 @@ function startMeteors(game, e) {
 
 function meteors(game, e) {
   for (const p of game.alivePlayers()) {
-    if (e.marks.some((m) => dist(p, m) <= METEOR_RADIUS)) game.damagePlayer(p, fireDamage(game, p, game.monsterDamage(METEOR_DAMAGE)), 'meteor');
+    if (e.marks.some((m) => dist(p, m) <= METEOR_RADIUS)) game.damagePlayer(p, fireDamage(game, p, game.bossDamage(METEOR_DAMAGE)), 'meteor');
   }
   game.event({ type: 'meteor', marks: e.marks.map((m) => ({ x: Math.round(m.x), y: Math.round(m.y) })) });
   // Land in the middle of the island (or where it took off).

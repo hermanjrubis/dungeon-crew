@@ -115,7 +115,7 @@ function releaseStorm(game, e) {
   const circles = e.safeCircles || [];
   for (const p of game.alivePlayers()) {
     if (circles.some((c) => dist(p, c) <= c.r)) continue;
-    const dmg = Math.round(game.monsterDamage(STORM_DAMAGE) * (1 - game.playerPoisonResist(p)));
+    const dmg = Math.round(game.bossDamage(STORM_DAMAGE) * (1 - game.playerPoisonResist(p)));
     game.damagePlayer(p, dmg, 'spores', { ignoreDefense: true });
   }
   e.state = 'idle';
@@ -128,7 +128,7 @@ function landVines(game, e) {
     e.vines.splice(e.vines.indexOf(v), 1);
     for (const p of game.alivePlayers()) {
       if (dist(p, v) > VINE_RADIUS) continue;
-      game.damagePlayer(p, game.monsterDamage(VINE_DAMAGE), 'vines');
+      game.damagePlayer(p, game.bossDamage(VINE_DAMAGE), 'vines');
       p.rootUntil = game.time + ROOT_TIME;
       game.event({ type: 'rooted', targetId: p.id, x: Math.round(p.x), y: Math.round(p.y) });
     }
